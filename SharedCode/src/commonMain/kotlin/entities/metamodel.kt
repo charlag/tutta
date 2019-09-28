@@ -1,6 +1,7 @@
 package com.charlag.tuta.entities
 
 import kotlinx.serialization.*
+import kotlinx.serialization.internal.SerialClassDescImpl
 import kotlin.reflect.KClass
 
 enum class MetamodelType {
@@ -50,23 +51,26 @@ data class TypeInfo<T : Any>(
     val serializer: KSerializer<T>
 )
 
-@Serializable(with = Id.IdSerilizer::class)
-abstract class Id {
-    abstract fun asString(): String
+object IdSerilizer : KSerializer<Id> {
+    override val descriptor = object : SerialClassDescImpl("IdSerializier") {
+        override val kind = PrimitiveKind.STRING
+    }
 
-    @Serializer(forClass = Id::class)
-    companion object IdSerilizer: KSerializer<Id> {
-        override fun serialize(encoder: Encoder, obj: Id) {
-            encoder.encodeString(obj.asString())
-        }
+    override fun serialize(encoder: Encoder, obj: Id) {
+        encoder.encodeString(obj.asString())
+    }
 
-        override fun deserialize(decoder: Decoder): Id {
-            return GeneratedId(decoder.decodeString())
-        }
+    override fun deserialize(decoder: Decoder): Id {
+        return GeneratedId(decoder.decodeString())
     }
 }
 
-@Serializable(with = Id.IdSerilizer::class)
+@Serializable(with = IdSerilizer::class)
+abstract class Id {
+    abstract fun asString(): String
+}
+
+@Serializable(with = IdSerilizer::class)
 data class GeneratedId(val stringData: String) : Id() {
     // TODO
     override fun asString(): String = stringData
@@ -78,7 +82,7 @@ data class CustomId(val stringData: String) : Id() {
     override fun asString(): String = stringData
 
     @Serializer(forClass = Id::class)
-    companion object IdSerilizer: KSerializer<Id> {
+    companion object IdSerilizer : KSerializer<Id> {
         override fun serialize(encoder: Encoder, obj: Id) {
             encoder.encodeString(obj.asString())
         }

@@ -19,6 +19,7 @@ object DateSerializer : KSerializer<Date> {
     }
 }
 
+@Serializer(forClass = ByteArray::class)
 object ByteArraySerializer : KSerializer<ByteArray> {
     override val descriptor: SerialDescriptor = SerialClassDescImpl("ByteArray")
 

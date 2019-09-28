@@ -1,7 +1,6 @@
 package com.charlag.tuta
 
 import com.charlag.tuta.entities.ByteArraySerializer
-import com.charlag.tuta.entities.Entity
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.EnumDescriptor
 import kotlinx.serialization.modules.EmptyModule
@@ -23,7 +22,7 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
         return MapperMapInput(map).decode(deserializer)
     }
 
-    private inner abstract class Mapperinput(val obj: Any?) : NamedValueDecoder() {
+    private abstract inner class Mapperinput(val obj: Any?) : NamedValueDecoder() {
         override val context: SerialModule
             get() = this@NestedMapper.context
 
@@ -37,6 +36,10 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
         override fun decodeTaggedValue(tag: String): Any {
             val o = getByTag(tag) ?: throw MissingFieldException(tag)
             return o
+        }
+
+        override fun decodeTaggedNotNullMark(tag: String): Boolean {
+            return getByTag(tag) != null
         }
 
         override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
@@ -64,8 +67,6 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
     }
 
     private inner class MapperMapInput(val map: Map<String, Any?>) : Mapperinput(map) {
-        private val keys = map.keys.toList()
-        private val size: Int = keys.size * 2
         private var pos = 0
 
         override fun decodeElementIndex(desc: SerialDescriptor): Int {

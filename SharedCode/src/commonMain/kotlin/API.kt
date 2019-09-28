@@ -1,6 +1,7 @@
 package com.charlag.tuta
 
 import com.charlag.tuta.entities.*
+import com.charlag.tuta.entities.AssociationType.*
 import com.charlag.tuta.entities.sys.*
 import io.ktor.client.HttpClient
 import io.ktor.client.features.feature
@@ -30,7 +31,8 @@ class API(
     val baseUrl: String,
     val cryptor: Cryptor,
     val typeModelByName: Map<String, TypeInfo<*>>,
-    val groupKeysCache: GroupKeysCache
+    val groupKeysCache: GroupKeysCache,
+    var accessToken: String?
 ) : SessionKeyLoaders {
     private val json = Json(JsonConfiguration.Stable)
 
@@ -51,12 +53,6 @@ class API(
             authVerifier = authVerifier,
             clientIdentifier = "Multiplatform test"
         )
-//        val serializer = httpClient.feature(JsonFeature)!!.serializer
-//
-//        return httpClient.post<JsonObject> {
-//            url(address)
-//            body = serializer.write(postData)
-//        }.let { deserializeEntitity(it, CreateSessionReturn::class) }
         return post("sys/sessionservice", postData, CreateSessionReturn::class)!!
     }
 
@@ -83,11 +79,20 @@ class API(
         val typeModel = getTypeModelByClass(klass)
         if (typeModel.type != MetamodelType.LIST_ELEMENT_TYPE) error("Only list elements are allowed to be loaded in range")
         return httpClient.get<JsonArray> {
+            commonHeaders()
             parameter("start", start)
             parameter("count", count)
             parameter("reverse", reverse.toString())
             url(baseUrl + "sys/${typeModel.name.toLowerCase()}/${listId}")
         }.map { deserializeEntitity(it as JsonObject, klass) }
+    }
+
+    fun HttpRequestBuilder.commonHeaders() {
+        header("cv", "3.59.16")
+        header("v", "49")
+        accessToken?.let {
+            header("accessToken", it)
+        }
     }
 
     fun getTypeModelByClass(klass: KClass<*>): TypeModel =
@@ -112,6 +117,7 @@ class API(
         val address = Url(baseUrl + path)
 
         return httpClient.get<JsonObject?> {
+            commonHeaders()
             url(address)
         }?.let { deserializeEntitity(it, responseClass) }
     }
@@ -124,11 +130,10 @@ class API(
         val serializedEntity = requestEntity?.let { serializeEntity(it) }
         val serializer = httpClient.feature(JsonFeature)!!.serializer
         val address = Url(baseUrl + path)
-
         return httpClient.post<JsonObject?> {
+            commonHeaders()
             url(address)
-            header("cv", "3.59.16")
-            header("v", "49")
+
             if (serializedEntity != null) body = serializer.write(serializedEntity)
         }?.let { deserializeEntitity(it, responseClass) }
     }
@@ -207,7 +212,7 @@ class API(
                 val refTypeModel = typeModelByName[assocModel.refType]!!.typemodel
                 @Suppress("UNCHECKED_CAST")
                 when (assocModel.type) {
-                    AssociationType.AGGREGATION -> when (assocModel.cardinality) {
+                    AGGREGATION -> when (assocModel.cardinality) {
                         Cardinality.Any -> (value as List<Map<String, Any?>>).map {
                             encryptAndMapToLiteral(it, refTypeModel, sessionKey)
                         }.let(::JsonArray)
@@ -246,17 +251,28 @@ class API(
                 val refTypeModel = typeModelByName[assocModel.refType]!!.typemodel
                 @Suppress("UNCHECKED_CAST")
                 when (assocModel.type) {
-                    AssociationType.AGGREGATION -> when (assocModel.cardinality) {
+                    AGGREGATION -> when (assocModel.cardinality) {
                         Cardinality.Any -> (value as JsonArray).map {
                             decryptAndMapToMap(it as JsonObject, refTypeModel, sessionKey)
                         }
+                        Cardinality.ZeroOrOne ->
+                            if (value is JsonNull) null
+                            else decryptAndMapToMap(
+                                value as JsonObject,
+                                refTypeModel,
+                                sessionKey
+                            )
                         else -> decryptAndMapToMap(
                             value as JsonObject,
                             refTypeModel,
                             sessionKey
                         )
                     }
-                    else -> value
+                    ELEMENT_ASSOCIATION, LIST_ASSOCIATION -> value.content
+                    LIST_ELEMENT_ASSOCIATION -> listOf(
+                        value.jsonArray[0].content,
+                        value.jsonArray[1].content
+                    )
                 }
             }
         }

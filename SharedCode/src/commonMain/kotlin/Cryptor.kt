@@ -33,5 +33,5 @@ suspend fun Cryptor.encryptKey(pplaintextKey: ByteArray, encryptionKey: ByteArra
 }
 
 suspend fun Cryptor.decryptKey(encryptedKey: ByteArray, encryptionKey: ByteArray): ByteArray {
-    return decrypt(encryptedKey, fixedIv + encryptionKey, false)
+    return decrypt(fixedIv + encryptedKey, encryptionKey, false)
 }

@@ -26,8 +26,6 @@ class MainActivity : AppCompatActivity() {
         val loginButton = findViewById<Button>(R.id.login_btn)
         val statusLabel = findViewById<TextView>(R.id.status_tv)
 
-        // auth verifier "hl2y-Y3k6KRDDa-ly1lO8p29LmeO62E4AxaJu3DaXz8"
-
         loginButton.setOnClickListener {
             val email = emailField.text.toString()
             val password = passwordField.text.toString()
@@ -51,7 +49,8 @@ class MainActivity : AppCompatActivity() {
                         val cryptor = Cryptor()
                         val api = API(
                             httpClient, "https://mail.tutanota.com/rest/", cryptor,
-                            typemodelMap, groupKeysCache
+                            typemodelMap, groupKeysCache,
+                            accessToken = null
                         )
                         LoginFacade(cryptor, api, groupKeysCache).createSession(email, password)
                     }

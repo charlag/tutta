@@ -77,7 +77,7 @@ actual class Cryptor {
                 value
             }
             val iv = actualEncryptedData.copyOfRange(0, AES_KEY_LENGTH_BYTES)
-            val cipher = Cipher.getInstance(AES_MODE_PADDING)
+            val cipher = Cipher.getInstance(if (usePadding) AES_MODE_PADDING else AES_MODE_NO_PADDING)
             val params = IvParameterSpec(iv)
             cipher.init(Cipher.DECRYPT_MODE, bytesToKey(cKey), params)
             val result = cipher.doFinal(

@@ -1,22 +1,46 @@
-@file:ContextualSerialization(
-    Id::class,
-    GeneratedId::class,
-    CustomId::class,
-    ByteArray::class,
-    Date::class
+@file:UseSerializers(
+    ByteArraySerializer::class,
+    DateSerializer::class
 )
 
 package com.charlag.tuta.entities.sys
 
 import com.charlag.tuta.entities.*
-import kotlinx.serialization.ContextualSerialization
-
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Serializer
-import kotlinx.serialization.internal.ByteSerializer
+import kotlinx.serialization.*
+import kotlinx.serialization.internal.ArrayListSerializer
+import kotlinx.serialization.internal.SerialClassDescImpl
+import kotlinx.serialization.internal.StringSerializer
 
 @Serializable
-data class IdTuple(val listId: Id, val elementId: Id)
+data class IdTuple(val listId: Id, val elementId: Id) {
+    @Serializer(forClass = IdTuple::class)
+    companion object : KSerializer<IdTuple> {
+        override val descriptor: SerialDescriptor = object : SerialClassDescImpl("IdTuple") {
+            override val kind: SerialKind = StructureKind.LIST
+        }
+
+        override fun serialize(encoder: Encoder, obj: IdTuple) {
+            val listDecoder = encoder.beginCollection(
+                ArrayListSerializer(StringSerializer).descriptor,
+                2
+            )
+            listDecoder.encodeStringElement(descriptor, 0, obj.listId.asString())
+            listDecoder.encodeStringElement(descriptor, 1, obj.elementId.asString())
+            listDecoder.endStructure(descriptor)
+        }
+
+        override fun deserialize(decoder: Decoder): IdTuple {
+            val listDecoder =
+                decoder.beginStructure(ArrayListSerializer(StringSerializer).descriptor)
+            val idTuple = IdTuple(
+                GeneratedId(listDecoder.decodeStringElement(descriptor, 0)),
+                GeneratedId(listDecoder.decodeStringElement(descriptor, 1))
+            )
+            listDecoder.endStructure(descriptor)
+            return idTuple
+        }
+    }
+}
 
 @Serializable
 data class KeyPair(
