@@ -1,6 +1,7 @@
 package com.charlag.tuta
 
 import at.favre.lib.crypto.bcrypt.BCrypt
+import at.favre.lib.crypto.bcrypt.BCrypt.Version.VERSION_BC
 import java.io.ByteArrayOutputStream
 import java.security.InvalidAlgorithmParameterException
 import java.security.InvalidKeyException
@@ -160,8 +161,6 @@ actual class Cryptor {
         passphrase: ByteArray,
         salt: ByteArray
     ): ByteArray {
-        return BCrypt.Version.VERSION_2A.formatter.createHashMessage(
-            BCrypt.withDefaults().hashRaw(rounds, salt, passphrase)
-        )
+        return BCrypt.with(VERSION_BC).hashRaw(rounds, salt, passphrase).rawHash
     }
 }

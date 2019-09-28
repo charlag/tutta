@@ -21,7 +21,7 @@ function serializeAssociation(assoc) {
   return `Association(
 	type = ${assoc.type},
   cardinality = ${assoc.cardinality},
-	refType = "${assoc.refType}TypeModel",
+	refType = "${assoc.refType}",
 	final = ${assoc.final},
 	external = ${assoc.external || false}
 )`
@@ -85,15 +85,7 @@ function assocToType(assoc) {
     const jsonText = fs.readFileSync(dir + "/" + file, "utf8")
     const typeName = file.slice(0, -5)
     const model = JSON.parse(jsonText)
-    const mapping = `package com.charlag.tuta.entities.sys
-
-import com.charlag.tuta.entities.*
-import com.charlag.tuta.entities.MetamodelType.*
-import com.charlag.tuta.entities.Cardinality.*
-import com.charlag.tuta.entities.ValueType.*
-import com.charlag.tuta.entities.AssociationType.*
-
-val ${typeName}TypeModel: TypeModel = TypeModel(
+    const mapping = `TypeModel(
 	  name = "${model.name}",
 	  encrypted = ${model.encrypted},
     type = ${model.type},
@@ -101,12 +93,11 @@ val ${typeName}TypeModel: TypeModel = TypeModel(
     rootId = "${model.rootId}",
     values = ${serializeValues(model)},
 	  associations = ${serializeAssociations(model)}
-)
-`
+)`
     //console.log(mapping)
-    fs.writeFileSync(`./src/commonMain/kotlin/entities/sys/${typeName}TypeModel.kt`, mapping)
+    // fs.writeFileSync(`./src/commonMain/kotlin/entities/sys/${typeName}TypeModel.kt`, mapping)
 
-  mappingPairs.push(`TypeInfo(${typeName}::class, ${typeName}TypeModel, ${typeName}.serializer())`)
+  mappingPairs.push(`TypeInfo(${typeName}::class, ${mapping}, ${typeName}.serializer())`)
 }
 
                                    const classMapping = `
@@ -114,6 +105,11 @@ package com.charlag.tuta.entities.sys
 
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.sys.*
+import com.charlag.tuta.entities.*
+import com.charlag.tuta.entities.MetamodelType.*
+import com.charlag.tuta.entities.Cardinality.*
+import com.charlag.tuta.entities.ValueType.*
+import com.charlag.tuta.entities.AssociationType.*
 
 val typeInfos = listOf(
 	${mappingPairs.join(",\n\t")}

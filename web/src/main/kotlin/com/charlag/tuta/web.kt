@@ -30,8 +30,9 @@ fun main(args: Array<String>) {
                     }
                 }
                 val cryptor = Cryptor()
+                val url = if (platformName() == "JS") "http://localhost:9000/rest" else "https://mail.tutanota.com/rest/"
                 val api = API(
-                    httpClient, "https://mail.tutanota.com/rest/", cryptor,
+                    httpClient, url, cryptor,
                     typemodelMap, groupKeysCache
                 )
                 LoginFacade(cryptor, api, groupKeysCache).createSession(email, password)

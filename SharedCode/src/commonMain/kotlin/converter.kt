@@ -5,7 +5,7 @@ expect fun base64ToBytes(base64: String): ByteArray
 expect fun ByteArray.toBase64(): String
 
 fun base64ToBase64Url(base64: String): String =
-    base64.replace('*', '-').replace('/', '_').replace("=", "")
+    base64.replace('+', '-').replace('/', '_').replace("=", "")
 
 fun base64UrlToBase64(base64url: String): String {
     val replaced = base64url.replace('-', '+').replace('_', '/')

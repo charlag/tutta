@@ -5,10 +5,7 @@ import com.charlag.tuta.entities.sys.*
 import io.ktor.client.HttpClient
 import io.ktor.client.features.feature
 import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.request.get
-import io.ktor.client.request.parameter
-import io.ktor.client.request.post
-import io.ktor.client.request.url
+import io.ktor.client.request.*
 import io.ktor.http.Url
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.*
@@ -40,9 +37,10 @@ class API(
     suspend fun getSalt(mailAddress: String): SaltReturn {
         val address = Url(baseUrl + "sys/saltservice")
         val postData = SaltData(mailAddress = mailAddress)
+        val serializedEntity = serializeEntity(postData)
         val response = httpClient.get<JsonObject> {
             url(address)
-            parameter("_body", json.stringify(JsonObjectSerializer, serializeEntity(postData)))
+            parameter("_body", json.stringify(JsonObjectSerializer, serializedEntity))
         }
         return deserializeEntitity(response, SaltReturn::class)
     }
@@ -129,6 +127,8 @@ class API(
 
         return httpClient.post<JsonObject?> {
             url(address)
+            header("cv", "3.59.16")
+            header("v", "49")
             if (serializedEntity != null) body = serializer.write(serializedEntity)
         }?.let { deserializeEntitity(it, responseClass) }
     }

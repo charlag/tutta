@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Int8Array
+import org.khronos.webgl.Uint8Array
 import kotlin.browser.window
 import kotlin.reflect.KClass
 
@@ -49,7 +50,8 @@ actual fun ByteArray.toBase64(): String {
     if (this.size < 512) {
         // Apply fails on big arrays fairly often. We tried it with 60000 but if you're already
         // deep in the stack than we cannot allocate such a big argument array.
-        return window.btoa(js("String.fromCharCode.apply(null, new Uint8Array(bytes))") as String)
+        val uint8Array = Uint8Array(this.asInt8Array().buffer)
+        return window.btoa(js("String.fromCharCode.apply(null, new Uint8Array(uint8Array))") as String)
     }
     var binary = ""
     this.forEach {
