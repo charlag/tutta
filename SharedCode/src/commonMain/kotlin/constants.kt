@@ -9,6 +9,11 @@ enum class PermissionType(val value: Long) {
     OwnerList(8)
 }
 
+enum class BucketPermissionType(val value: Long) {
+    Public(2),
+    External(3)
+}
+
 enum class GroupType(val value: Long) {
     User(0),
     Admin(1),

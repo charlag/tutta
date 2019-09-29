@@ -215,7 +215,12 @@ class API(
         val listPermissions =
             loaders.loadPermissions(GeneratedId(permissionsString))
         val p =
-            listPermissions.find { p -> p._ownerGroup != null && groupKeysCache.getGroupKey(p._ownerGroup.asString()) != null }
+            listPermissions.find { p ->
+                (p.type == PermissionType.PublicSymemtric.value ||
+                        p.type == PermissionType.Symmetric.value) &&
+                        p._ownerGroup != null &&
+                        groupKeysCache.getGroupKey(p._ownerGroup.asString()) != null
+            }
         if (p != null) {
             val gk = groupKeysCache.getGroupKey(p._ownerGroup!!.asString())
             return cryptor.decryptKey(p._ownerEncSessionKey!!, gk!!)
@@ -226,6 +231,25 @@ class API(
             }
         if (pp == null) {
             error("Could not find permission $typeModel $instance")
+        }
+
+        val bucketPermissions = loadBuckerPermissions(pp.bucket!!.bucketPermissions)
+        // find the bucket permission with the same group as the permission and public type
+        val bp = bucketPermissions.find { bp ->
+            (bp.type == BucketPermissionType.Public.value || bp.type == BucketPermissionType.External.value) &&
+                    pp._ownerGroup === bp._ownerGroup
+        }
+
+        if (bp == null) {
+            error("no corresponding bucket permission found");
+        }
+
+        if (bp.type == BucketPermissionType.External.value) {
+            error("External permissions are not implemented")
+        } else {
+            val group = loadGroup(bp.group)
+            val keypair = group.keys[0]
+            // decrypt RSA keys
         }
         error("Public permissions are not implemented")
     }

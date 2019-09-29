@@ -2,7 +2,6 @@ package com.charlag.tuta
 
 import android.app.Activity
 import android.content.Intent
-import android.opengl.Visibility
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.support.v7.widget.LinearLayoutManager
@@ -24,13 +23,16 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.*
 
 class MainActivity : Activity() {
 
-    private val adapter = MailsAdapter()
+    private val adapter = MailsAdapter { mail ->
+        val intent = Intent(this, MailViewerActivity::class.java)
+            .putExtra("mailBodyId", mail.body.asString())
+        startActivity(intent)
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +92,9 @@ class MainActivity : Activity() {
     }
 }
 
-class MailsAdapter : RecyclerView.Adapter<MailsAdapter.MailviewHolder>() {
+class MailsAdapter(
+    val onSelected: (Mail) -> Unit
+) : RecyclerView.Adapter<MailsAdapter.MailviewHolder>() {
     val mails = mutableListOf<Mail>()
 
     override fun onCreateViewHolder(parent: ViewGroup, index: Int): MailviewHolder {
@@ -101,13 +105,14 @@ class MailsAdapter : RecyclerView.Adapter<MailsAdapter.MailviewHolder>() {
     override fun getItemCount(): Int = mails.size
 
     override fun onBindViewHolder(holder: MailviewHolder, index: Int) {
-        val item = mails[index]
+        val mail = mails[index]
         holder.sender.text =
-            if (item.sender.name.isNotBlank()) "${item.sender.name} ${item.sender.address}"
-            else item.sender.address
-        holder.subject.text = item.subject
+            if (mail.sender.name.isNotBlank()) "${mail.sender.name} ${mail.sender.address}"
+            else mail.sender.address
+        holder.subject.text = mail.subject
         holder.date.text =
-            DateFormat.getDateInstance(DateFormat.SHORT).format(Date(item.receivedDate.millis))
+            DateFormat.getDateInstance(DateFormat.SHORT).format(Date(mail.receivedDate.millis))
+        holder.itemView.setOnClickListener { onSelected(mail) }
     }
 
     class MailviewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

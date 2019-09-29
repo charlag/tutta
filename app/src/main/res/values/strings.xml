@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Tuta</string>
+    <string name="title_activity_mail_viewer">MailViewerActivity</string>
 </resources>
