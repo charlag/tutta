@@ -24,7 +24,26 @@ interface SessionKeyLoaders {
     suspend fun loadGroup(groupId: Id): Group
 }
 
-typealias GroupKeysCache = MutableMap<Id, ByteArray>
+class GroupKeysCache(private val cryptor: Cryptor) {
+    var user: User? = null
+    val cachedKeys = mutableMapOf<String, ByteArray>()
+
+    suspend fun getGroupKey(groupId: String): ByteArray? {
+        val user = this.user
+        return cachedKeys[groupId]
+            ?: if (user != null) {
+                val membership = user.memberships.find { it.group.asString() == groupId }
+                if (membership != null) {
+                    val userGroupKey = cachedKeys[user.userGroup.group.asString()]!!
+                    cryptor.decryptKey(membership.symEncGKey, userGroupKey)
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+    }
+}
 
 class API(
     private val httpClient: HttpClient,
@@ -76,14 +95,16 @@ class API(
     suspend fun <T : Entity> loadRange(
         klass: KClass<T>, listId: Id, start: Id, count: Int, reverse: Boolean
     ): List<T> {
-        val typeModel = getTypeModelByClass(klass)
+        val (_, model, typeModel) = typeModelByName[klass.noReflectionName]
+            ?: error("no type model ${klass.noReflectionName}")
         if (typeModel.type != MetamodelType.LIST_ELEMENT_TYPE) error("Only list elements are allowed to be loaded in range")
         return httpClient.get<JsonArray> {
             commonHeaders()
-            parameter("start", start)
+            entityHeaders(typeModel)
+            parameter("start", start.asString())
             parameter("count", count)
             parameter("reverse", reverse.toString())
-            url(baseUrl + "sys/${typeModel.name.toLowerCase()}/${listId}")
+            url(baseUrl + "${model}/${typeModel.name.toLowerCase()}/${listId.asString()}")
         }.map { deserializeEntitity(it as JsonObject, klass) }
     }
 
@@ -166,10 +187,12 @@ class API(
         val sessionKey = resolveSessionKey(typeModel, map, this)
         val processedMap = decryptAndMapToMap(map, typeModel, sessionKey)
         val serializer = typeModelByName.getValue(klass.noReflectionName).serializer
-        println("processedMap $processedMap")
         @Suppress("UNCHECKED_CAST")
         return NestedMapper().unmap(serializer as KSerializer<T>, processedMap)
     }
+
+    private fun Any?.stringOrJsonContent() =
+        this as? String ?: (this as JsonElement).contentOrNull
 
     private suspend fun resolveSessionKey(
         typeModel: TypeModel,
@@ -177,20 +200,24 @@ class API(
         loaders: SessionKeyLoaders
     ): ByteArray? {
         if (!typeModel.encrypted) return null
-        val key = instance["_owenrEncSessionKey"]
-        val groupKey = groupKeysCache[instance["_ownerGroup"]]
+        val key = instance["_ownerEncSessionKey"]
+        val ownerGroup = instance["_ownerGroup"].stringOrJsonContent()
+        val groupKey = ownerGroup?.let { groupKeysCache.getGroupKey(ownerGroup) }
         if (key != null && groupKey != null) {
             return cryptor.decryptKey(
-                if (key is String) base64ToBytes(key) else key as ByteArray,
+                key.stringOrJsonContent()?.let(::base64ToBytes) ?: key as ByteArray,
                 groupKey
             )
         }
+        val permissionsString =
+            if (instance["_permissions"] is String) instance["_permissions"] as String
+            else (instance["_permissions"] as JsonLiteral).content
         val listPermissions =
-            loaders.loadPermissions(GeneratedId(instance["_permissions"] as String))
+            loaders.loadPermissions(GeneratedId(permissionsString))
         val p =
-            listPermissions.find { p -> p._ownerGroup != null && groupKeysCache.containsKey(p._ownerGroup) }
+            listPermissions.find { p -> p._ownerGroup != null && groupKeysCache.getGroupKey(p._ownerGroup.asString()) != null }
         if (p != null) {
-            val gk = groupKeysCache[p._ownerGroup]
+            val gk = groupKeysCache.getGroupKey(p._ownerGroup!!.asString())
             return cryptor.decryptKey(p._ownerEncSessionKey!!, gk!!)
         }
         val pp =
@@ -198,7 +225,7 @@ class API(
                 lp.type == PermissionType.Public.value || lp.type == PermissionType.External.value
             }
         if (pp == null) {
-            error("Could not find permission")
+            error("Could not find permission $typeModel $instance")
         }
         error("Public permissions are not implemented")
     }
@@ -249,8 +276,15 @@ class API(
     ): Map<String, Any?> {
         val decrypted = mutableMapOf<String, Any?>()
         for ((fieldName, valueModel) in typeModel.values) {
+            val fieldValue = map[fieldName]!!
             decrypted[fieldName] =
-                decryptValue(fieldName, valueModel, map[fieldName]!!, sessionKey)
+                    // Kind of a hack because model only defines type of the element id
+                if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
+                    listOf(fieldValue.jsonArray[0].content, fieldValue.jsonArray[1].content)
+                } else {
+                    decryptValue(fieldName, valueModel, fieldValue, sessionKey)
+                }
+
         }
         for ((fieldName, assocModel) in typeModel.associations) {
             val value = map[fieldName]
@@ -349,22 +383,39 @@ class API(
                 error("Value $name is null")
             }
         } else if (valueModel.encrypted) {
+            val bytes = base64ToBytes(encryptedValue.primitive.content)
+
             val decryptedBytes =
-                cryptor.decrypt(base64ToBytes(encryptedValue.primitive.content), sessionKey!!, true)
+                if (bytes.isEmpty()) bytes else cryptor.decrypt(bytes, sessionKey!!, true)
             when (valueModel.type) {
                 ValueType.BytesType -> decryptedBytes
-                else -> valueFromString(encryptedValue.primitive.content, valueModel)
+                else -> valueFromString(bytesToString(decryptedBytes), valueModel)
             }
         } else {
             valueFromString(encryptedValue.primitive.content, valueModel)
         }
     }
 
+    fun defaultValue(type: ValueType): Any {
+        return when (type) {
+            ValueType.StringType, ValueType.CompressedStringType -> ""
+            ValueType.NumberType -> 0L
+            ValueType.BytesType -> byteArrayOf()
+            ValueType.DateType -> 0L
+            ValueType.BooleanType -> false
+            else -> error("No default value for $type")
+        }
+    }
+
     private fun valueFromString(value: String, valueModel: Value): Any? {
+        if (value == "" && valueModel.cardinality == Cardinality.One) {
+            return defaultValue(valueModel.type)
+        }
+
         return when (valueModel.type) {
             ValueType.BooleanType -> value != "0"
             ValueType.NumberType -> value.toLong()
-            ValueType.DateType -> Date((value.toLong()))
+            ValueType.DateType -> value.toLong()
             ValueType.BytesType -> base64ToBytes(value)
             ValueType.StringType,
             ValueType.CustomIdType,

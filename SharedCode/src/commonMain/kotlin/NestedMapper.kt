@@ -59,7 +59,14 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
             val curObj = currentTagOrNull?.let { getByTag(it) } ?: obj
             @Suppress("UNCHECKED_CAST")
             return when (desc.kind) {
-                StructureKind.LIST -> MapperListInput(curObj as List<Any?>)
+                StructureKind.LIST -> {
+                    if (curObj is List<*>) {
+                        MapperListInput(curObj as List<Any?>)
+                    } else {
+                        error("Expected list for tag $currentTagOrNull, got $curObj")
+                    }
+
+                }
                 StructureKind.MAP, StructureKind.CLASS -> MapperMapInput(curObj as Map<String, Any?>)
                 else -> error("Unsupported strcture kind ${desc.kind}")
             }

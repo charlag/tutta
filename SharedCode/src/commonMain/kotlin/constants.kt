@@ -21,3 +21,13 @@ enum class GroupType(val value: Long) {
     LocalAdmin(8),
     Calendar(9)
 }
+
+enum class MailFolderType(val value: Long) {
+    CUSTOM(0),
+    INBOX(1),
+    SENT(2),
+    TRASH(3),
+    ARCHIVE(4),
+    SPAM(5),
+    DRAFT(6)
+}

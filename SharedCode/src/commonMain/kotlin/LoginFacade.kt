@@ -41,7 +41,8 @@ class LoginFacade(
         val sessionReturn = api.createSession(mailAddress, authVerifier)
         api.accessToken = sessionReturn.accessToken
         val user = api.loadElementEntity<User>(sessionReturn.user)
-        groupKeysCache[user.userGroup.group] =
+        groupKeysCache.user = user
+        groupKeysCache.cachedKeys[user.userGroup.group.asString()] =
             cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
         _user = user
         return SessionData(user, getSessionId(sessionReturn.accessToken), sessionReturn.accessToken)
@@ -58,7 +59,8 @@ class LoginFacade(
         val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
         api.accessToken = accessToken
         val user = api.loadElementEntity<User>(userId)
-        groupKeysCache[user.userGroup.group] =
+        groupKeysCache.user = user
+        groupKeysCache.cachedKeys[user.userGroup.group.asString()] =
             cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
         _user = user
     }

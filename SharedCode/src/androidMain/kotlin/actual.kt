@@ -39,3 +39,6 @@ actual fun platformJsonSerializer(): JsonSerializer {
 
 actual val KClass<*>.noReflectionName: String
     get() = this.java.simpleName
+
+actual fun bytesToString(bytes: ByteArray): String = String(bytes)
+actual fun String.toBytes(): ByteArray = this.toByteArray()

@@ -4,6 +4,9 @@ package com.charlag.tuta
 expect fun base64ToBytes(base64: String): ByteArray
 expect fun ByteArray.toBase64(): String
 
+expect fun bytesToString(bytes: ByteArray): String
+expect fun String.toBytes(): ByteArray
+
 fun base64ToBase64Url(base64: String): String =
     base64.replace('+', '-').replace('/', '_').replace("=", "")
 

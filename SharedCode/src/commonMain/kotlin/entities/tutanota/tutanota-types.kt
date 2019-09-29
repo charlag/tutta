@@ -179,7 +179,7 @@ data class Mail(
     val ccRecipients: List<MailAddress>,
     val replyTos: List<EncryptedMailAddress>,
     val restrictions: MailRestriction?,
-    val sender: List<MailAddress>,
+    val sender: MailAddress,
     val toRecipients: List<MailAddress>,
     val attachments: List<IdTuple>,
     val body: Id,
