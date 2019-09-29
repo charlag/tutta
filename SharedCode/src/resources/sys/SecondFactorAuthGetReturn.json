@@ -1,26 +1,32 @@
 {
-	"name": "SecondFactorAuthGetReturn",
-	"since": 23,
-	"type": "DATA_TRANSFER_TYPE",
-	"id": 1236,
-	"rootId": "A3N5cwAE1A",
-	"versioned": false,
-	"encrypted": false,
-	"values": {
-		"_format": {"name": "_format", "id": 1237, "since": 23, "type": "Number", "cardinality": "One", "final": false, "encrypted": false},
-		"secondFactorPending": {
-			"name": "secondFactorPending",
-			"id": 1238,
-			"since": 23,
-			"type": "Boolean",
-			"cardinality": "One",
-			"final": true,
-			"encrypted": false
-		}
-	},
-	"associations": {},
-	"app": "sys",
-	"version": "49"
+  "name": "SecondFactorAuthGetReturn",
+  "since": 23,
+  "type": "DATA_TRANSFER_TYPE",
+  "id": 1236,
+  "rootId": "A3N5cwAE1A",
+  "versioned": false,
+  "encrypted": false,
+  "values": {
+    "_format": {
+      "name": "_format",
+      "id": 1237,
+      "since": 23,
+      "type": "Number",
+      "cardinality": "One",
+      "final": false,
+      "encrypted": false
+    },
+    "secondFactorPending": {
+      "name": "secondFactorPending",
+      "id": 1238,
+      "since": 23,
+      "type": "Boolean",
+      "cardinality": "One",
+      "final": true,
+      "encrypted": false
+    }
+  },
+  "associations": {},
+  "app": "sys",
+  "version": "49"
 }
-
-

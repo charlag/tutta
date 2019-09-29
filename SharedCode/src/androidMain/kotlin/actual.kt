@@ -30,13 +30,12 @@ actual fun ByteArray.toBase64(): String =
 @UnstableDefault
 actual fun platformJsonSerializer(): JsonSerializer {
     return KotlinxSerializer(Json(JsonConfiguration(strictMode = false))).apply {
-        typeInfos.forEach { (klass, _, serializer) ->
+        typeInfos.forEach { (klass, _, _, serializer) ->
             @Suppress("UNCHECKED_CAST")
             setMapper(klass as KClass<Any>, serializer as KSerializer<Any>)
         }
     }
 }
-
 
 actual val KClass<*>.noReflectionName: String
     get() = this.java.simpleName

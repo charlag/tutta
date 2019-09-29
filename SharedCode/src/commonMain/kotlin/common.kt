@@ -1,7 +1,6 @@
 package com.charlag.tuta
 
 import com.charlag.tuta.entities.TypeInfo
-import com.charlag.tuta.entities.sys.typeInfos
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
@@ -40,7 +39,11 @@ inline fun makeHttpClient(
 
 val typemodelMap: Map<String, TypeInfo<*>> by lazy {
     val typeModelMap = mutableMapOf<String, TypeInfo<*>>()
-    for (typeInfo in typeInfos) {
+    // TODO: improve lookup so that names cannot collide
+    for (typeInfo in com.charlag.tuta.entities.sys.typeInfos) {
+        typeModelMap[typeInfo.typemodel.name] = typeInfo
+    }
+    for (typeInfo in com.charlag.tuta.entities.tutanota.typeInfos) {
         typeModelMap[typeInfo.typemodel.name] = typeInfo
     }
     typeModelMap

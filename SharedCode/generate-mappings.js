@@ -1,6 +1,7 @@
 const fs = require("fs")
 
-const dir = "./src/resources/sys"
+const modelName = "sys"
+const dir = "./src/resources/" + modelName
 const dirContents = fs.readdirSync(dir)
 
 function serializeValue(value) {
@@ -13,7 +14,7 @@ function serializeValue(value) {
 }
 
 function serializeValues(model) {
-  const argument = Array.from(Object.values(model.values)).map(v => `"${v.name}" to ${serializeValue(v)}`).join(",\n")
+  const argument = Array.from(Object.values(model.values)).map(v => `                "${v.name}" to ${serializeValue(v)}`).join(",\n")
   return `mapOf(${argument})`
 }
 
@@ -88,23 +89,29 @@ function assocToType(assoc) {
     const mapping = `TypeModel(
 	  name = "${model.name}",
 	  encrypted = ${model.encrypted},
-    type = ${model.type},
-    id = ${model.id},
-    rootId = "${model.rootId}",
-    values = ${serializeValues(model)},
-	  associations = ${serializeAssociations(model)}
+      type = ${model.type},
+      id = ${model.id},
+      rootId = "${model.rootId}",
+      values = ${serializeValues(model)},
+	  associations = ${serializeAssociations(model)},
+	  version = ${model.version}
 )`
-    //console.log(mapping)
-    // fs.writeFileSync(`./src/commonMain/kotlin/entities/sys/${typeName}TypeModel.kt`, mapping)
 
-  mappingPairs.push(`TypeInfo(${typeName}::class, ${mapping}, ${typeName}.serializer())`)
+    const className = typeName === "File" && modelName == "tutanota" ? "TutanotaFile" : typeName
+
+  mappingPairs.push(`
+  TypeInfo(
+      ${className}::class,
+      "${modelName}",
+      ${mapping},
+      ${className}.serializer()
+  )`)
 }
 
                                    const classMapping = `
-package com.charlag.tuta.entities.sys
+package com.charlag.tuta.entities.${modelName}
 
-import com.charlag.tuta.entities.*
-import com.charlag.tuta.entities.sys.*
+import com.charlag.tuta.entities.${modelName}.*
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.MetamodelType.*
 import com.charlag.tuta.entities.Cardinality.*
@@ -114,5 +121,5 @@ import com.charlag.tuta.entities.AssociationType.*
 val typeInfos = listOf(
 	${mappingPairs.join(",\n\t")}
 )`
-  fs.writeFileSync("./src/commonMain/kotlin/entities/sys/TypeModelMapping.kt", classMapping)
+  fs.writeFileSync(`./src/commonMain/kotlin/entities/${modelName}/TypeModelMapping.kt`, classMapping)
 })()

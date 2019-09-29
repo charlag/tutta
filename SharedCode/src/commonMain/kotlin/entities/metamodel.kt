@@ -9,7 +9,7 @@ enum class MetamodelType {
 }
 
 enum class ValueType {
-    BooleanType, NumberType, StringType, DateType, GeneratedIdType, CustomIdType, BytesType;
+    BooleanType, NumberType, StringType, DateType, GeneratedIdType, CustomIdType, BytesType, CompressedStringType;
 }
 
 enum class AssociationType {
@@ -42,11 +42,13 @@ data class TypeModel(
     val id: Long,
     val rootId: String,
     val values: Map<String, Value> = mapOf(),
-    val associations: Map<String, Association> = mapOf()
+    val associations: Map<String, Association> = mapOf(),
+    val version: Int
 )
 
 data class TypeInfo<T : Any>(
     val klass: KClass<T>,
+    val model: String,
     val typemodel: TypeModel,
     val serializer: KSerializer<T>
 )

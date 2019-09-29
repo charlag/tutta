@@ -19,6 +19,9 @@ class LoginFacade(
     private val api: API,
     val groupKeysCache: GroupKeysCache
 ) {
+    private var _user: User? = null
+    val user: User? get() = _user
+
     private suspend fun createAuthVerifier(cryptor: Cryptor, passwordKey: ByteArray): ByteArray =
         cryptor.hash(passwordKey)
 
@@ -40,7 +43,24 @@ class LoginFacade(
         val user = api.loadElementEntity<User>(sessionReturn.user)
         groupKeysCache[user.userGroup.group] =
             cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
+        _user = user
         return SessionData(user, getSessionId(sessionReturn.accessToken), sessionReturn.accessToken)
+    }
+
+    suspend fun resumeSession(
+        mailAddress: String,
+        userId: Id,
+        accessToken: String,
+        passphrase: String
+    ) {
+        val (salt) = api.getSalt(mailAddress)
+
+        val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
+        api.accessToken = accessToken
+        val user = api.loadElementEntity<User>(userId)
+        groupKeysCache[user.userGroup.group] =
+            cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
+        _user = user
     }
 
     suspend fun getSessionId(accessToken: String): IdTuple {

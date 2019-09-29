@@ -57,9 +57,9 @@ class API(
     }
 
     suspend fun <T : Entity> loadElementEntity(klass: KClass<T>, id: Id): T {
-        val typeModel = typeModelByName.getValue(klass.noReflectionName).typemodel
+        val (_, model, typeModel) = typeModelByName.getValue(klass.noReflectionName)
         return loadAndMapToEntity(
-            "sys/${typeModel.name.toLowerCase()}/${id.asString()}",
+            "${model}/${typeModel.name.toLowerCase()}/${id.asString()}",
             klass
         )!!
     }
@@ -89,14 +89,22 @@ class API(
 
     fun HttpRequestBuilder.commonHeaders() {
         header("cv", "3.59.16")
-        header("v", "49")
         accessToken?.let {
             header("accessToken", it)
         }
     }
 
+    fun HttpRequestBuilder.entityHeaders(typeModel: TypeModel) {
+        header("v", typeModel.version.toString())
+    }
+
     fun getTypeModelByClass(klass: KClass<*>): TypeModel =
         typeModelByName[klass.noReflectionName]!!.typemodel
+
+    fun getTypeModelForName(name: String): TypeModel {
+        val typeInfo = typeModelByName[name] ?: error("No type info for $name")
+        return typeInfo.typemodel
+    }
 
     override suspend fun loadPermissions(listId: Id): List<Permission> {
         return loadAll(Permission::class, listId)
@@ -118,6 +126,7 @@ class API(
 
         return httpClient.get<JsonObject?> {
             commonHeaders()
+            entityHeaders(typeModelByName.getValue(responseClass.noReflectionName).typemodel)
             url(address)
         }?.let { deserializeEntitity(it, responseClass) }
     }
@@ -139,7 +148,7 @@ class API(
     }
 
     private suspend fun <T : Entity> serializeEntity(entity: T): JsonObject {
-        val (_, typeModel, serializer) = typeModelByName[entity::class.noReflectionName]!!
+        val (_, _, typeModel, serializer) = typeModelByName[entity::class.noReflectionName]!!
         @Suppress("UNCHECKED_CAST")
         return NestedMapper().map(serializer as KSerializer<T>, entity)
             .let { map ->
@@ -248,31 +257,50 @@ class API(
             decrypted[fieldName] = if (value == null) {
                 if (assocModel.cardinality == Cardinality.ZeroOrOne) null else error("No association $fieldName")
             } else {
-                val refTypeModel = typeModelByName[assocModel.refType]!!.typemodel
                 @Suppress("UNCHECKED_CAST")
                 when (assocModel.type) {
-                    AGGREGATION -> when (assocModel.cardinality) {
-                        Cardinality.Any -> (value as JsonArray).map {
-                            decryptAndMapToMap(it as JsonObject, refTypeModel, sessionKey)
-                        }
-                        Cardinality.ZeroOrOne ->
-                            if (value is JsonNull) null
-                            else decryptAndMapToMap(
+                    AGGREGATION -> {
+                        val refTypeModel = getTypeModelForName(assocModel.refType)
+                        when (assocModel.cardinality) {
+                            Cardinality.Any -> (value as JsonArray).map {
+                                decryptAndMapToMap(it as JsonObject, refTypeModel, sessionKey)
+                            }
+                            Cardinality.ZeroOrOne ->
+                                if (value is JsonNull) null
+                                else decryptAndMapToMap(
+                                    value as JsonObject,
+                                    refTypeModel,
+                                    sessionKey
+                                )
+                            else -> decryptAndMapToMap(
                                 value as JsonObject,
                                 refTypeModel,
                                 sessionKey
                             )
-                        else -> decryptAndMapToMap(
-                            value as JsonObject,
-                            refTypeModel,
-                            sessionKey
-                        )
+                        }
                     }
                     ELEMENT_ASSOCIATION, LIST_ASSOCIATION -> value.content
-                    LIST_ELEMENT_ASSOCIATION -> listOf(
-                        value.jsonArray[0].content,
-                        value.jsonArray[1].content
-                    )
+                    LIST_ELEMENT_ASSOCIATION -> when (assocModel.cardinality) {
+                        Cardinality.One -> listOf(
+                            value.jsonArray[0].content,
+                            value.jsonArray[1].content
+                        )
+                        Cardinality.ZeroOrOne -> {
+                            if (value is JsonNull) null
+                            else listOf(
+                                value.jsonArray[0].content,
+                                value.jsonArray[1].content
+                            )
+                        }
+                        Cardinality.Any -> {
+                            value.jsonArray.map { item ->
+                                listOf(
+                                    item.jsonArray[0].content,
+                                    item.jsonArray[1].content
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -341,6 +369,7 @@ class API(
             ValueType.StringType,
             ValueType.CustomIdType,
             ValueType.GeneratedIdType -> value
+            ValueType.CompressedStringType -> TODO()
         }
     }
 
@@ -350,6 +379,7 @@ class API(
             ValueType.NumberType, ValueType.DateType -> (value as Long).toString()
             ValueType.StringType, ValueType.BytesType,
             ValueType.CustomIdType, ValueType.GeneratedIdType -> value as String
+            ValueType.CompressedStringType -> TODO()
         }
     }
 }
