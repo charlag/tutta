@@ -16,7 +16,6 @@ fun main(args: Array<String>) {
     GlobalScope.launch {
         try {
             val sessionData = withContext(Dispatchers.Default) {
-                val groupKeysCache = mutableMapOf<Id, ByteArray>()
 
 
                 val httpClient = makeHttpClient {
@@ -30,10 +29,14 @@ fun main(args: Array<String>) {
                     }
                 }
                 val cryptor = Cryptor()
-                val url = if (platformName() == "JS") "http://localhost:9000/rest" else "https://mail.tutanota.com/rest/"
+                val groupKeysCache = GroupKeysCache(cryptor)
+                val url =
+                    if (platformName() == "JS") "http://localhost:9000/rest" else "https://mail.tutanota.com/rest/"
+                val compressor = Compressor()
                 val api = API(
                     httpClient, url, cryptor,
-                    typemodelMap, groupKeysCache
+                    typemodelMap, compressor,
+                    groupKeysCache, accessToken = null
                 )
                 LoginFacade(cryptor, api, groupKeysCache).createSession(email, password)
             }
