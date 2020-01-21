@@ -63,6 +63,20 @@ actual class Cryptor {
     private companion object {
         const val AES_ALGORITHM = "AES-CBC"
     }
+
+    actual suspend fun decryptRsaKey(
+        value: ByteArray,
+        key: ByteArray
+    ): PrivateKey {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    actual suspend fun rsaDecrypt(
+        value: ByteArray,
+        key: PrivateKey
+    ): ByteArray {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 }
 
 

@@ -16,7 +16,7 @@ kotlin {
                     sourceMap = true
                     sourceMapEmbedSources = "always"
                     moduleKind = 'umd'
-                    target = "v6"
+                    target = "v5"
                 }
             }
         }

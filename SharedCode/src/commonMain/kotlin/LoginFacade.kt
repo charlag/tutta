@@ -4,8 +4,9 @@ import com.charlag.tuta.entities.GENERATED_ID_BYTES_LENGTH
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.sys.Session
 import com.charlag.tuta.entities.sys.User
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.io.core.toByteArray
 
 data class SessionData(
@@ -21,6 +22,9 @@ class LoginFacade(
 ) {
     private var _user: User? = null
     val user: User? get() = _user
+
+    private val _loggedIn = CompletableDeferred<User>()
+    val loggedIn: Deferred<User> = _loggedIn
 
     private suspend fun createAuthVerifier(cryptor: Cryptor, passwordKey: ByteArray): ByteArray =
         cryptor.hash(passwordKey)
@@ -45,6 +49,7 @@ class LoginFacade(
         groupKeysCache.cachedKeys[user.userGroup.group.asString()] =
             cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
         _user = user
+        _loggedIn.complete(user)
         return SessionData(user, getSessionId(sessionReturn.accessToken), sessionReturn.accessToken)
     }
 
@@ -63,6 +68,7 @@ class LoginFacade(
         groupKeysCache.cachedKeys[user.userGroup.group.asString()] =
             cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
         _user = user
+        _loggedIn.complete(user)
     }
 
     suspend fun getSessionId(accessToken: String): IdTuple {

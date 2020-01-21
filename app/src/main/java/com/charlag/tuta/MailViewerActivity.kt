@@ -1,12 +1,11 @@
 package com.charlag.tuta
 
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
 import android.webkit.WebView
+import androidx.appcompat.app.AppCompatActivity
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.tutanota.MailBody
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
-import kotlinx.android.synthetic.main.content_mail_viewer.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch

@@ -68,3 +68,11 @@ inline fun jsObject(init: dynamic.() -> Unit): dynamic {
 
 actual val KClass<*>.noReflectionName: String
     get() = this.simpleName!!
+
+actual fun bytesToString(bytes: ByteArray): String {
+    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+}
+
+actual fun String.toBytes(): ByteArray {
+    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+}
