@@ -7,6 +7,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.features.feature
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.*
+import io.ktor.http.HttpMethod
 import io.ktor.http.Url
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.*
@@ -50,10 +51,12 @@ class API(
     val baseUrl: String,
     val cryptor: Cryptor,
     val typeModelByName: Map<String, TypeInfo<*>>,
+    val compressor: Compressor,
     val groupKeysCache: GroupKeysCache,
     var accessToken: String?
 ) : SessionKeyLoaders {
     private val json = Json(JsonConfiguration.Stable)
+    private val mailBodySessionKeyCache = mutableMapOf<String, ByteArray>()
 
     suspend fun getSalt(mailAddress: String): SaltReturn {
         val address = Url(baseUrl + "sys/saltservice")
@@ -75,6 +78,18 @@ class API(
         return post("sys/sessionservice", postData, CreateSessionReturn::class)!!
     }
 
+    suspend fun <T : Entity> serviceRequest(
+        app: String,
+        name: String,
+        method: HttpMethod,
+        requestEntity: Entity?,
+        responseClass: KClass<T>,
+        queryParams: Map<String, String>?,
+        sk: ByteArray
+    ): T {
+        return post("${app}/${name}", requestEntity, responseClass, sk)!!
+    }
+
     suspend fun <T : Entity> loadElementEntity(klass: KClass<T>, id: Id): T {
         val (_, model, typeModel) = typeModelByName.getValue(klass.noReflectionName)
         return loadAndMapToEntity(
@@ -85,6 +100,18 @@ class API(
 
     suspend inline fun <reified T : Entity> loadElementEntity(id: Id): T {
         return loadElementEntity(T::class, id)
+    }
+
+    suspend inline fun <reified T : Entity> loadListElementEntity(id: IdTuple): T {
+        return loadListElementEntity(T::class, id)
+    }
+
+    suspend fun <T : Entity> loadListElementEntity(klass: KClass<T>, id: IdTuple): T {
+        val (_, model, typeModel) = typeModelByName.getValue(klass.noReflectionName)
+        return loadAndMapToEntity(
+            "${model}/${typeModel.name.toLowerCase()}/${id.listId.asString()}/${id.elementId.asString()}",
+            klass
+        )!!
     }
 
     suspend fun <T : Entity> loadAll(klass: KClass<T>, listId: Id): List<T> {
@@ -155,9 +182,10 @@ class API(
     private suspend fun <R : Entity> post(
         path: String,
         requestEntity: Entity?,
-        responseClass: KClass<R>
+        responseClass: KClass<R>,
+        sessionKey: ByteArray? = null
     ): R? {
-        val serializedEntity = requestEntity?.let { serializeEntity(it) }
+        val serializedEntity = requestEntity?.let { serializeEntity(it, sessionKey) }
         val serializer = httpClient.feature(JsonFeature)!!.serializer
         val address = Url(baseUrl + path)
         return httpClient.post<JsonObject?> {
@@ -168,14 +196,18 @@ class API(
         }?.let { deserializeEntitity(it, responseClass) }
     }
 
-    private suspend fun <T : Entity> serializeEntity(entity: T): JsonObject {
+    private suspend fun <T : Entity> serializeEntity(
+        entity: T,
+        sessionKey: ByteArray? = null
+    ): JsonObject {
         val (_, _, typeModel, serializer) = typeModelByName[entity::class.noReflectionName]!!
         @Suppress("UNCHECKED_CAST")
         return NestedMapper().map(serializer as KSerializer<T>, entity)
             .let { map ->
                 val withFormat = map + ("_format" to 0L)
-                val sessionKey = resolveSessionKey(typeModel, withFormat, this)
-                encryptAndMapToLiteral(withFormat, typeModel, sessionKey)
+                val resolvedSessionKey =
+                    sessionKey ?: resolveSessionKey(typeModel, withFormat, this)
+                encryptAndMapToLiteral(withFormat, typeModel, resolvedSessionKey)
             }
     }
 
@@ -203,7 +235,7 @@ class API(
         val key = instance["_ownerEncSessionKey"]
         val ownerGroup = instance["_ownerGroup"].stringOrJsonContent()
         val groupKey = ownerGroup?.let { groupKeysCache.getGroupKey(ownerGroup) }
-        if (key != null && groupKey != null) {
+        if (key != null && groupKey != null && key !is JsonNull) {
             return cryptor.decryptKey(
                 key.stringOrJsonContent()?.let(::base64ToBytes) ?: key as ByteArray,
                 groupKey
@@ -214,44 +246,59 @@ class API(
             else (instance["_permissions"] as JsonLiteral).content
         val listPermissions =
             loaders.loadPermissions(GeneratedId(permissionsString))
-        val p =
-            listPermissions.find { p ->
-                (p.type == PermissionType.PublicSymemtric.value ||
-                        p.type == PermissionType.Symmetric.value) &&
-                        p._ownerGroup != null &&
-                        groupKeysCache.getGroupKey(p._ownerGroup.asString()) != null
-            }
-        if (p != null) {
-            val gk = groupKeysCache.getGroupKey(p._ownerGroup!!.asString())
-            return cryptor.decryptKey(p._ownerEncSessionKey!!, gk!!)
+        val symmetricPermission = listPermissions.find { p ->
+            (p.type == PermissionType.PublicSymemtric.value ||
+                    p.type == PermissionType.Symmetric.value) &&
+                    p._ownerGroup != null &&
+                    groupKeysCache.getGroupKey(p._ownerGroup.asString()) != null
         }
-        val pp =
+        if (symmetricPermission != null) {
+            val gk = groupKeysCache.getGroupKey(symmetricPermission._ownerGroup!!.asString())
+            return cryptor.decryptKey(symmetricPermission._ownerEncSessionKey!!, gk!!)
+        }
+        val publicPermission =
             listPermissions.find { lp ->
                 lp.type == PermissionType.Public.value || lp.type == PermissionType.External.value
             }
-        if (pp == null) {
+        if (publicPermission == null) {
             error("Could not find permission $typeModel $instance")
         }
 
-        val bucketPermissions = loadBuckerPermissions(pp.bucket!!.bucketPermissions)
+        val bucketPermissions = loadBuckerPermissions(publicPermission.bucket!!.bucketPermissions)
         // find the bucket permission with the same group as the permission and public type
-        val bp = bucketPermissions.find { bp ->
+        val bucketPermission = bucketPermissions.find { bp ->
             (bp.type == BucketPermissionType.Public.value || bp.type == BucketPermissionType.External.value) &&
-                    pp._ownerGroup === bp._ownerGroup
+                    publicPermission._ownerGroup == bp._ownerGroup
         }
 
-        if (bp == null) {
-            error("no corresponding bucket permission found");
+        if (bucketPermission == null) {
+            error("no corresponding bucket permission found")
         }
 
-        if (bp.type == BucketPermissionType.External.value) {
+        if (bucketPermission.type == BucketPermissionType.External.value) {
             error("External permissions are not implemented")
         } else {
-            val group = loadGroup(bp.group)
+            bucketPermission.pubEncBucketKey
+                ?: error("PubEncBucketKey is not defined for BucketPermission $bucketPermissions")
+            publicPermission.bucketEncSessionKey
+                ?: error("BucketEncSessionKey is not defined for ${symmetricPermission}")
+            val group = loadGroup(bucketPermission.group)
             val keypair = group.keys[0]
             // decrypt RSA keys
+            val bucketPermissionGroupKey = groupKeysCache.getGroupKey(group._id.asString())
+                ?: error("No key for ${group._id} ")
+
+            val privKey = cryptor.decryptRsaKey(keypair.symEncPrivKey, bucketPermissionGroupKey)
+            val bucketKey = cryptor.rsaDecrypt(bucketPermission.pubEncBucketKey, privKey)
+            val sessionKey = cryptor.decryptKey(publicPermission.bucketEncSessionKey, bucketKey)
+            return sessionKey
+            // TODO: _updateWithSymPermissionKey
+//            val bucketPermissionOwnerGroupKey =
+//                groupKeysCache.getGroupKey(bucketPermission._ownerGroup!!.asString())
+//            val buckePermissionGroupKey =
+//                groupKeysCache.getGroupKey(bucketPermission.group.asString())
+
         }
-        error("Public permissions are not implemented")
     }
 
     private suspend fun encryptAndMapToLiteral(
@@ -379,7 +426,7 @@ class API(
             }
         } else if (valueModel.encrypted) {
             val bytes = if (valueModel.type === ValueType.BytesType) value as ByteArray
-            else base64ToBytes(valueToString(value, valueModel))
+            else valueToString(value, valueModel).toBytes()
             return JsonLiteral(
                 cryptor.encrypt(
                     bytes,
@@ -413,6 +460,7 @@ class API(
                 if (bytes.isEmpty()) bytes else cryptor.decrypt(bytes, sessionKey!!, true)
             when (valueModel.type) {
                 ValueType.BytesType -> decryptedBytes
+                ValueType.CompressedStringType -> compressor.decompressString(decryptedBytes)
                 else -> valueFromString(bytesToString(decryptedBytes), valueModel)
             }
         } else {
@@ -444,7 +492,8 @@ class API(
             ValueType.StringType,
             ValueType.CustomIdType,
             ValueType.GeneratedIdType -> value
-            ValueType.CompressedStringType -> TODO()
+            ValueType.CompressedStringType ->
+                error("CompressedStringType must be converted from bytes, not from string")
         }
     }
 
@@ -452,9 +501,10 @@ class API(
         return when (valueModel.type) {
             ValueType.BooleanType -> if (value as Boolean) "1" else "0"
             ValueType.NumberType, ValueType.DateType -> (value as Long).toString()
-            ValueType.StringType, ValueType.BytesType,
+            ValueType.BytesType -> (value as ByteArray).toBase64()
+            ValueType.StringType,
             ValueType.CustomIdType, ValueType.GeneratedIdType -> value as String
-            ValueType.CompressedStringType -> TODO()
+            ValueType.CompressedStringType -> compressor.compressString(value as String)
         }
     }
 }

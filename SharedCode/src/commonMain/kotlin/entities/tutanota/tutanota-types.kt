@@ -489,7 +489,7 @@ data class DraftData(
 
 @Serializable
 data class DraftCreateData(
-    val _format: Long,
+    val _format: Long = 0,
     val conversationType: Long,
     val ownerEncSessionKey: ByteArray,
     val previousMessageId: String?,
@@ -595,7 +595,7 @@ data class MailHeaders(
 
 @Serializable
 data class EncryptedMailAddress(
-    val _id: Id,
+    val _id: Id? = null,
     val address: String,
     val name: String
 ) : Entity

@@ -86,7 +86,7 @@ data class GroupInfo(
     val mailAddressAliases: List<MailAddressAlias>,
     val group: Id,
     val localAdmin: Id?
-)
+) : Entity
 
 @Serializable
 data class GroupMembership(

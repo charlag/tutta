@@ -7,8 +7,8 @@
         android:background="?selectableItemBackground"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp">
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
 
     <TextView
             android:id="@+id/sender"

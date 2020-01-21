@@ -12,10 +12,29 @@ expect class Cryptor() {
     ): ByteArray
 
     suspend fun decrypt(value: ByteArray, key: ByteArray, usePadding: Boolean = true): ByteArray
+    suspend fun decryptRsaKey(value: ByteArray, key: ByteArray): PrivateKey
+    suspend fun rsaDecrypt(value: ByteArray, key: PrivateKey): ByteArray
     fun generateRandomData(byteSize: Int): ByteArray
     suspend fun hash(bytes: ByteArray): ByteArray
     fun bcrypt(rounds: Int, passphrase: ByteArray, salt: ByteArray): ByteArray
 }
+
+
+data class PublicKey(
+    val version: Int,
+    val modulus: ByteArray
+)
+
+data class PrivateKey(
+    val version: Int,
+    val modulus: ByteArray,
+    val privateExponent: ByteArray,
+    val primeP: ByteArray,
+    val primeQ: ByteArray,
+    val primeExponentP: ByteArray,
+    val primeExponentQ: ByteArray,
+    val crtCoefficient: ByteArray
+)
 
 fun Cryptor.generateIV() = generateRandomData(16)
 
@@ -28,10 +47,14 @@ suspend fun Cryptor.generateKeyFromPassphrase(passphrase: String, salt: ByteArra
 
 val fixedIv: ByteArray = ByteArray(16) { 0x88.toByte() }
 
-suspend fun Cryptor.encryptKey(pplaintextKey: ByteArray, encryptionKey: ByteArray): ByteArray {
-    return encrypt(pplaintextKey, encryptionKey, encryptionKey, false, false)
+suspend fun Cryptor.encryptKey(plaintextKey: ByteArray, encryptionKey: ByteArray): ByteArray {
+    return encrypt(plaintextKey, fixedIv, encryptionKey, false, false)
 }
 
 suspend fun Cryptor.decryptKey(encryptedKey: ByteArray, encryptionKey: ByteArray): ByteArray {
     return decrypt(fixedIv + encryptedKey, encryptionKey, false)
+}
+
+suspend fun Cryptor.aes128RandomKey(): ByteArray {
+    return generateRandomData(16)
 }

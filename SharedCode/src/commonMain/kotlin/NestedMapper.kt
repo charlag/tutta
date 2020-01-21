@@ -2,7 +2,6 @@ package com.charlag.tuta
 
 import com.charlag.tuta.entities.ByteArraySerializer
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.EnumDescriptor
 import kotlinx.serialization.modules.EmptyModule
 import kotlinx.serialization.modules.SerialModule
 
@@ -29,9 +28,6 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
         override fun composeName(parentName: String, childName: String): String = childName
 
         abstract fun getByTag(tag: String): Any?
-
-        override fun decodeTaggedEnum(tag: String, enumDescription: EnumDescriptor): Int =
-            enumDescription.getElementIndexOrThrow(getByTag(tag) as String)
 
         override fun decodeTaggedValue(tag: String): Any {
             val o = getByTag(tag) ?: throw MissingFieldException(tag)
@@ -169,6 +165,30 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
     }
 
     private inner class MapperListOutput(val andAfter: (List<Any?>) -> Unit) : NamedValueEncoder() {
+
+        override fun composeName(parentName: String, childName: String): String {
+            return super.composeName(parentName, childName)
+        }
+
+        override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
+            super.encodeSerializableValue(serializer, value)
+        }
+
+        override fun beginStructure(
+            desc: SerialDescriptor,
+            vararg typeParams: KSerializer<*>
+        ): CompositeEncoder {
+            @Suppress("UNCHECKED_CAST")
+            return when (desc.kind) {
+                StructureKind.LIST -> MapperListOutput { items.add(currentTag.toInt(), it) }
+                StructureKind.MAP, StructureKind.CLASS ->
+                    MapperMapOutput {
+                        items.add(currentTag.toInt(), it)
+                    }
+                else -> error("Unsupported strcture kind ${desc.kind}")
+            }
+        }
+
         override val context: SerialModule
             get() = this@NestedMapper.context
 

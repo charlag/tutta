@@ -1,11 +1,14 @@
 package com.charlag.tuta
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,7 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : Activity() {
@@ -68,6 +71,10 @@ class MainActivity : Activity() {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
+
+        fab.setOnClickListener {
+            startActivity(Intent(this, ComposeActivity::class.java))
+        }
     }
 
     private suspend fun loadMails(
@@ -110,9 +117,25 @@ class MailsAdapter(
             if (mail.sender.name.isNotBlank()) "${mail.sender.name} ${mail.sender.address}"
             else mail.sender.address
         holder.subject.text = mail.subject
-        holder.date.text =
-            DateFormat.getDateInstance(DateFormat.SHORT).format(Date(mail.receivedDate.millis))
+        holder.date.text = formatDate(holder.date.context, mail)
         holder.itemView.setOnClickListener { onSelected(mail) }
+        holder.subject.setTypeface(null, if (mail.unread) Typeface.BOLD else Typeface.NORMAL)
+    }
+
+    private fun fromThisYear(mail: Mail): Boolean {
+        val cal = Calendar.getInstance()
+        val yearNow = cal.get(Calendar.YEAR)
+        cal.timeInMillis = mail.receivedDate.millis
+        return yearNow == cal.get(Calendar.YEAR)
+    }
+
+    private fun formatDate(context: Context, mail: Mail): String {
+        val date = Date(mail.receivedDate.millis)
+        return if (fromThisYear(mail)) {
+            SimpleDateFormat("dd/MM", Locale.getDefault()).format(date)
+        } else {
+            DateFormat.getDateFormat(context).format(date)
+        }
     }
 
     class MailviewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

@@ -15,7 +15,6 @@
             tools:ignore="GoogleAppIndexingWarning">
         <activity
                 android:name=".MailViewerActivity"
-                android:label="@string/title_activity_mail_viewer"
                 android:parentActivityName=".MainActivity"
                 android:theme="@style/AppTheme.NoActionBar">
             <meta-data
@@ -30,6 +29,9 @@
             </intent-filter>
         </activity>
         <activity android:name=".LoginActivity" />
+        <activity
+                android:name=".ComposeActivity"
+                android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>

@@ -24,7 +24,29 @@ enum class GroupType(val value: Long) {
     Contact(6),
     File(7),
     LocalAdmin(8),
-    Calendar(9)
+    Calendar(9);
+
+    fun getByValue(value: Long): GroupType {
+        return when (value) {
+            0L -> User
+            1L -> Admin
+            2L -> MailingList
+            3L -> Customer
+            4L -> External
+            5L -> Mail
+            6L -> Contact
+            7L -> File
+            8L -> LocalAdmin
+            9L -> Calendar
+            else -> throw IllegalArgumentException("No GroupType for $value")
+        }
+    }
+}
+
+enum class ConversationType(val value: Long) {
+    NEW(0),
+    REPLY(1),
+    FORWARD(2)
 }
 
 enum class MailFolderType(val value: Long) {
