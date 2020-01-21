@@ -18,51 +18,51 @@ compileKotlin2Js {
         sourceMapEmbedSources = "always"
         moduleKind = 'umd'
         main = 'com.charlag.tuta.web'
-        target = "v6"
+        target = "v5"
     }
 }
 
-// Creates minified, packed main.bundle.js at build/dist:
-task bundle(type: NpmTask, dependsOn: [npmInstall]) {
-    args = ["run", "bundle"]
-    assemble.dependsOn bundle
-}
-
-// Copies files from src/main/resouces to build/dist. These resources will be served by dev server:
-task copyStaticResources(type: Copy) {
-    from sourceSets.main.resources
-    into "${buildDir}/dist"
-    bundle.dependsOn copyStaticResources
-}
-
-// Extracts JS libs from included dependencies to node_modules in build directory:
-task populateNodeModules(type: Copy, dependsOn: compileKotlin2Js) {
-    from compileKotlin2Js.destinationDir
-
-    configurations.testCompile.each {
-        from zipTree(it.absolutePath).matching { include '*.js' }
-    }
-
-    into "${buildDir}/node_modules"
-}
-
-// Starts dev server that serves built application in dev mode; run watch for hot reload:
-task run(type: NpmTask, dependsOn: [copyStaticResources, populateNodeModules, npmInstall]) {
-    args = ["run", "start"]
-}
-
-// Test runner:
-task runKarma(type: NpmTask, dependsOn: [populateNodeModules, npmInstall]) {
-    args = ['test']
-    test.dependsOn runKarma
-}
-
-// Recompiles sources on file changes. Invoke 'gradle client:run' and 'gradle -t client:watch' for hot reload.
-task watch {
-    inputs.files 'src/main'
-    doLast {
-        compileKotlin2Js.execute()
-        populateNodeModules.execute()
-        copyStaticResources.execute()
-    }
-}
+//// Creates minified, packed main.bundle.js at build/dist:
+//task bundle(type: NpmTask, dependsOn: [npmInstall]) {
+//    args = ["run", "bundle"]
+//    assemble.dependsOn bundle
+//}
+//
+//// Copies files from src/main/resouces to build/dist. These resources will be served by dev server:
+//task copyStaticResources(type: Copy) {
+//    from sourceSets.main.resources
+//    into "${buildDir}/dist"
+//    bundle.dependsOn copyStaticResources
+//}
+//
+//// Extracts JS libs from included dependencies to node_modules in build directory:
+//task populateNodeModules(type: Copy, dependsOn: compileKotlin2Js) {
+//    from compileKotlin2Js.destinationDir
+//
+//    configurations.testCompile.each {
+//        from zipTree(it.absolutePath).matching { include '*.js' }
+//    }
+//
+//    into "${buildDir}/node_modules"
+//}
+//
+//// Starts dev server that serves built application in dev mode; run watch for hot reload:
+//task run(type: NpmTask, dependsOn: [copyStaticResources, populateNodeModules, npmInstall]) {
+//    args = ["run", "start"]
+//}
+//
+//// Test runner:
+//task runKarma(type: NpmTask, dependsOn: [populateNodeModules, npmInstall]) {
+//    args = ['test']
+//    test.dependsOn runKarma
+//}
+//
+//// Recompiles sources on file changes. Invoke 'gradle client:run' and 'gradle -t client:watch' for hot reload.
+//task watch {
+//    inputs.files 'src/main'
+//    doLast {
+//        compileKotlin2Js.execute()
+//        populateNodeModules.execute()
+//        copyStaticResources.execute()
+//    }
+//}
