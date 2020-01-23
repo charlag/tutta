@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.preference.PreferenceManager
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,11 +18,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.MailFolder
+import com.charlag.tuta.mail.MailListFragment
+import com.charlag.tuta.mail.MailViewModel
 import com.charlag.tuta.util.withLifecycleContext
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.mail_menu.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
     private val viewModel: MailViewModel by viewModels()
@@ -47,12 +51,16 @@ class MainActivity : AppCompatActivity() {
         if (userId != null && accessToken != null && password != null && mailAddress != null) {
             DependencyDump.credentials = Credentials(userId, accessToken, password, mailAddress)
             GlobalScope.launch {
-                DependencyDump.loginFacade.resumeSession(
-                    mailAddress,
-                    GeneratedId(userId),
-                    accessToken,
-                    password
-                )
+                try {
+                    DependencyDump.loginFacade.resumeSession(
+                        mailAddress,
+                        GeneratedId(userId),
+                        accessToken,
+                        password
+                    )
+                } catch (e: IOException) {
+                    Log.w("Main", "Failed to log in because of IO $e")
+                }
             }
         } else {
             startActivity(Intent(this, LoginActivity::class.java))
@@ -61,7 +69,9 @@ class MainActivity : AppCompatActivity() {
 
         supportFragmentManager
             .beginTransaction()
-            .replace(R.id.fragemntFrame, MailListFragment())
+            .replace(R.id.fragemntFrame,
+                MailListFragment()
+            )
             .commit()
 
         withLifecycleContext {

@@ -1,4 +1,4 @@
-package com.charlag.tuta
+package com.charlag.tuta.mail
 
 import android.os.Bundle
 import android.util.Log
@@ -6,6 +6,10 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.charlag.tuta.ConversationType
+import com.charlag.tuta.DependencyDump
+import com.charlag.tuta.R
+import com.charlag.tuta.RecipientInfo
 import kotlinx.android.synthetic.main.activity_compose.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope

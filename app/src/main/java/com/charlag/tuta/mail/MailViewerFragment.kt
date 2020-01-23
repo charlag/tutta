@@ -1,4 +1,4 @@
-package com.charlag.tuta
+package com.charlag.tuta.mail
 
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -10,6 +10,8 @@ import android.webkit.*
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.charlag.tuta.BuildConfig
+import com.charlag.tuta.R
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
 

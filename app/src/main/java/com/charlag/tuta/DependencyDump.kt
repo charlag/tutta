@@ -1,6 +1,7 @@
 package com.charlag.tuta
 
 import android.util.Log
+import com.charlag.tuta.data.AppDatabase
 import io.ktor.client.features.logging.Logger
 import io.ktor.client.features.logging.Logging
 
@@ -28,4 +29,5 @@ object DependencyDump {
     )
     val loginFacade = LoginFacade(cryptor, api, groupKeysCache)
     val mailFacade = MailFacade(api, cryptor)
+    lateinit var db: AppDatabase
 }

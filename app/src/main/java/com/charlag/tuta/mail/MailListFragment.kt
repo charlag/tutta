@@ -1,4 +1,4 @@
-package com.charlag.tuta
+package com.charlag.tuta.mail
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,11 +7,16 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.selection.*
+import androidx.recyclerview.selection.ItemDetailsLookup
+import androidx.recyclerview.selection.ItemKeyProvider
+import androidx.recyclerview.selection.SelectionTracker
+import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.charlag.tuta.entities.GENERATED_MAX_ID
-import com.charlag.tuta.entities.tutanota.Mail
+import com.charlag.tuta.DependencyDump
+import com.charlag.tuta.MainActivity
+import com.charlag.tuta.R
 import com.charlag.tuta.entities.tutanota.MailFolder
+import com.charlag.tuta.getFolderName
 import com.charlag.tuta.util.withLifecycleContext
 import kotlinx.android.synthetic.main.fragment_mail_list.*
 import kotlinx.coroutines.Dispatchers
@@ -36,7 +41,10 @@ class MailListFragment : Fragment() {
     private val adapter = MailsAdapter { mail ->
         viewModel.setOpenedMail(mail)
         parentFragmentManager.beginTransaction()
-            .replace(R.id.fragemntFrame, MailViewerFragment())
+            .replace(
+                R.id.fragemntFrame,
+                MailViewerFragment()
+            )
             .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
             .addToBackStack(null)
             .commit()
@@ -62,11 +70,11 @@ class MailListFragment : Fragment() {
             recycler,
             object : ItemKeyProvider<String>(SCOPE_MAPPED) {
                 override fun getKey(position: Int): String? {
-                    return adapter.mails[position]._id.elementId.asString()
+                    return adapter.mails[position].id.asString()
                 }
 
                 override fun getPosition(key: String): Int {
-                    return adapter.mails.indexOfFirst { it._id.elementId.asString() == key }
+                    return adapter.mails.indexOfFirst { it.id.asString() == key }
                 }
             },
             object : ItemDetailsLookup<String>() {
@@ -145,7 +153,7 @@ class MailListFragment : Fragment() {
 
 
     private suspend fun loadMails(folder: MailFolder) {
-        val mails = api.loadRange(Mail::class, folder.mails, GENERATED_MAX_ID, 40, true)
+        val mails = viewModel.loadMails(folder)
         withContext(Dispatchers.Main) {
             progress.visibility = View.INVISIBLE
             adapter.mails.clear()

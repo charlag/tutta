@@ -1,7 +1,6 @@
-package com.charlag.tuta
+package com.charlag.tuta.mail
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Typeface
 import android.text.format.DateFormat
 import android.view.LayoutInflater
@@ -11,14 +10,15 @@ import android.widget.TextView
 import androidx.recyclerview.selection.ItemDetailsLookup
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.RecyclerView
-import com.charlag.tuta.entities.tutanota.Mail
+import com.charlag.tuta.R
+import com.charlag.tuta.data.MailEntity
 import java.text.SimpleDateFormat
 import java.util.*
 
 class MailsAdapter(
-    val onSelected: (Mail) -> Unit
+    val onSelected: (MailEntity) -> Unit
 ) : RecyclerView.Adapter<MailsAdapter.MailviewHolder>() {
-    val mails = mutableListOf<Mail>()
+    val mails = mutableListOf<MailEntity>()
     lateinit var selectionTracker: SelectionTracker<String>
 
     override fun onCreateViewHolder(parent: ViewGroup, index: Int): MailviewHolder {
@@ -38,29 +38,28 @@ class MailsAdapter(
         holder.date.text = formatDate(holder.date.context, mail)
         holder.itemView.setOnClickListener { onSelected(mail) }
         holder.subject.setTypeface(null, if (mail.unread) Typeface.BOLD else Typeface.NORMAL)
-        if (selectionTracker.isSelected(mail._id.elementId.asString())) {
+        if (selectionTracker.isSelected(mail.id.asString())) {
             holder.itemView.setBackgroundResource(R.drawable.selected_mail_bg)
         } else {
             holder.itemView.background = null
         }
     }
 
-    private fun fromThisYear(mail: Mail): Boolean {
+    private fun fromThisYear(mail: MailEntity): Boolean {
         val cal = Calendar.getInstance()
         val yearNow = cal.get(Calendar.YEAR)
-        cal.timeInMillis = mail.receivedDate.millis
+        cal.timeInMillis = mail.receivedDate.time
         return yearNow == cal.get(Calendar.YEAR)
     }
 
-    private fun formatDate(context: Context, mail: Mail): String {
-        val date = Date(mail.receivedDate.millis)
+    private fun formatDate(context: Context, mail: MailEntity): String {
         return if (fromThisYear(mail)) {
             SimpleDateFormat(
                 "dd/MM",
                 Locale.getDefault()
-            ).format(date)
+            ).format(mail.receivedDate)
         } else {
-            DateFormat.getDateFormat(context).format(date)
+            DateFormat.getDateFormat(context).format(mail.receivedDate)
         }
     }
 
@@ -76,7 +75,10 @@ class MailsAdapter(
         )
 
         fun itemDetails() =
-            MailItemDetails(mails[adapterPosition]._id.elementId.asString(), adapterPosition)
+            MailItemDetails(
+                mails[adapterPosition].id.asString(),
+                adapterPosition
+            )
     }
 
 
