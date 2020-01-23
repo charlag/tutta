@@ -1,12 +1,15 @@
 package com.charlag.tuta
 
 import android.content.Context
+import android.graphics.Color
 import android.graphics.Typeface
 import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.selection.ItemDetailsLookup
+import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.RecyclerView
 import com.charlag.tuta.entities.tutanota.Mail
 import java.text.SimpleDateFormat
@@ -16,6 +19,7 @@ class MailsAdapter(
     val onSelected: (Mail) -> Unit
 ) : RecyclerView.Adapter<MailsAdapter.MailviewHolder>() {
     val mails = mutableListOf<Mail>()
+    lateinit var selectionTracker: SelectionTracker<String>
 
     override fun onCreateViewHolder(parent: ViewGroup, index: Int): MailviewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -34,6 +38,11 @@ class MailsAdapter(
         holder.date.text = formatDate(holder.date.context, mail)
         holder.itemView.setOnClickListener { onSelected(mail) }
         holder.subject.setTypeface(null, if (mail.unread) Typeface.BOLD else Typeface.NORMAL)
+        if (selectionTracker.isSelected(mail._id.elementId.asString())) {
+            holder.itemView.setBackgroundResource(R.drawable.selected_mail_bg)
+        } else {
+            holder.itemView.background = null
+        }
     }
 
     private fun fromThisYear(mail: Mail): Boolean {
@@ -55,7 +64,7 @@ class MailsAdapter(
         }
     }
 
-    class MailviewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    inner class MailviewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val sender: TextView = itemView.findViewById(
             R.id.sender
         )
@@ -65,5 +74,18 @@ class MailsAdapter(
         val subject: TextView = itemView.findViewById(
             R.id.subject
         )
+
+        fun itemDetails() =
+            MailItemDetails(mails[adapterPosition]._id.elementId.asString(), adapterPosition)
+    }
+
+
+    class MailItemDetails(
+        val key: String,
+        val adapterPosition: Int
+    ) : ItemDetailsLookup.ItemDetails<String>() {
+        override fun getSelectionKey(): String = key
+
+        override fun getPosition(): Int = adapterPosition
     }
 }

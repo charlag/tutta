@@ -2,13 +2,12 @@ package com.charlag.tuta
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.selection.*
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.entities.GENERATED_MAX_ID
 import com.charlag.tuta.entities.tutanota.Mail
@@ -22,6 +21,7 @@ import kotlinx.coroutines.withContext
 
 class MailListFragment : Fragment() {
 
+    private var actionmode: ActionMode? = null
     val viewModel: MailViewModel by activityViewModels()
     private val api = DependencyDump.api
 
@@ -45,12 +45,55 @@ class MailListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        toolbar.setNavigationIcon(R.drawable.ic_menu_black_24dp)
+        toolbar.setNavigationOnClickListener {
+            (activity as MainActivity).openDrawer()
+        }
+
         fab.setOnClickListener {
             startActivity(Intent(activity, ComposeActivity::class.java))
         }
 
         recycler.layoutManager = LinearLayoutManager(activity)
         recycler.adapter = adapter
+
+        adapter.selectionTracker = SelectionTracker.Builder(
+            "selected-mail-id",
+            recycler,
+            object : ItemKeyProvider<String>(SCOPE_MAPPED) {
+                override fun getKey(position: Int): String? {
+                    return adapter.mails[position]._id.elementId.asString()
+                }
+
+                override fun getPosition(key: String): Int {
+                    return adapter.mails.indexOfFirst { it._id.elementId.asString() == key }
+                }
+            },
+            object : ItemDetailsLookup<String>() {
+                override fun getItemDetails(e: MotionEvent): ItemDetails<String>? {
+                    return recycler.findChildViewUnder(e.x, e.y)?.let {
+                        val viewHolder =
+                            recycler.getChildViewHolder(it) as MailsAdapter.MailviewHolder
+                        viewHolder.itemDetails()
+                    }
+                }
+
+            },
+            StorageStrategy.createStringStorage()
+        ).build()
+        adapter.selectionTracker.addObserver(object : SelectionTracker.SelectionObserver<String>() {
+            override fun onSelectionChanged() {
+                if (adapter.selectionTracker.hasSelection()) {
+                    if (actionmode != null) {
+                        actionmode?.invalidate()
+                    } else {
+                        startActionMode()
+                    }
+                } else {
+                    actionmode?.finish()
+                }
+            }
+        })
 
         var loadMailsJob: Job? = null
         withLifecycleContext {
@@ -66,6 +109,40 @@ class MailListFragment : Fragment() {
             }
         }
     }
+
+    private fun startActionMode() {
+        this.actionmode = toolbar.startActionMode(object : ActionMode.Callback {
+            override fun onActionItemClicked(mode: ActionMode?, item: MenuItem): Boolean {
+                return false
+            }
+
+            override fun onCreateActionMode(mode: ActionMode?, menu: Menu): Boolean {
+                menu.add("Delete")
+                    .setIcon(R.drawable.ic_delete_black_24dp)
+                    .setOnMenuItemClickListener {
+                        actionmode?.finish()
+                        true
+                    }
+                menu.add("Archive")
+                    .setIcon(R.drawable.ic_archive_black_24dp)
+                    .setOnMenuItemClickListener {
+                        actionmode?.finish()
+                        true
+                    }
+                return true
+            }
+
+            override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+                return false
+            }
+
+            override fun onDestroyActionMode(mode: ActionMode?) {
+                adapter.selectionTracker.clearSelection()
+                actionmode = null
+            }
+        })
+    }
+
 
     private suspend fun loadMails(folder: MailFolder) {
         val mails = api.loadRange(Mail::class, folder.mails, GENERATED_MAX_ID, 40, true)

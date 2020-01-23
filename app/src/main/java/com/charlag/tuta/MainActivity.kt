@@ -77,6 +77,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    fun openDrawer() {
+        drawerLayout.openDrawer(navigationView)
+    }
 }
 
 class MailFoldersAdapter(
