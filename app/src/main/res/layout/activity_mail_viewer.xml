@@ -33,8 +33,8 @@
                     android:id="@+id/subjectView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:layout_marginLeft="16dp"
+                    android:layout_marginTop="8dp"
                     android:layout_marginRight="16dp"
                     android:text="Subject"
                     android:textSize="24sp"
@@ -63,6 +63,33 @@
                     app:layout_constraintTop_toTopOf="@id/senderNameView"
                     tools:text="sender@test.com" />
 
+
+            <FrameLayout
+                    android:id="@+id/externalContentView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="?selectableItemBackground"
+                    android:padding="8dp"
+                    android:visibility="gone"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/senderAddressView"
+                    tools:visibility="visible">
+
+                <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/loadExternalContentText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center"
+                        android:drawableStart="@drawable/ic_image_black_24dp"
+                        android:drawablePadding="8dp"
+                        android:drawableTint="@color/primaryOnSurface"
+                        android:gravity="center"
+                        android:text="Load external content"
+                        android:textColor="@color/primaryOnSurface" />
+            </FrameLayout>
+
             <WebView
                     android:id="@+id/webView"
                     android:layout_width="match_parent"
@@ -71,7 +98,7 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintLeft_toLeftOf="parent"
                     app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/senderNameView" />
+                    app:layout_constraintTop_toBottomOf="@id/externalContentView" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

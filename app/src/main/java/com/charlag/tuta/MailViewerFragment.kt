@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebView
+import android.webkit.*
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -28,6 +28,37 @@ class MailViewerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         if (BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
+        }
+        var blockingResources = true
+        var detectedExternalContent = false
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView,
+                request: WebResourceRequest
+            ): WebResourceResponse? {
+                return if (blockingResources && request.url.scheme != "data") {
+                    if (!detectedExternalContent) {
+                        detectedExternalContent = true
+                        externalContentView.post {
+                            externalContentView.visibility = View.VISIBLE
+                        }
+                    }
+                    WebResourceResponse("text/html", "UTF-8", 403, "Blocked", null, null)
+                } else {
+                    null
+                }
+            }
+        }
+        externalContentView.setOnClickListener {
+            if (blockingResources) {
+                blockingResources = false
+                webView.reload()
+                loadExternalContentText.text = "Always load from this sender"
+            } else {
+                // Second click
+                externalContentView.visibility = View.GONE
+            }
+
         }
         toolbar.navigationIcon = view.context.getDrawable(R.drawable.ic_arrow_back_black_24dp)
         toolbar.setNavigationOnClickListener {
