@@ -3,10 +3,10 @@ package com.charlag.tuta
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.charlag.tuta.entities.GeneratedId
+import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.tutanota.MailBox
-import com.charlag.tuta.entities.tutanota.MailFolder
-import com.charlag.tuta.entities.tutanota.MailboxGroupRoot
+import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.util.combineLiveData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 
 class MailViewModel : ViewModel() {
     private val loginFacade = DependencyDump.loginFacade
+    private val api = DependencyDump.api
 
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders = MutableLiveData<List<MailFolder>>()
@@ -25,6 +26,28 @@ class MailViewModel : ViewModel() {
     fun selectFolder(folderId: IdTuple) {
         selectedFolderId.value = folderId
     }
+
+    val openedMail = MutableLiveData<Mail?>()
+
+    fun setOpenedMail(mail: Mail?) {
+        openedMail.value = mail
+    }
+
+    val loadedMailBody = MutableLiveData<MailBody?>()
+
+    suspend fun loadMailBody(mailBodyId: Id): MailBody {
+        val loaded = loadedMailBody.value
+        if (loaded != null && loaded._id == mailBodyId) {
+            return loaded
+        }
+        loadedMailBody.value = null
+        val freshlyLoaded = withContext(Dispatchers.IO) {
+            api.loadElementEntity<MailBody>(mailBodyId)
+        }
+        loadedMailBody.value = freshlyLoaded
+        return freshlyLoaded
+    }
+
 
     init {
         viewModelScope.launch {

@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -33,9 +34,12 @@ class MailListFragment : Fragment() {
     }
 
     private val adapter = MailsAdapter { mail ->
-        val intent = Intent(activity, MailViewerActivity::class.java)
-            .putExtra("mailBodyId", mail.body.asString())
-        startActivity(intent)
+        viewModel.setOpenedMail(mail)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragemntFrame, MailViewerFragment())
+            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+            .addToBackStack(null)
+            .commit()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
