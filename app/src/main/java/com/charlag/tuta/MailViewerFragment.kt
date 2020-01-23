@@ -31,6 +31,9 @@ class MailViewerFragment : Fragment() {
         }
         var blockingResources = true
         var detectedExternalContent = false
+        webView.settings.setSupportZoom(true)
+        webView.settings.builtInZoomControls = true
+        webView.settings.displayZoomControls = false
         webView.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(
                 view: WebView,
@@ -72,6 +75,8 @@ class MailViewerFragment : Fragment() {
         }
         subjectView.text = openedMail.subject
         senderNameView.text = openedMail.sender.name
+        senderNameView.visibility =
+            if (openedMail.sender.name.isBlank()) View.GONE else View.VISIBLE
         senderAddressView.text = openedMail.sender.address
         lifecycleScope.launch {
             val body = viewModel.loadMailBody(openedMail.body)

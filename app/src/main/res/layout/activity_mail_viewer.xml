@@ -61,6 +61,7 @@
                     android:alpha="0.8"
                     app:layout_constraintLeft_toRightOf="@id/senderNameView"
                     app:layout_constraintTop_toTopOf="@id/senderNameView"
+                    app:layout_goneMarginLeft="16dp"
                     tools:text="sender@test.com" />
 
 
@@ -90,7 +91,7 @@
                         android:textColor="@color/primaryOnSurface" />
             </FrameLayout>
 
-            <WebView
+            <com.charlag.tuta.util.ZoomNestedWebView
                     android:id="@+id/webView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
