@@ -29,7 +29,7 @@ actual fun ByteArray.toBase64(): String =
 
 @UnstableDefault
 actual fun platformJsonSerializer(): JsonSerializer {
-    return KotlinxSerializer(Json(JsonConfiguration(strictMode = false))).apply {
+    return KotlinxSerializer(Json(JsonConfiguration.Default)).apply {
         typeInfos.forEach { (klass, _, _, serializer) ->
             @Suppress("UNCHECKED_CAST")
             setMapper(klass as KClass<Any>, serializer as KSerializer<Any>)
