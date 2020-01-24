@@ -56,7 +56,7 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
     )
 
     suspend fun loadMails(folder: MailFolder): List<MailEntity> {
-        val dbMails = mailDao.getMails()
+        val dbMails = mailDao.getMailsFromListId(folder.mails.asString())
         if (dbMails.isEmpty()) {
             val networkMails = api.loadRange(Mail::class, folder.mails, GENERATED_MAX_ID, 40, true)
                 .map { mail -> mail.toEntity() }

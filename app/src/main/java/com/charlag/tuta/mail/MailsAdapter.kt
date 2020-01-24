@@ -75,7 +75,8 @@ class MailsAdapter(
         )
 
         fun itemDetails() =
-            MailItemDetails(
+            if (adapterPosition == -1) null
+            else MailItemDetails(
                 mails[adapterPosition].id.asString(),
                 adapterPosition
             )
