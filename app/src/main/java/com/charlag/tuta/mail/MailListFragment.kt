@@ -6,29 +6,24 @@ import android.view.*
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.switchMap
 import androidx.recyclerview.selection.ItemDetailsLookup
 import androidx.recyclerview.selection.ItemKeyProvider
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.charlag.tuta.DependencyDump
 import com.charlag.tuta.MainActivity
 import com.charlag.tuta.R
-import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.getFolderName
+import com.charlag.tuta.util.map
 import com.charlag.tuta.util.withLifecycleContext
 import kotlinx.android.synthetic.main.fragment_mail_list.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MailListFragment : Fragment() {
 
     private var actionmode: ActionMode? = null
     val viewModel: MailViewModel by activityViewModels()
-    private val api = DependencyDump.api
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -64,31 +59,20 @@ class MailListFragment : Fragment() {
 
         recycler.layoutManager = LinearLayoutManager(activity)
         recycler.adapter = adapter
+        recycler.setHasFixedSize(true)
 
-        adapter.selectionTracker = SelectionTracker.Builder(
-            "selected-mail-id",
-            recycler,
-            object : ItemKeyProvider<String>(SCOPE_MAPPED) {
-                override fun getKey(position: Int): String? {
-                    return adapter.mails[position].id.asString()
-                }
+        val emptyDrawable = view.context.getDrawable(R.drawable.ic_inbox_black_24dp)!!
+        val emptyDrawableSize = (60 * view.context.resources.displayMetrics.density).toInt()
+        emptyDrawable.setTint(view.context.getColor(R.color.primaryOnSurface))
+        emptyDrawable.setBounds(
+            0,
+            0,
+            emptyDrawableSize,
+            emptyDrawableSize
+        )
+        emptyTextView.setCompoundDrawables(null, emptyDrawable, null, null)
 
-                override fun getPosition(key: String): Int {
-                    return adapter.mails.indexOfFirst { it.id.asString() == key }
-                }
-            },
-            object : ItemDetailsLookup<String>() {
-                override fun getItemDetails(e: MotionEvent): ItemDetails<String>? {
-                    return recycler.findChildViewUnder(e.x, e.y)?.let {
-                        val viewHolder =
-                            recycler.getChildViewHolder(it) as MailsAdapter.MailviewHolder
-                        viewHolder.itemDetails()
-                    }
-                }
-
-            },
-            StorageStrategy.createStringStorage()
-        ).build()
+        adapter.selectionTracker = makeSelectionTracker()
         adapter.selectionTracker.addObserver(object : SelectionTracker.SelectionObserver<String>() {
             override fun onSelectionChanged() {
                 if (adapter.selectionTracker.hasSelection()) {
@@ -103,19 +87,46 @@ class MailListFragment : Fragment() {
             }
         })
 
-        var loadMailsJob: Job? = null
         withLifecycleContext {
-            viewModel.selectedFolder.observe { folder ->
-                loadMailsJob?.cancel()
-                if (folder == null) return@observe
-                loadMailsJob = lifecycleScope.launch {
-                    loadMails(folder)
+            viewModel.selectedFolder.switchMap { folder ->
+                if (folder == null) MutableLiveData<Unit>()
+                else viewModel.loadMails(folder).map {
+                    adapter.submitList(it)
+                    progress.visibility = View.GONE
+                    emptyTextView.visibility = if (it.isEmpty()) View.VISIBLE else View.GONE
                 }
-            }
+            }.subscribe()
             viewModel.selectedFolder.observe { folder ->
                 toolbar.title = folder?.let(::getFolderName) ?: ""
             }
         }
+    }
+
+    private fun makeSelectionTracker(): SelectionTracker<String> {
+        return SelectionTracker.Builder(
+            "selected-mail-id",
+            recycler,
+            object : ItemKeyProvider<String>(SCOPE_MAPPED) {
+                override fun getKey(position: Int): String? {
+                    return adapter.currentList?.get(position)?.id?.asString()
+                }
+
+                override fun getPosition(key: String): Int {
+                    return adapter.currentList?.indexOfFirst { it.id.asString() == key } ?: -1
+                }
+            },
+            object : ItemDetailsLookup<String>() {
+                override fun getItemDetails(e: MotionEvent): ItemDetails<String>? {
+                    return recycler.findChildViewUnder(e.x, e.y)?.let {
+                        val viewHolder =
+                            recycler.getChildViewHolder(it) as MailsAdapter.MailviewHolder
+                        viewHolder.itemDetails()
+                    }
+                }
+
+            },
+            StorageStrategy.createStringStorage()
+        ).build()
     }
 
     private fun startActionMode() {
@@ -149,16 +160,5 @@ class MailListFragment : Fragment() {
                 actionmode = null
             }
         })
-    }
-
-
-    private suspend fun loadMails(folder: MailFolder) {
-        val mails = viewModel.loadMails(folder)
-        withContext(Dispatchers.Main) {
-            progress.visibility = View.INVISIBLE
-            adapter.mails.clear()
-            adapter.mails += mails
-            adapter.notifyDataSetChanged()
-        }
     }
 }

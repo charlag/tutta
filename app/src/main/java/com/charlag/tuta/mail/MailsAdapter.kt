@@ -2,23 +2,29 @@ package com.charlag.tuta.mail
 
 import android.content.Context
 import android.graphics.Typeface
-import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.paging.PagedListAdapter
 import androidx.recyclerview.selection.ItemDetailsLookup
 import androidx.recyclerview.selection.SelectionTracker
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.charlag.tuta.R
 import com.charlag.tuta.data.MailEntity
+import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
 class MailsAdapter(
     val onSelected: (MailEntity) -> Unit
-) : RecyclerView.Adapter<MailsAdapter.MailviewHolder>() {
-    val mails = mutableListOf<MailEntity>()
+) : PagedListAdapter<MailEntity, MailsAdapter.MailviewHolder>(DIFF_CALLBACK) {
+    private val fullFormat = DateFormat.getDateInstance()
+    private val shortFormat = SimpleDateFormat(
+        "dd/MM",
+        Locale.getDefault()
+    )
     lateinit var selectionTracker: SelectionTracker<String>
 
     override fun onCreateViewHolder(parent: ViewGroup, index: Int): MailviewHolder {
@@ -27,10 +33,8 @@ class MailsAdapter(
         return MailviewHolder(view)
     }
 
-    override fun getItemCount(): Int = mails.size
-
     override fun onBindViewHolder(holder: MailviewHolder, index: Int) {
-        val mail = mails[index]
+        val mail = getItem(index) ?: return
         holder.sender.text =
             if (mail.sender.name.isNotBlank()) "${mail.sender.name} ${mail.sender.address}"
             else mail.sender.address
@@ -54,12 +58,9 @@ class MailsAdapter(
 
     private fun formatDate(context: Context, mail: MailEntity): String {
         return if (fromThisYear(mail)) {
-            SimpleDateFormat(
-                "dd/MM",
-                Locale.getDefault()
-            ).format(mail.receivedDate)
+            shortFormat.format(mail.receivedDate)
         } else {
-            DateFormat.getDateFormat(context).format(mail.receivedDate)
+            fullFormat.format(mail.receivedDate)
         }
     }
 
@@ -76,10 +77,9 @@ class MailsAdapter(
 
         fun itemDetails() =
             if (adapterPosition == -1) null
-            else MailItemDetails(
-                mails[adapterPosition].id.asString(),
-                adapterPosition
-            )
+            else getItem(adapterPosition)?.let { mail ->
+                MailItemDetails(mail.id.asString(), adapterPosition)
+            }
     }
 
 
@@ -90,5 +90,17 @@ class MailsAdapter(
         override fun getSelectionKey(): String = key
 
         override fun getPosition(): Int = adapterPosition
+    }
+
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<MailEntity>() {
+            override fun areItemsTheSame(oldItem: MailEntity, newItem: MailEntity): Boolean {
+                return oldItem.id == newItem.id
+            }
+
+            override fun areContentsTheSame(oldItem: MailEntity, newItem: MailEntity): Boolean {
+                return oldItem == newItem
+            }
+        }
     }
 }

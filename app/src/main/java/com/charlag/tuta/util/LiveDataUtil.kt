@@ -19,10 +19,6 @@ import androidx.lifecycle.*
 inline fun <X, Y> LiveData<X>.map(crossinline mapFunction: (X) -> Y): LiveData<Y> =
     Transformations.map(this) { input -> mapFunction(input) }
 
-inline fun <X, Y> LiveData<X>.switchMap(
-    crossinline switchMapFunction: (X) -> LiveData<Y>
-): LiveData<Y> = Transformations.switchMap(this) { input -> switchMapFunction(input) }
-
 inline fun <X> LiveData<X>.filter(crossinline predicate: (X) -> Boolean): LiveData<X> {
     val liveData = MediatorLiveData<X>()
     liveData.addSource(this) { value ->

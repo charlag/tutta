@@ -15,9 +15,9 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.charlag.tuta.data.MailFolderEntity
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.mail.MailListFragment
 import com.charlag.tuta.mail.MailViewModel
 import com.charlag.tuta.util.withLifecycleContext
@@ -30,7 +30,12 @@ import java.io.IOException
 class MainActivity : AppCompatActivity() {
     private val viewModel: MailViewModel by viewModels()
     private val foldersAdapter = MailFoldersAdapter { selectedFolder ->
-        viewModel.selectFolder(selectedFolder._id)
+        viewModel.selectFolder(
+            IdTuple(
+                GeneratedId(selectedFolder.listId),
+                GeneratedId(selectedFolder.id)
+            )
+        )
         drawerLayout.closeDrawer(navigationView)
     }
 
@@ -69,7 +74,8 @@ class MainActivity : AppCompatActivity() {
 
         supportFragmentManager
             .beginTransaction()
-            .replace(R.id.fragemntFrame,
+            .replace(
+                R.id.fragemntFrame,
                 MailListFragment()
             )
             .commit()
@@ -94,10 +100,10 @@ class MainActivity : AppCompatActivity() {
 }
 
 class MailFoldersAdapter(
-    private val onFolderSelected: (MailFolder) -> Unit
+    private val onFolderSelected: (MailFolderEntity) -> Unit
 ) : RecyclerView.Adapter<MailFoldersAdapter.ViewHolder>() {
 
-    val folders = mutableListOf<MailFolder>()
+    val folders = mutableListOf<MailFolderEntity>()
     var selectedFolder: IdTuple? = null
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -122,7 +128,7 @@ class MailFoldersAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val folder = folders[position]
-        val isSelectedFolder = folder._id == selectedFolder
+        val isSelectedFolder = folder.id == selectedFolder?.elementId?.asString()
         val contentColor = holder.itemView.context.getColor(
             if (isSelectedFolder) R.color.colorAccent else R.color.primaryOnSurface
         )
@@ -136,7 +142,7 @@ class MailFoldersAdapter(
     }
 }
 
-fun getFolderName(folder: MailFolder): String {
+fun getFolderName(folder: MailFolderEntity): String {
     return when (folder.folderType) {
         MailFolderType.CUSTOM.value -> folder.name
         MailFolderType.INBOX.value -> "Inbox"
@@ -150,7 +156,7 @@ fun getFolderName(folder: MailFolder): String {
 }
 
 @DrawableRes
-fun getFolderIcon(folder: MailFolder): Int {
+fun getFolderIcon(folder: MailFolderEntity): Int {
     return when (folder.folderType) {
         MailFolderType.INBOX.value -> R.drawable.ic_inbox_black_24dp
         MailFolderType.SENT.value -> R.drawable.ic_send_black_24dp
@@ -171,6 +177,6 @@ val mailFolderOrder = mapOf(
     MailFolderType.SPAM.value to 6
 )
 
-fun sortSystemFolders(folders: List<MailFolder>): List<MailFolder> {
+fun sortSystemFolders(folders: List<MailFolderEntity>): List<MailFolderEntity> {
     return folders.sortedBy { mailFolderOrder[it.folderType] }
 }

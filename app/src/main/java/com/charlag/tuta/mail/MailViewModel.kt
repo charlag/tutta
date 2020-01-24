@@ -1,9 +1,13 @@
 package com.charlag.tuta.mail
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagedList
+import androidx.paging.toLiveData
 import androidx.room.Room
 import com.charlag.tuta.DependencyDump
 import com.charlag.tuta.GroupType
@@ -11,12 +15,15 @@ import com.charlag.tuta.MailFolderType
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.data.MailAddressEntity
 import com.charlag.tuta.data.MailEntity
+import com.charlag.tuta.data.MailFolderEntity
 import com.charlag.tuta.entities.GENERATED_MAX_ID
+import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.sortSystemFolders
 import com.charlag.tuta.util.combineLiveData
+import com.charlag.tuta.util.map
 import kotlinx.coroutines.*
 import java.util.*
 
@@ -26,10 +33,36 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
     private val mailDao by lazy { DependencyDump.db.mailDao() }
 
     val selectedFolderId = MutableLiveData<IdTuple>()
-    val folders = MutableLiveData<List<MailFolder>>()
+    val folders: LiveData<List<MailFolderEntity>>
+    val selectedFolder: LiveData<MailFolderEntity?>
 
-    val selectedFolder = combineLiveData(selectedFolderId, folders) { folderId, folders ->
-        folders.find { it._id == folderId }
+    init {
+        DependencyDump.db = Room.databaseBuilder(
+            getApplication(), AppDatabase::class.java,
+            "tuta-db"
+        ).build()
+
+        folders = mailDao.getFoldersLiveData().map { dbFolders ->
+            if (dbFolders.isEmpty()) {
+                viewModelScope.launch {
+                    val folders = loadFolders()
+                    mailDao.insertFolders(folders)
+                }
+            } else if (selectedFolderId.value == null) {
+                val selectedFolder =
+                    dbFolders.find { it.folderType == MailFolderType.INBOX.value }!!
+                selectFolder(
+                    IdTuple(
+                        GeneratedId(selectedFolder.listId),
+                        GeneratedId(selectedFolder.id)
+                    )
+                )
+            }
+            dbFolders
+        }
+        selectedFolder = combineLiveData(selectedFolderId, folders) { folderId, folders ->
+            folders.find { it.id == folderId.elementId.asString() }
+        }
     }
 
     fun selectFolder(folderId: IdTuple) {
@@ -52,20 +85,43 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
         bccReciipients = bccRecipients.map { it.toEntity() },
         body = body,
         conversationEntry = conversationEntry
-
     )
 
-    suspend fun loadMails(folder: MailFolder): List<MailEntity> {
-        val dbMails = mailDao.getMailsFromListId(folder.mails.asString())
-        if (dbMails.isEmpty()) {
-            val networkMails = api.loadRange(Mail::class, folder.mails, GENERATED_MAX_ID, 40, true)
-                .map { mail -> mail.toEntity() }
-            viewModelScope.launch {
-                mailDao.insertMails(networkMails)
-            }
-            return networkMails
-        }
-        return dbMails
+    private fun MailFolder.toEntity() = MailFolderEntity(
+        id = _id.elementId.asString(),
+        listId = _id.listId.asString(),
+        folderType = folderType,
+        name = name,
+        mails = mails
+    )
+
+    fun loadMails(folder: MailFolderEntity): LiveData<PagedList<MailEntity>> {
+        return mailDao.getMailsLiveData(folder.mails.asString())
+            .toLiveData(
+                pageSize = 40,
+                boundaryCallback = object : PagedList.BoundaryCallback<MailEntity>() {
+                    override fun onZeroItemsLoaded() {
+                        Log.d("MailViewModel", "onZeroItems")
+                        viewModelScope.launch {
+                            val mails =
+                                api.loadRange(Mail::class, folder.mails, GENERATED_MAX_ID, 40, true)
+                                    .map { it.toEntity() }
+                            Log.d("MailViewModel", "onZeroItems fetched")
+                            mailDao.insertMails(mails)
+                        }
+                    }
+
+                    override fun onItemAtEndLoaded(itemAtEnd: MailEntity) {
+                        Log.d("MailViewModel", "onItemAtEndLoaded")
+                        viewModelScope.launch {
+                            val mails =
+                                api.loadRange(Mail::class, folder.mails, itemAtEnd.id, 40, true)
+                                    .map { it.toEntity() }
+                            Log.d("MailViewModel", "onItemAtEndLoaded fetched")
+                            mailDao.insertMails(mails)
+                        }
+                    }
+                })
     }
 
     val openedMail = MutableLiveData<MailEntity?>()
@@ -89,32 +145,18 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
         return freshlyLoaded
     }
 
-
-    init {
-        DependencyDump.db = Room.databaseBuilder(
-            getApplication(), AppDatabase::class.java,
-            "tuta-db"
-        ).build()
-
-        viewModelScope.launch {
-            val folders = withContext(Dispatchers.IO) {
-                loginFacade.loggedIn.await()
-                val mailMembership = DependencyDump.loginFacade.user!!.memberships
-                    .find { it.groupType == GroupType.Mail.value }!!
-                val api = DependencyDump.api
-                val groupRoot = api
-                    .loadElementEntity<MailboxGroupRoot>(mailMembership.group)
-                val mailbox = api.loadElementEntity<MailBox>(groupRoot.mailbox)
-                api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
-                    .let(::sortSystemFolders)
-            }
-
-            withContext(Dispatchers.Main) {
-                this@MailViewModel.folders.value = folders
-                val selectedFolderId =
-                    folders.find { it.folderType == MailFolderType.INBOX.value }!!._id
-                selectFolder(selectedFolderId)
-            }
+    private suspend fun loadFolders(): List<MailFolderEntity> {
+        return withContext(Dispatchers.IO) {
+            loginFacade.loggedIn.await()
+            val mailMembership = DependencyDump.loginFacade.user!!.memberships
+                .find { it.groupType == GroupType.Mail.value }!!
+            val api = DependencyDump.api
+            val groupRoot = api
+                .loadElementEntity<MailboxGroupRoot>(mailMembership.group)
+            val mailbox = api.loadElementEntity<MailBox>(groupRoot.mailbox)
+            api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
+                .map { it.toEntity() }
+                .let(::sortSystemFolders)
         }
     }
 }
