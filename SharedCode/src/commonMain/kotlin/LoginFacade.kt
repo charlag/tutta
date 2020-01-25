@@ -5,9 +5,8 @@ import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.sys.User
+import io.ktor.utils.io.core.toByteArray
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
-import kotlinx.io.core.toByteArray
 
 data class SessionData(
     val user: User,
@@ -21,10 +20,11 @@ class LoginFacade(
     val groupKeysCache: GroupKeysCache
 ) {
     private var _user: User? = null
+    private val _loggedIn = CompletableDeferred<User>()
+
     val user: User? get() = _user
 
-    private val _loggedIn = CompletableDeferred<User>()
-    val loggedIn: Deferred<User> = _loggedIn
+    suspend fun waitForLogin(): User = _loggedIn.await()
 
     private suspend fun createAuthVerifier(cryptor: Cryptor, passwordKey: ByteArray): ByteArray =
         cryptor.hash(passwordKey)

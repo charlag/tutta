@@ -69,32 +69,6 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
         selectedFolderId.value = folderId
     }
 
-    private fun MailAddress.toEntity() = MailAddressEntity(name, address)
-    private fun Mail.toEntity() = MailEntity(
-        id = _id.elementId,
-        listId = _id.listId,
-        confidential = confidential,
-        differentEnvelopeSender = differentEnvelopeSender,
-        receivedDate = Date(receivedDate.millis),
-        sendDate = Date(sentDate.millis),
-        subject = subject,
-        unread = unread,
-        sender = sender.toEntity(),
-        toReciipients = toRecipients.map { it.toEntity() },
-        ccReciipients = ccRecipients.map { it.toEntity() },
-        bccReciipients = bccRecipients.map { it.toEntity() },
-        body = body,
-        conversationEntry = conversationEntry
-    )
-
-    private fun MailFolder.toEntity() = MailFolderEntity(
-        id = _id.elementId.asString(),
-        listId = _id.listId.asString(),
-        folderType = folderType,
-        name = name,
-        mails = mails
-    )
-
     fun loadMails(folder: MailFolderEntity): LiveData<PagedList<MailEntity>> {
         return mailDao.getMailsLiveData(folder.mails.asString())
             .toLiveData(
@@ -147,7 +121,7 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun loadFolders(): List<MailFolderEntity> {
         return withContext(Dispatchers.IO) {
-            loginFacade.loggedIn.await()
+            loginFacade.waitForLogin()
             val mailMembership = DependencyDump.loginFacade.user!!.memberships
                 .find { it.groupType == GroupType.Mail.value }!!
             val api = DependencyDump.api
@@ -160,3 +134,29 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 }
+
+fun MailAddress.toEntity() = MailAddressEntity(name, address)
+fun Mail.toEntity() = MailEntity(
+    id = _id.elementId,
+    listId = _id.listId,
+    confidential = confidential,
+    differentEnvelopeSender = differentEnvelopeSender,
+    receivedDate = Date(receivedDate.millis),
+    sendDate = Date(sentDate.millis),
+    subject = subject,
+    unread = unread,
+    sender = sender.toEntity(),
+    toReciipients = toRecipients.map { it.toEntity() },
+    ccReciipients = ccRecipients.map { it.toEntity() },
+    bccReciipients = bccRecipients.map { it.toEntity() },
+    body = body,
+    conversationEntry = conversationEntry
+)
+
+fun MailFolder.toEntity() = MailFolderEntity(
+    id = _id.elementId.asString(),
+    listId = _id.listId.asString(),
+    folderType = folderType,
+    name = name,
+    mails = mails
+)

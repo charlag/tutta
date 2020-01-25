@@ -6,9 +6,12 @@ import com.charlag.tuta.entities.sys.*
 import io.ktor.client.HttpClient
 import io.ktor.client.features.feature
 import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.websocket.wss
 import io.ktor.client.request.*
 import io.ktor.http.HttpMethod
 import io.ktor.http.Url
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.*
 import kotlin.collections.component1
@@ -53,7 +56,8 @@ class API(
     val typeModelByName: Map<String, TypeInfo<*>>,
     val compressor: Compressor,
     val groupKeysCache: GroupKeysCache,
-    var accessToken: String?
+    var accessToken: String?,
+    val wsUrl: String
 ) : SessionKeyLoaders {
     private val json = Json(JsonConfiguration.Stable)
     private val mailBodySessionKeyCache = mutableMapOf<String, ByteArray>()
@@ -152,6 +156,41 @@ class API(
     fun getTypeModelForName(name: String): TypeModel {
         val typeInfo = typeModelByName[name] ?: error("No type info for $name")
         return typeInfo.typemodel
+    }
+
+    sealed class WSEvent {
+        // TODO
+        object CounterUpdate : WSEvent()
+
+        data class EntityUpdate(val entityData: WebsocketEntityData) : WSEvent()
+        data class Unknown(val data: ByteArray) : WSEvent()
+    }
+
+    fun getEvents(userId: String): Flow<WSEvent> {
+        return flow {
+            httpClient.wss(wsUrl, {
+                url.parameters["modelVersions"] = "49.36"
+                url.parameters["clientVersion"] = "3.59.7"
+                url.parameters["userId"] = userId
+                accessToken?.let { token -> url.parameters["accessToken"] = token }
+            }) {
+                for (frame in incoming) {
+                    val (type, value) = bytesToString(frame.data).split(";")
+                    val wsEvent = when (type) {
+                        "entityUpdate" -> {
+                            val jsonElement = json.parseJson(value).jsonObject
+                            val data = deserializeEntitity(jsonElement, WebsocketEntityData::class)
+                            WSEvent.EntityUpdate(data)
+                        }
+                        "unreadCounterUpdate" -> {
+                            WSEvent.CounterUpdate
+                        }
+                        else -> WSEvent.Unknown(frame.data)
+                    }
+                    emit(wsEvent)
+                }
+            }
+        }
     }
 
     override suspend fun loadPermissions(listId: Id): List<Permission> {

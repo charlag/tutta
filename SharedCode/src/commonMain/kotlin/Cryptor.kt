@@ -1,6 +1,7 @@
 package com.charlag.tuta
 
-import kotlinx.io.core.toByteArray
+import io.ktor.utils.io.core.toByteArray
+
 
 expect class Cryptor() {
     suspend fun encrypt(

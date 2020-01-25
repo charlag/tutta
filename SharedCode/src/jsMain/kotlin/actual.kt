@@ -1,11 +1,9 @@
 package com.charlag.tuta
 
-import Bcrypt
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.js.Js
 import io.ktor.client.features.json.JsonSerializer
 import io.ktor.client.features.json.serializer.KotlinxSerializer
-import kotlinx.io.core.toByteArray
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration

@@ -1,9 +1,8 @@
 package com.charlag.tuta
 
-import at.favre.lib.crypto.bcrypt.BCrypt
 import com.charlag.tuta.entities.sys.typeInfos
 import io.ktor.client.engine.HttpClientEngine
-import io.ktor.client.engine.android.Android
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.features.json.JsonSerializer
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import kotlinx.serialization.KSerializer
@@ -18,7 +17,7 @@ actual fun platformName(): String {
 }
 
 actual fun platformEngine(): HttpClientEngine {
-    return Android.create()
+    return OkHttp.create {  }
 }
 
 actual fun base64ToBytes(base64: String): ByteArray =

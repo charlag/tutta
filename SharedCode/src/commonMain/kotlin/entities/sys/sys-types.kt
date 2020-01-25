@@ -1422,7 +1422,7 @@ data class WebsocketEntityData(
     val eventBatchOwner: Id,
 
     val eventBatch: List<EntityUpdate>
-)
+) : Entity
 
 @Serializable
 data class WebsocketCounterValue(

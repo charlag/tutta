@@ -31,9 +31,6 @@ inline fun makeHttpClient(
     this.install(JsonFeature) {
         serializer = platformJsonSerializer()
     }
-    this.install(Logging) {
-        logger = Logger.DEFAULT
-    }
     additionalConfig()
 }
 
