@@ -1,9 +1,18 @@
 package com.charlag.tuta.entities
 
+import com.charlag.tuta.entities.sys.IdTuple
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.*
 
 interface Entity
+
+interface ElementEntity : Entity {
+    val _id: Id
+}
+
+interface ListElementEntity : Entity {
+    val _id: IdTuple
+}
 
 data class Date(val millis: Long)
 

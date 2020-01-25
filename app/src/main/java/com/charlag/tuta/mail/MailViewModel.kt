@@ -106,6 +106,27 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
 
     val loadedMailBody = MutableLiveData<MailBody?>()
 
+    fun markAsRead(ids: List<String>) {
+        viewModelScope.launch {
+            for (id in ids) {
+                val mail = mailDao.getMail(id)
+                api.loadListElementEntity<>()
+            }
+        }
+    }
+
+    fun markAsUnread(ids: List<String>) {
+
+    }
+
+    fun delete(ids: List<String>) {
+
+    }
+
+    fun archive(ids: List<String>) {
+
+    }
+
     suspend fun loadMailBody(mailBodyId: Id): MailBody {
         val loaded = loadedMailBody.value
         if (loaded != null && loaded._id == mailBodyId) {

@@ -159,7 +159,7 @@ data class MailAddress(
 data class Mail(
     val _area: Long,
     val _format: Long,
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _owner: Id,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
@@ -185,7 +185,7 @@ data class Mail(
     val body: Id,
     val conversationEntry: IdTuple,
     val headers: Id?
-) : Entity
+) : ListElementEntity
 
 @Serializable
 data class MailBox(

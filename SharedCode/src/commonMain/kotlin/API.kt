@@ -139,6 +139,22 @@ class API(
         }.map { deserializeEntitity(it as JsonObject, klass) }
     }
 
+    suspend fun <T : Entity> updateEntity(entity: T) {
+        val (_, model, typeModel) = typeModelByName[entity::class.noReflectionName]!!
+
+        val idPart = if (entity is ListElementEntity) {
+            "${entity._id.listId.asString()}/${entity._id.elementId.asString()}"
+        } else {
+            (entity as ElementEntity)._id.asString()
+        }
+        val address = Url(baseUrl + "${model}/${typeModel.name.toLowerCase()}/${idPart}")
+        return httpClient.put {
+            commonHeaders()
+            url(address)
+            body = serializeEntity(entity)
+        }
+    }
+
     fun HttpRequestBuilder.commonHeaders() {
         header("cv", "3.59.16")
         accessToken?.let {

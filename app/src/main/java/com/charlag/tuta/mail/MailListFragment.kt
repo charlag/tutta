@@ -1,6 +1,7 @@
 package com.charlag.tuta.mail
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.*
 import androidx.fragment.app.Fragment
@@ -136,14 +137,32 @@ class MailListFragment : Fragment() {
             }
 
             override fun onCreateActionMode(mode: ActionMode?, menu: Menu): Boolean {
+                val tintColor = toolbar.context.getColor(R.color.primaryOnSurface)
+                val tint = ColorStateList.valueOf(tintColor)
                 menu.add("Delete")
                     .setIcon(R.drawable.ic_delete_black_24dp)
+                    .setIconTintList(tint)
                     .setOnMenuItemClickListener {
                         actionmode?.finish()
                         true
                     }
                 menu.add("Archive")
                     .setIcon(R.drawable.ic_archive_black_24dp)
+                    .setIconTintList(tint)
+                    .setOnMenuItemClickListener {
+                        actionmode?.finish()
+                        true
+                    }
+                menu.add("Mark as read")
+                    .setIcon(R.drawable.ic_eye_black_24dp)
+                    .setIconTintList(tint)
+                    .setOnMenuItemClickListener {
+                        actionmode?.finish()
+                        true
+                    }
+                menu.add("Mark as unread")
+                    .setIcon(R.drawable.ic_email_black_24dp)
+                    .setIconTintList(tint)
                     .setOnMenuItemClickListener {
                         actionmode?.finish()
                         true
