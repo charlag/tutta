@@ -109,11 +109,11 @@ class MailListFragment : Fragment() {
             recycler,
             object : ItemKeyProvider<String>(SCOPE_MAPPED) {
                 override fun getKey(position: Int): String? {
-                    return adapter.currentList?.get(position)?.id?.asString()
+                    return adapter.currentList?.get(position)?.id
                 }
 
                 override fun getPosition(key: String): Int {
-                    return adapter.currentList?.indexOfFirst { it.id.asString() == key } ?: -1
+                    return adapter.currentList?.indexOfFirst { it.id == key } ?: -1
                 }
             },
             object : ItemDetailsLookup<String>() {
@@ -157,6 +157,7 @@ class MailListFragment : Fragment() {
                     .setIcon(R.drawable.ic_eye_black_24dp)
                     .setIconTintList(tint)
                     .setOnMenuItemClickListener {
+                        viewModel.markAsRead(adapter.selectionTracker.selection.toList())
                         actionmode?.finish()
                         true
                     }
@@ -164,6 +165,7 @@ class MailListFragment : Fragment() {
                     .setIcon(R.drawable.ic_email_black_24dp)
                     .setIconTintList(tint)
                     .setOnMenuItemClickListener {
+                        viewModel.markAsUnread(adapter.selectionTracker.selection.toList())
                         actionmode?.finish()
                         true
                     }

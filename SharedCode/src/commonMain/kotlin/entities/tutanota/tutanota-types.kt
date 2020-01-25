@@ -149,7 +149,7 @@ data class ConversationEntry(
 
 @Serializable
 data class MailAddress(
-    val _id: Id,
+    val _id: Id? = null,
     val address: String,
     val name: String,
     val contact: IdTuple?
@@ -157,8 +157,8 @@ data class MailAddress(
 
 @Serializable
 data class Mail(
-    val _area: Long,
-    val _format: Long,
+    val _area: Long = 0,
+    val _format: Long = 0,
     override val _id: IdTuple,
     val _owner: Id,
     val _ownerEncSessionKey: ByteArray?,

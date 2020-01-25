@@ -11,7 +11,7 @@ import java.util.*
 
 class TutanotaConverters {
 
-    val json  = Json(JsonConfiguration.Stable)
+    val json = Json(JsonConfiguration.Stable)
 
     @TypeConverter
     fun mailAddressToString(mailAddress: MailAddressEntity): String {
@@ -48,10 +48,33 @@ class TutanotaConverters {
     }
 
     @TypeConverter
-    fun stringToIdTuple(string: String): IdTuple  {
+    fun stringToIdTuple(string: String): IdTuple {
         val array = json.parseJson(string).jsonArray
-        return IdTuple(GeneratedId(array[0].primitive.content),
-            GeneratedId(array[1].primitive.content))
+        return IdTuple(
+            GeneratedId(array[0].primitive.content),
+            GeneratedId(array[1].primitive.content)
+        )
+    }
+
+    @TypeConverter
+    fun idTupleListToString(idTuples: List<IdTuple>): String {
+        return idTuples.joinToString(
+            prefix = "[",
+            separator = ",",
+            postfix = "]",
+            transform = this::idTupleToString
+        )
+    }
+
+    @TypeConverter
+    fun stringToIdTupleList(string: String): List<IdTuple> {
+        return json.parseJson(string).jsonArray
+            .map { jsontuple ->
+                IdTuple(
+                    GeneratedId(jsontuple.jsonArray[0].primitive.content),
+                    GeneratedId(jsontuple.jsonArray[1].primitive.content)
+                )
+            }
     }
 }
 

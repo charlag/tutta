@@ -42,7 +42,7 @@ class MailsAdapter(
         holder.date.text = formatDate(holder.date.context, mail)
         holder.itemView.setOnClickListener { onSelected(mail) }
         holder.subject.setTypeface(null, if (mail.unread) Typeface.BOLD else Typeface.NORMAL)
-        if (selectionTracker.isSelected(mail.id.asString())) {
+        if (selectionTracker.isSelected(mail.id)) {
             holder.itemView.setBackgroundResource(R.drawable.selected_mail_bg)
         } else {
             holder.itemView.background = null
@@ -78,7 +78,7 @@ class MailsAdapter(
         fun itemDetails() =
             if (adapterPosition == -1) null
             else getItem(adapterPosition)?.let { mail ->
-                MailItemDetails(mail.id.asString(), adapterPosition)
+                MailItemDetails(mail.id, adapterPosition)
             }
     }
 

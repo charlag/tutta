@@ -164,15 +164,9 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
         }
     }
 
-    private inner class MapperListOutput(val andAfter: (List<Any?>) -> Unit) : NamedValueEncoder() {
+    private inner class MapperListOutput(val andAfter: (List<Any?>) -> Unit) : TaggedEncoder<Int>() {
 
-        override fun composeName(parentName: String, childName: String): String {
-            return super.composeName(parentName, childName)
-        }
-
-        override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
-            super.encodeSerializableValue(serializer, value)
-        }
+        val items = mutableListOf<Any?>()
 
         override fun beginStructure(
             desc: SerialDescriptor,
@@ -192,14 +186,14 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
         override val context: SerialModule
             get() = this@NestedMapper.context
 
-        val items = mutableListOf<Any?>()
-
-        override fun encodeTaggedValue(tag: String, value: Any) {
-            items.add(tag.toInt(), value)
+        override fun encodeTaggedValue(tag: Int, value: Any) {
+            items.add(tag, value)
         }
 
         override fun endEncode(desc: SerialDescriptor) {
             andAfter(items)
         }
+
+        override fun SerialDescriptor.getTag(index: Int): Int = index
     }
 }

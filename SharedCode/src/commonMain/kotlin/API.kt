@@ -148,10 +148,12 @@ class API(
             (entity as ElementEntity)._id.asString()
         }
         val address = Url(baseUrl + "${model}/${typeModel.name.toLowerCase()}/${idPart}")
+        val serializer = httpClient.feature(JsonFeature)!!.serializer
+        val serializedEntity = serializeEntity(entity)
         return httpClient.put {
             commonHeaders()
             url(address)
-            body = serializeEntity(entity)
+            body = serializer.write(serializedEntity)
         }
     }
 
@@ -279,7 +281,7 @@ class API(
     }
 
     private fun Any?.stringOrJsonContent() =
-        this as? String ?: (this as JsonElement).contentOrNull
+        this as? String ?: (this as? JsonElement)?.contentOrNull
 
     private suspend fun resolveSessionKey(
         typeModel: TypeModel,
@@ -363,7 +365,13 @@ class API(
     ): JsonObject {
         val encrypted = mutableMapOf<String, JsonElement>()
         for ((fieldName, valueModel) in typeModel.values) {
-            encrypted[fieldName] = encryptValue(fieldName, valueModel, map[fieldName], sessionKey)
+            encrypted[fieldName] =
+                if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
+                    @Suppress("UNCHECKED_CAST")
+                    JsonArray((map[fieldName] as List<String>).map(::JsonPrimitive))
+                } else {
+                    encryptValue(fieldName, valueModel, map[fieldName], sessionKey)
+                }
         }
         for ((fieldName, assocModel) in typeModel.associations) {
             val value = map[fieldName]
@@ -473,8 +481,11 @@ class API(
         value: Any?,
         sessionKey: ByteArray?
     ): JsonPrimitive {
-        if (value == null && name !== "_id" && name !== "_permissions") {
-            if (valueModel.cardinality == Cardinality.ZeroOrOne) {
+        if (value == null) {
+            if (name == "_id"
+                || name == "_permissions"
+                || valueModel.cardinality == Cardinality.ZeroOrOne
+            ) {
                 return JsonNull
             } else {
                 throw Error("Value $name with cardinality ONE cannot be null")
@@ -558,7 +569,8 @@ class API(
             ValueType.NumberType, ValueType.DateType -> (value as Long).toString()
             ValueType.BytesType -> (value as ByteArray).toBase64()
             ValueType.StringType,
-            ValueType.CustomIdType, ValueType.GeneratedIdType -> value as String
+            ValueType.CustomIdType,
+            ValueType.GeneratedIdType -> value as String
             ValueType.CompressedStringType -> compressor.compressString(value as String)
         }
     }

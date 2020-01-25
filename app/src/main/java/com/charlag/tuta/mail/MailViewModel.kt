@@ -89,7 +89,8 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
                         Log.d("MailViewModel", "onItemAtEndLoaded")
                         viewModelScope.launch {
                             val mails =
-                                api.loadRange(Mail::class, folder.mails, itemAtEnd.id, 40, true)
+                                api.loadRange(Mail::class, folder.mails, GeneratedId(itemAtEnd.id),
+                                    40, true)
                                     .map { it.toEntity() }
                             Log.d("MailViewModel", "onItemAtEndLoaded fetched")
                             mailDao.insertMails(mails)
@@ -107,16 +108,22 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
     val loadedMailBody = MutableLiveData<MailBody?>()
 
     fun markAsRead(ids: List<String>) {
-        viewModelScope.launch {
-            for (id in ids) {
-                val mail = mailDao.getMail(id)
-                api.loadListElementEntity<>()
-            }
-        }
+        markReadUnread(ids, false)
     }
 
     fun markAsUnread(ids: List<String>) {
+        markReadUnread(ids, true)
+    }
 
+    private fun markReadUnread(ids: List<String>, unread: Boolean) {
+        viewModelScope.launch {
+            for (id in ids) {
+                val mail = mailDao.getMail(id)
+                    .copy(unread = unread)
+                    .toMail()
+                api.updateEntity(mail)
+            }
+        }
     }
 
     fun delete(ids: List<String>) {
@@ -158,20 +165,64 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
 
 fun MailAddress.toEntity() = MailAddressEntity(name, address)
 fun Mail.toEntity() = MailEntity(
-    id = _id.elementId,
-    listId = _id.listId,
+    id = _id.elementId.asString(),
+    listId = _id.listId.asString(),
+    _owner = _owner,
+    _ownerGroup = _ownerGroup,
+    _permissions = _permissions,
+    _ownerEncSessionKey = _ownerEncSessionKey,
     confidential = confidential,
     differentEnvelopeSender = differentEnvelopeSender,
-    receivedDate = Date(receivedDate.millis),
-    sendDate = Date(sentDate.millis),
+    listUnsubscribe = listUnsubscribe,
+    movedTime = movedTime?.toDate(),
+    receivedDate = receivedDate.toDate(),
+    replyType = replyType,
+    sentDate = sentDate.toDate(),
+    state = state,
     subject = subject,
+    trashed = trashed,
     unread = unread,
     sender = sender.toEntity(),
-    toReciipients = toRecipients.map { it.toEntity() },
-    ccReciipients = ccRecipients.map { it.toEntity() },
-    bccReciipients = bccRecipients.map { it.toEntity() },
+    toRecipients = toRecipients.map { it.toEntity() },
+    ccRecipients = ccRecipients.map { it.toEntity() },
+    bccRecipients = bccRecipients.map { it.toEntity() },
+    replyTos = replyTos.map { it.toEntity() },
     body = body,
-    conversationEntry = conversationEntry
+    conversationEntry = conversationEntry,
+    attachments = attachments,
+    headers = headers
+)
+
+fun MailEntity.toMail() = Mail(
+    _id = IdTuple(
+        GeneratedId(listId),
+        GeneratedId(id)
+    ),
+    _owner = _owner,
+    _ownerGroup = _ownerGroup,
+    _permissions = _permissions,
+    _ownerEncSessionKey = _ownerEncSessionKey,
+    confidential = confidential,
+    differentEnvelopeSender = differentEnvelopeSender,
+    listUnsubscribe = listUnsubscribe,
+    movedTime = movedTime?.toDate(),
+    receivedDate = receivedDate.toDate(),
+    replyType = replyType,
+    sentDate = sentDate.toDate(),
+    state = state,
+    subject = subject,
+    trashed = trashed,
+    unread = unread,
+    sender = sender.toMailAddress(),
+    toRecipients = toRecipients.map { it.toMailAddress() },
+    ccRecipients = ccRecipients.map { it.toMailAddress() },
+    bccRecipients = bccRecipients.map { it.toMailAddress() },
+    replyTos = replyTos.map { it.toEncryptedMailAddress() },
+    body = body,
+    conversationEntry = conversationEntry,
+    attachments = attachments,
+    headers = headers,
+    restrictions = null
 )
 
 fun MailFolder.toEntity() = MailFolderEntity(
@@ -181,3 +232,13 @@ fun MailFolder.toEntity() = MailFolderEntity(
     name = name,
     mails = mails
 )
+
+fun EncryptedMailAddress.toEntity() = MailAddressEntity(name, address)
+
+fun com.charlag.tuta.entities.Date.toDate() = Date(millis)
+
+fun Date.toDate() = com.charlag.tuta.entities.Date(time)
+
+fun MailAddressEntity.toMailAddress() = MailAddress(null, address, name, null)
+
+fun MailAddressEntity.toEncryptedMailAddress() = EncryptedMailAddress(null, address, name)
