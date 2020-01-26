@@ -158,6 +158,11 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
         return mailRepository.getMailBody(mailBodyId)
     }
 
+    fun search(query: String): LiveData<PagedList<MailEntity>> {
+        Log.d("Mails", "search $query")
+        return mailDao.search(query).toLiveData(40)
+    }
+
     private suspend fun loadFolders(): List<MailFolderEntity> {
         return withContext(Dispatchers.IO) {
             loginFacade.waitForLogin()

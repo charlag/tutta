@@ -11,10 +11,7 @@ import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.switchMap
-import androidx.recyclerview.selection.ItemDetailsLookup
-import androidx.recyclerview.selection.ItemKeyProvider
 import androidx.recyclerview.selection.SelectionTracker
-import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.MainActivity
 import com.charlag.tuta.R
@@ -27,6 +24,12 @@ class MailListFragment : Fragment() {
 
     private var actionmode: ActionMode? = null
     val viewModel: MailViewModel by activityViewModels()
+
+
+    private val tint by lazy(LazyThreadSafetyMode.NONE) {
+        val tintColor = toolbar.context.getColor(R.color.primaryOnSurface)
+        ColorStateList.valueOf(tintColor)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -55,6 +58,22 @@ class MailListFragment : Fragment() {
         toolbar.setNavigationOnClickListener {
             (activity as MainActivity).openDrawer()
         }
+        val searchId = View.generateViewId()
+        toolbar.menu.add(0, searchId, 0, "Search")
+            .setIcon(R.drawable.ic_search_black_24dp)
+            .setIconTintList(tint)
+            .setOnMenuItemClickListener {
+                val menuView = toolbar.findViewById<View>(searchId)
+                val viewLocation = IntArray(2)
+                menuView.getLocationInWindow(viewLocation)
+                val coords = Coordinates(viewLocation[0], viewLocation[1])
+                parentFragmentManager.beginTransaction()
+                    .add(R.id.fragemntFrame, SearchFragment(coords))
+                    .addToBackStack(null)
+                    .commit()
+                true
+            }
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
 
         fab.setOnClickListener {
             startActivity(Intent(activity, ComposeActivity::class.java))
@@ -75,7 +94,6 @@ class MailListFragment : Fragment() {
         )
         emptyTextView.setCompoundDrawables(null, emptyDrawable, null, null)
 
-        adapter.selectionTracker = makeSelectionTracker()
         adapter.selectionTracker.addObserver(object : SelectionTracker.SelectionObserver<String>() {
             override fun onSelectionChanged() {
                 if (adapter.selectionTracker.hasSelection()) {
@@ -105,33 +123,6 @@ class MailListFragment : Fragment() {
         }
     }
 
-    private fun makeSelectionTracker(): SelectionTracker<String> {
-        return SelectionTracker.Builder(
-            "selected-mail-id",
-            recycler,
-            object : ItemKeyProvider<String>(SCOPE_MAPPED) {
-                override fun getKey(position: Int): String? {
-                    return adapter.currentList?.get(position)?.id
-                }
-
-                override fun getPosition(key: String): Int {
-                    return adapter.currentList?.indexOfFirst { it.id == key } ?: -1
-                }
-            },
-            object : ItemDetailsLookup<String>() {
-                override fun getItemDetails(e: MotionEvent): ItemDetails<String>? {
-                    return recycler.findChildViewUnder(e.x, e.y)?.let {
-                        val viewHolder =
-                            recycler.getChildViewHolder(it) as MailsAdapter.MailviewHolder
-                        viewHolder.itemDetails()
-                    }
-                }
-
-            },
-            StorageStrategy.createStringStorage()
-        ).build()
-    }
-
     private fun startActionMode() {
         this.actionmode = toolbar.startActionMode(object : ActionMode.Callback {
             override fun onActionItemClicked(mode: ActionMode?, item: MenuItem): Boolean {
@@ -139,8 +130,6 @@ class MailListFragment : Fragment() {
             }
 
             override fun onCreateActionMode(mode: ActionMode?, menu: Menu): Boolean {
-                val tintColor = toolbar.context.getColor(R.color.primaryOnSurface)
-                val tint = ColorStateList.valueOf(tintColor)
                 menu.add("Delete")
                     .setIcon(R.drawable.ic_delete_black_24dp)
                     .setIconTintList(tint)

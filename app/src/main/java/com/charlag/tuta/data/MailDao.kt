@@ -44,4 +44,7 @@ interface MailDao {
 
     @Query("SELECT * FROM MailBodyEntity WHERE id = :id LIMIT 1")
     suspend fun getMailBody(id: String): MailBodyEntity?
+
+    @Query("SELECT * FROM MailEntity WHERE subject LIKE '%' || :query || '%' OR sender LIKE '%' || :query || '%' OR toRecipients LIKE '%' || :query || '%'")
+    fun search(query: String): DataSource.Factory<Int, MailEntity>
 }

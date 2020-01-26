@@ -3,12 +3,15 @@ package com.charlag.tuta.mail
 import android.content.Context
 import android.graphics.Typeface
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.paging.PagedListAdapter
 import androidx.recyclerview.selection.ItemDetailsLookup
+import androidx.recyclerview.selection.ItemKeyProvider
 import androidx.recyclerview.selection.SelectionTracker
+import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.charlag.tuta.R
@@ -26,6 +29,11 @@ class MailsAdapter(
         Locale.getDefault()
     )
     lateinit var selectionTracker: SelectionTracker<String>
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        selectionTracker = makeSelectionTracker(recyclerView)
+        super.onAttachedToRecyclerView(recyclerView)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, index: Int): MailviewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -62,6 +70,32 @@ class MailsAdapter(
         } else {
             fullFormat.format(mail.receivedDate)
         }
+    }
+
+    private fun makeSelectionTracker(recycler: RecyclerView): SelectionTracker<String> {
+        return SelectionTracker.Builder(
+            "selected-mail-id",
+            recycler,
+            object : ItemKeyProvider<String>(SCOPE_MAPPED) {
+                override fun getKey(position: Int): String? {
+                    return getItem(position)?.id
+                }
+
+                override fun getPosition(key: String): Int {
+                    return currentList?.indexOfFirst { it.id == key } ?: -1
+                }
+            },
+            object : ItemDetailsLookup<String>() {
+                override fun getItemDetails(e: MotionEvent): ItemDetails<String>? {
+                    return recycler.findChildViewUnder(e.x, e.y)?.let {
+                        val viewHolder =
+                            recycler.getChildViewHolder(it) as MailviewHolder
+                        viewHolder.itemDetails()
+                    }
+                }
+            },
+            StorageStrategy.createStringStorage()
+        ).build()
     }
 
     inner class MailviewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
