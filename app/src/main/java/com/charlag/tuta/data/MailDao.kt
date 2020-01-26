@@ -15,6 +15,9 @@ interface MailDao {
     @Query("SELECT * FROM MailEntity WHERE id = :id LIMIT 1")
     suspend fun getMail(id: String): MailEntity
 
+    @Query("SELECT * FROM MailEntity WHERE id IN (:ids)")
+    suspend fun getMails(ids: List<String>): MailEntity
+
     @Query("SELECT * FROM MailEntity WHERE listId = :listId ORDER BY id DESC LIMIT 40 ")
     suspend fun getMailsFromListId(listId: String): List<MailEntity>
 

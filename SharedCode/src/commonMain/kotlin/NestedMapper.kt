@@ -174,10 +174,12 @@ class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(c
         ): CompositeEncoder {
             @Suppress("UNCHECKED_CAST")
             return when (desc.kind) {
-                StructureKind.LIST -> MapperListOutput { items.add(currentTag.toInt(), it) }
+                StructureKind.LIST -> MapperListOutput {
+                    items.add(currentTag, it)
+                }
                 StructureKind.MAP, StructureKind.CLASS ->
                     MapperMapOutput {
-                        items.add(currentTag.toInt(), it)
+                        items.add(currentTag, it)
                     }
                 else -> error("Unsupported strcture kind ${desc.kind}")
             }

@@ -80,8 +80,8 @@ class TutanotaConverters {
 
 class DateConverter {
     @TypeConverter
-    fun dateToLong(date: Date): Long = date.time
+    fun dateToLong(date: Date?): Long = date?.time ?: -1
 
     @TypeConverter
-    fun longToDate(long: Long): Date = Date(long)
+    fun longToDate(long: Long): Date? = if (long == -1L) null else Date(long)
 }

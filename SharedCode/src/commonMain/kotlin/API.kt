@@ -88,10 +88,21 @@ class API(
         method: HttpMethod,
         requestEntity: Entity?,
         responseClass: KClass<T>,
-        queryParams: Map<String, String>?,
-        sk: ByteArray
+        queryParams: Map<String, String>? = null,
+        sk: ByteArray? = null
     ): T {
         return post("${app}/${name}", requestEntity, responseClass, sk)!!
+    }
+
+    suspend fun serviceRequestVoid(
+        app: String,
+        name: String,
+        method: HttpMethod,
+        requestEntity: Entity,
+        queryParams: Map<String, String>? = null,
+        sk: ByteArray? = null
+    ) {
+        post<Nothing>("${app}/${name}", requestEntity, null, sk)
     }
 
     suspend fun <T : Entity> loadElementEntity(klass: KClass<T>, id: Id): T {
@@ -239,18 +250,31 @@ class API(
     private suspend fun <R : Entity> post(
         path: String,
         requestEntity: Entity?,
-        responseClass: KClass<R>,
+        responseClass: KClass<R>?,
         sessionKey: ByteArray? = null
     ): R? {
         val serializedEntity = requestEntity?.let { serializeEntity(it, sessionKey) }
         val serializer = httpClient.feature(JsonFeature)!!.serializer
         val address = Url(baseUrl + path)
-        return httpClient.post<JsonObject?> {
-            commonHeaders()
-            url(address)
 
-            if (serializedEntity != null) body = serializer.write(serializedEntity)
-        }?.let { deserializeEntitity(it, responseClass) }
+        return if (responseClass != null) {
+            httpClient.post<JsonObject?> {
+                commonHeaders()
+                url(address)
+
+                if (serializedEntity != null) body = serializer.write(serializedEntity)
+            }?.let { deserializeEntitity(it, responseClass) }
+
+        } else {
+            httpClient.post<Unit> {
+                commonHeaders()
+                url(address)
+
+                if (serializedEntity != null) body = serializer.write(serializedEntity)
+            }
+            return null
+        }
+
     }
 
     private suspend fun <T : Entity> serializeEntity(
@@ -392,9 +416,18 @@ class API(
                             sessionKey
                         )
                     }
+                    LIST_ELEMENT_ASSOCIATION -> when (assocModel.cardinality) {
+                        Cardinality.Any -> (value as List<List<String>>).map { idTuple ->
+                            JsonArray((idTuple).map(::JsonLiteral))
+                        }.let(::JsonArray)
+                        Cardinality.One,
+                        Cardinality.ZeroOrOne -> // null is checked above
+                            JsonArray((value as List<String>).map(::JsonLiteral)).let(::JsonArray)
+                    }
+
                     else -> when (value) {
                         is String -> JsonLiteral(value)
-                        is List<*> -> JsonArray(value.map { JsonLiteral(it as String) })
+                        is List<*> -> JsonArray(value.map { JsonLiteral(value as String) })
                         else -> error("Unknown association value")
                     }
                 }

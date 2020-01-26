@@ -16,7 +16,7 @@ object DependencyDump {
     @UseExperimental(KtorExperimentalAPI::class)
     val httpClient = makeHttpClient {
         install(Logging) {
-            level = LogLevel.BODY
+            level = LogLevel.ALL
             logger = object : Logger {
                 override fun log(message: String) {
                     Log.d("HTTP", message)

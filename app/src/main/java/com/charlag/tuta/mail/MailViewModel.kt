@@ -24,13 +24,16 @@ import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.sortSystemFolders
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.map
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 
 class MailViewModel(app: Application) : AndroidViewModel(app) {
     private val loginFacade = DependencyDump.loginFacade
     private val api = DependencyDump.api
     private val mailDao by lazy { DependencyDump.db.mailDao() }
+    private val mailRepository = MailRepository(api)
 
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders: LiveData<List<MailFolderEntity>>
@@ -89,8 +92,10 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
                         Log.d("MailViewModel", "onItemAtEndLoaded")
                         viewModelScope.launch {
                             val mails =
-                                api.loadRange(Mail::class, folder.mails, GeneratedId(itemAtEnd.id),
-                                    40, true)
+                                api.loadRange(
+                                    Mail::class, folder.mails, GeneratedId(itemAtEnd.id),
+                                    40, true
+                                )
                                     .map { it.toEntity() }
                             Log.d("MailViewModel", "onItemAtEndLoaded fetched")
                             mailDao.insertMails(mails)
@@ -127,11 +132,28 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun delete(ids: List<String>) {
-
+        val folders = folders.value ?: return
+        val trashFolder = folders.find { it.folderType == MailFolderType.TRASH.value }!!
+        moveMails(ids, trashFolder)
     }
 
     fun archive(ids: List<String>) {
+        val folders = folders.value ?: return
+        val archiveFolder = folders.find { it.folderType == MailFolderType.ARCHIVE.value }!!
+        moveMails(ids, archiveFolder)
+    }
 
+    fun moveMails(ids: List<String>, targetFolder: MailFolderEntity) {
+        viewModelScope.launch {
+            val currentMailList = selectedFolder.value!!.mails
+            mailRepository.moveMails(
+                ids.map { id -> IdTuple(currentMailList, GeneratedId(id)) },
+                IdTuple(
+                    GeneratedId(targetFolder.listId),
+                    GeneratedId(targetFolder.id)
+                )
+            )
+        }
     }
 
     suspend fun loadMailBody(mailBodyId: Id): MailBody {
