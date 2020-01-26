@@ -1,17 +1,21 @@
 package com.charlag.tuta.data
 
 import androidx.room.TypeConverter
+import com.charlag.tuta.base64ToBytes
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
-import kotlinx.serialization.internal.ArrayListSerializer
+import com.charlag.tuta.toBase64
+import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import kotlinx.serialization.serializer
 import java.util.*
+import kotlin.collections.HashMap
+
+val json = Json(JsonConfiguration.Stable)
 
 class TutanotaConverters {
-
-    val json = Json(JsonConfiguration.Stable)
 
     @TypeConverter
     fun mailAddressToString(mailAddress: MailAddressEntity): String {
@@ -75,6 +79,21 @@ class TutanotaConverters {
                     GeneratedId(jsontuple.jsonArray[1].primitive.content)
                 )
             }
+    }
+
+    private val ivsSerializer = HashMapSerializer(String.serializer(), String.serializer().nullable)
+
+    @TypeConverter
+    fun finalIvsToString(ivs: Map<String, ByteArray?>?): String? {
+        ivs ?: return null
+        return ivs.mapValuesTo(HashMap()) { (k, v) -> v?.toBase64() }
+            .let { json.stringify(ivsSerializer, it) }
+    }
+
+    @TypeConverter
+    fun stringToFinalIvs(string: String?): Map<String, ByteArray?>? {
+        string ?: return null
+        return json.parse(ivsSerializer, string).mapValues { (k, v) -> v?.let(::base64ToBytes) }
     }
 }
 

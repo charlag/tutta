@@ -16,7 +16,7 @@ data class DataBlock(
     val _id: Id,
     val blockData: Id,
     val size: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class FileData(
@@ -27,13 +27,13 @@ data class FileData(
     val size: Long,
     val unreferenced: Boolean,
     val blocks: List<DataBlock>
-) : Entity
+) : Entity()
 
 @Serializable
 data class Subfiles(
     val _id: Id,
     val files: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class TutanotaFile(
@@ -51,7 +51,7 @@ data class TutanotaFile(
     val subFiles: Subfiles?,
     val data: Id?,
     val parent: IdTuple?
-) : Entity
+) : Entity()
 
 @Serializable
 data class FileSystem(
@@ -61,7 +61,7 @@ data class FileSystem(
     val _ownerGroup: Id?,
     val _permissions: Id,
     val files: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class MailBody(
@@ -74,7 +74,7 @@ data class MailBody(
     val _permissions: Id,
     val compressedText: String?,
     val text: String?
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactMailAddress(
@@ -82,7 +82,7 @@ data class ContactMailAddress(
     val address: String,
     val customTypeName: String,
     val type: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactPhoneNumber(
@@ -90,7 +90,7 @@ data class ContactPhoneNumber(
     val customTypeName: String,
     val number: String,
     val type: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactAddress(
@@ -98,7 +98,7 @@ data class ContactAddress(
     val address: String,
     val customTypeName: String,
     val type: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactSocialId(
@@ -106,7 +106,7 @@ data class ContactSocialId(
     val customTypeName: String,
     val socialId: String,
     val type: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class Contact(
@@ -133,7 +133,7 @@ data class Contact(
     val phoneNumbers: List<ContactPhoneNumber>,
     val socialIds: List<ContactSocialId>,
     val photo: IdTuple?
-) : Entity
+) : Entity()
 
 @Serializable
 data class ConversationEntry(
@@ -145,7 +145,7 @@ data class ConversationEntry(
     val messageId: String,
     val mail: IdTuple?,
     val previous: IdTuple?
-) : Entity
+) : Entity()
 
 @Serializable
 data class MailAddress(
@@ -153,7 +153,7 @@ data class MailAddress(
     val address: String,
     val name: String,
     val contact: IdTuple?
-) : Entity
+) : Entity()
 
 @Serializable
 data class Mail(
@@ -185,7 +185,7 @@ data class Mail(
     val body: Id,
     val conversationEntry: IdTuple,
     val headers: Id?
-) : ListElementEntity
+) : ListElementEntity()
 
 @Serializable
 data class MailBox(
@@ -200,13 +200,13 @@ data class MailBox(
     val mails: Id,
     val receivedAttachments: Id,
     val sentAttachments: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class PasswordChannelPhoneNumber(
     val _id: Id,
     val number: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class CreateExternalUserGroupData(
@@ -214,7 +214,7 @@ data class CreateExternalUserGroupData(
     val internalUserEncUserGroupKey: ByteArray,
     val mailAddress: String,
     val externalPwEncUserGroupKey: ByteArray
-) : Entity
+) : Entity()
 
 @Serializable
 data class ExternalUserData(
@@ -230,7 +230,7 @@ data class ExternalUserData(
     val userEncClientKey: ByteArray,
     val verifier: ByteArray,
     val userGroupData: CreateExternalUserGroupData
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactList(
@@ -241,7 +241,7 @@ data class ContactList(
     val _permissions: Id,
     val photos: PhotosRef?,
     val contacts: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class RemoteImapSyncInfo(
@@ -251,7 +251,7 @@ data class RemoteImapSyncInfo(
     val _permissions: Id,
     val seen: Boolean,
     val message: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class ImapFolder(
@@ -260,7 +260,7 @@ data class ImapFolder(
     val name: String,
     val uidvalidity: String,
     val syncInfo: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class ImapSyncState(
@@ -269,7 +269,7 @@ data class ImapSyncState(
     val _ownerGroup: Id?,
     val _permissions: Id,
     val folders: List<ImapFolder>
-) : Entity
+) : Entity()
 
 @Serializable
 data class ImapSyncConfiguration(
@@ -279,7 +279,7 @@ data class ImapSyncConfiguration(
     val port: Long,
     val user: String,
     val imapSyncState: Id?
-) : Entity
+) : Entity()
 
 @Serializable
 data class TutanotaProperties(
@@ -300,7 +300,7 @@ data class TutanotaProperties(
     val imapSyncConfig: List<ImapSyncConfiguration>,
     val inboxRules: List<InboxRule>,
     val lastPushedMail: IdTuple?
-) : Entity
+) : Entity()
 
 @Serializable
 data class NotificationMail(
@@ -310,7 +310,7 @@ data class NotificationMail(
     val recipientMailAddress: String,
     val recipientName: String,
     val subject: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class PasswordMessagingData(
@@ -318,62 +318,62 @@ data class PasswordMessagingData(
     val language: String,
     val numberId: Id,
     val symKeyForPasswordTransmission: ByteArray
-) : Entity
+) : Entity()
 
 @Serializable
 data class PasswordMessagingReturn(
     val _format: Long,
     val autoAuthenticationId: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class PasswordAutoAuthenticationReturn(
     val _format: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class PasswordRetrievalData(
     val _format: Long,
     val autoAuthenticationId: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class PasswordRetrievalReturn(
     val _format: Long,
     val transmissionKeyEncryptedPassword: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class PasswordChannelReturn(
     val _format: Long,
     val phoneNumberChannels: List<PasswordChannelPhoneNumber>
-) : Entity
+) : Entity()
 
 @Serializable
 data class FileDataDataGet(
     val _format: Long,
     val base64: Boolean,
     val file: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class FileDataDataPost(
     val _format: Long,
     val group: Id,
     val size: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class FileDataDataReturn(
     val _format: Long,
     val size: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class FileDataReturnPost(
     val _format: Long,
     val fileData: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class CreateFileData(
@@ -384,14 +384,14 @@ data class CreateFileData(
     val mimeType: String,
     val fileData: Id,
     val parentFolder: IdTuple?
-) : Entity
+) : Entity()
 
 @Serializable
 data class DeleteMailData(
     val _format: Long,
     val folder: IdTuple?,
     val mails: List<IdTuple>
-) : Entity
+) : Entity()
 
 @Serializable
 data class MailFolder(
@@ -405,20 +405,20 @@ data class MailFolder(
     val mails: Id,
     val parentFolder: IdTuple?,
     val subFolders: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class MailFolderRef(
     val _id: Id,
     val folders: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class MoveMailData(
     val _format: Long,
     val mails: List<IdTuple>,
     val targetFolder: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class CreateMailFolderData(
@@ -426,33 +426,33 @@ data class CreateMailFolderData(
     val folderName: String,
     val ownerEncSessionKey: ByteArray,
     val parentFolder: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class CreateMailFolderReturn(
     val _format: Long,
     val newFolder: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class DeleteMailFolderData(
     val _format: Long,
     val folders: List<IdTuple>
-) : Entity
+) : Entity()
 
 @Serializable
 data class EncryptTutanotaPropertiesData(
     val _format: Long,
     val symEncSessionKey: ByteArray,
     val properties: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class DraftRecipient(
     val _id: Id,
     val mailAddress: String,
     val name: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class NewDraftAttachment(
@@ -461,7 +461,7 @@ data class NewDraftAttachment(
     val encFileName: ByteArray,
     val encMimeType: ByteArray,
     val fileData: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class DraftAttachment(
@@ -469,7 +469,7 @@ data class DraftAttachment(
     val ownerEncFileSessionKey: ByteArray,
     val newFile: NewDraftAttachment?,
     val existingFile: IdTuple?
-) : Entity
+) : Entity()
 
 @Serializable
 data class DraftData(
@@ -485,7 +485,7 @@ data class DraftData(
     val replyTos: List<EncryptedMailAddress>,
     val toRecipients: List<DraftRecipient>,
     val removedAttachments: List<IdTuple>
-) : Entity
+) : Entity()
 
 @Serializable
 data class DraftCreateData(
@@ -495,26 +495,26 @@ data class DraftCreateData(
     val previousMessageId: String?,
     val symEncSessionKey: ByteArray,
     val draftData: DraftData
-) : Entity
+) : Entity()
 
 @Serializable
 data class DraftCreateReturn(
     val _format: Long,
     val draft: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class DraftUpdateData(
     val _format: Long,
     val draftData: DraftData,
     val draft: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class DraftUpdateReturn(
     val _format: Long,
     val attachments: List<IdTuple>
-) : Entity
+) : Entity()
 
 @Serializable
 data class InternalRecipientKeyData(
@@ -522,7 +522,7 @@ data class InternalRecipientKeyData(
     val mailAddress: String,
     val pubEncBucketKey: ByteArray,
     val pubKeyVersion: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class SecureExternalRecipientKeyData(
@@ -536,7 +536,7 @@ data class SecureExternalRecipientKeyData(
     val saltHash: ByteArray?,
     val symEncBucketKey: ByteArray?,
     val passwordChannelPhoneNumbers: List<PasswordChannelPhoneNumber>
-) : Entity
+) : Entity()
 
 @Serializable
 data class AttachmentKeyData(
@@ -544,7 +544,7 @@ data class AttachmentKeyData(
     val bucketEncFileSessionKey: ByteArray?,
     val fileSessionKey: ByteArray?,
     val file: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class SendDraftData(
@@ -558,7 +558,7 @@ data class SendDraftData(
     val internalRecipientKeyData: List<InternalRecipientKeyData>,
     val secureExternalRecipientKeyData: List<SecureExternalRecipientKeyData>,
     val mail: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class SendDraftReturn(
@@ -567,12 +567,12 @@ data class SendDraftReturn(
     val sentDate: Date,
     val notifications: List<NotificationMail>,
     val sentMail: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class ReceiveInfoServiceData(
     val _format: Long
-) : Entity
+) : Entity()
 
 @Serializable
 data class InboxRule(
@@ -580,7 +580,7 @@ data class InboxRule(
     val type: String,
     val value: String,
     val targetFolder: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class MailHeaders(
@@ -591,14 +591,14 @@ data class MailHeaders(
     val _permissions: Id,
     val compressedHeaders: String?,
     val headers: String?
-) : Entity
+) : Entity()
 
 @Serializable
 data class EncryptedMailAddress(
     val _id: Id? = null,
     val address: String,
     val name: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class UserAccountUserData(
@@ -624,7 +624,7 @@ data class UserAccountUserData(
     val userEncRecoverCode: ByteArray,
     val userEncTutanotaPropertiesSessionKey: ByteArray,
     val verifier: ByteArray
-) : Entity
+) : Entity()
 
 @Serializable
 data class InternalGroupData(
@@ -634,7 +634,7 @@ data class InternalGroupData(
     val ownerEncGroupInfoSessionKey: ByteArray,
     val publicKey: ByteArray,
     val adminGroup: Id?
-) : Entity
+) : Entity()
 
 @Serializable
 data class CustomerAccountCreateData(
@@ -652,7 +652,7 @@ data class CustomerAccountCreateData(
     val customerGroupData: InternalGroupData,
     val userData: UserAccountUserData,
     val userGroupData: InternalGroupData
-) : Entity
+) : Entity()
 
 @Serializable
 data class UserAccountCreateData(
@@ -660,7 +660,7 @@ data class UserAccountCreateData(
     val date: Date?,
     val userData: UserAccountUserData,
     val userGroupData: InternalGroupData
-) : Entity
+) : Entity()
 
 @Serializable
 data class MailboxServerProperties(
@@ -669,7 +669,7 @@ data class MailboxServerProperties(
     val _ownerGroup: Id?,
     val _permissions: Id,
     val whitelistProtectionEnabled: Boolean
-) : Entity
+) : Entity()
 
 @Serializable
 data class MailboxGroupRoot(
@@ -683,14 +683,14 @@ data class MailboxGroupRoot(
     val serverProperties: Id,
     val targetMailGroupContactForm: IdTuple?,
     val whitelistRequests: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class CreateLocalAdminGroupData(
     val _format: Long,
     val encryptedName: ByteArray,
     val groupData: InternalGroupData
-) : Entity
+) : Entity()
 
 @Serializable
 data class CreateMailGroupData(
@@ -699,27 +699,27 @@ data class CreateMailGroupData(
     val mailAddress: String,
     val mailEncMailboxSessionKey: ByteArray,
     val groupData: InternalGroupData
-) : Entity
+) : Entity()
 
 @Serializable
 data class DeleteGroupData(
     val _format: Long,
     val restore: Boolean,
     val group: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class MailRestriction(
     val _id: Id,
     val delegationGroups_removed: List<Id>,
     val participantGroupInfos: List<IdTuple>
-) : Entity
+) : Entity()
 
 @Serializable
 data class Name(
     val _id: Id,
     val name: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class InputField(
@@ -727,7 +727,7 @@ data class InputField(
     val name: String,
     val type: Long,
     val enumValues: List<Name>
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactForm(
@@ -743,14 +743,14 @@ data class ContactForm(
     val participantGroupInfos: List<IdTuple>,
     val targetGroup: Id,
     val targetGroupInfo: IdTuple?
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactFormAccountReturn(
     val _format: Long,
     val requestMailAddress: String,
     val responseMailAddress: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactFormUserData(
@@ -764,21 +764,21 @@ data class ContactFormUserData(
     val userEncMailGroupKey: ByteArray,
     val userEncTutanotaPropertiesSessionKey: ByteArray,
     val verifier: ByteArray
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactFormStatisticField(
     val _id: Id,
     val encryptedName: ByteArray,
     val encryptedValue: ByteArray
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactFormEncryptedStatisticsField(
     val _id: Id,
     val name: String,
     val value: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class StatisticLogEntry(
@@ -790,7 +790,7 @@ data class StatisticLogEntry(
     val date: Date,
     val values: List<ContactFormEncryptedStatisticsField>,
     val contactForm: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class CustomerContactFormGroupRoot(
@@ -802,7 +802,7 @@ data class CustomerContactFormGroupRoot(
     val statisticsLog: UnencryptedStatisticLogRef?,
     val contactForms: Id,
     val statisticsLog_encrypted_removed: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactFormAccountData(
@@ -812,7 +812,7 @@ data class ContactFormAccountData(
     val userData: ContactFormUserData,
     val userGroupData: InternalGroupData,
     val contactForm: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactFormStatisticEntry(
@@ -821,7 +821,7 @@ data class ContactFormStatisticEntry(
     val customerPubEncBucketKey: ByteArray,
     val customerPubKeyVersion: Long,
     val statisticFields: List<ContactFormStatisticField>
-) : Entity
+) : Entity()
 
 @Serializable
 data class DeleteContactFormConversationIndexEntry(
@@ -829,13 +829,13 @@ data class DeleteContactFormConversationIndexEntry(
     val _id: IdTuple,
     val _ownerGroup: Id?,
     val _permissions: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class DeleteContactFormConversationIndex(
     val _id: Id,
     val items: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class Birthday(
@@ -843,13 +843,13 @@ data class Birthday(
     val day: Long,
     val month: Long,
     val year: Long?
-) : Entity
+) : Entity()
 
 @Serializable
 data class PhotosRef(
     val _id: Id,
     val files: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class ContactFormLanguage(
@@ -860,7 +860,7 @@ data class ContactFormLanguage(
     val helpHtml: String,
     val pageTitle: String,
     val statisticsFields: List<InputField>
-) : Entity
+) : Entity()
 
 @Serializable
 data class ListUnsubscribeData(
@@ -868,13 +868,13 @@ data class ListUnsubscribeData(
     val headers: String,
     val recipient: String,
     val mail: IdTuple
-) : Entity
+) : Entity()
 
 @Serializable
 data class StatisticLogRef(
     val _id: Id,
     val items: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class UnencryptedStatisticLogEntry(
@@ -884,13 +884,13 @@ data class UnencryptedStatisticLogEntry(
     val _permissions: Id,
     val contactFormPath: String,
     val date: Date
-) : Entity
+) : Entity()
 
 @Serializable
 data class UnencryptedStatisticLogRef(
     val _id: Id,
     val items: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class CalendarRepeatRule(
@@ -900,7 +900,7 @@ data class CalendarRepeatRule(
     val frequency: Long,
     val interval: Long,
     val timeZone: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class CalendarEvent(
@@ -917,7 +917,7 @@ data class CalendarEvent(
     val uid: String?,
     val repeatRule: CalendarRepeatRule?,
     val alarmInfos: List<IdTuple>
-) : Entity
+) : Entity()
 
 @Serializable
 data class CalendarGroupRoot(
@@ -928,7 +928,7 @@ data class CalendarGroupRoot(
     val _permissions: Id,
     val longEvents: Id,
     val shortEvents: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class CalendarGroupData(
@@ -939,20 +939,20 @@ data class CalendarGroupData(
     val ownerEncGroupInfoSessionKey: ByteArray,
     val userEncGroupKey: ByteArray,
     val adminGroup: Id?
-) : Entity
+) : Entity()
 
 @Serializable
 data class CalendarPostData(
     val _format: Long,
     val calendarData: CalendarGroupData
-) : Entity
+) : Entity()
 
 @Serializable
 data class GroupColor(
     val _id: Id,
     val color: String,
     val group: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class UserSettingsGroupRoot(
@@ -964,16 +964,16 @@ data class UserSettingsGroupRoot(
     val startOfTheWeek: Long,
     val timeFormat: Long,
     val groupColors: List<GroupColor>
-) : Entity
+) : Entity()
 
 @Serializable
 data class CalendarDeleteData(
     val _format: Long,
     val groupRootId: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class CalendarPostReturn(
     val _format: Long,
     val group: Id
-) : Entity
+) : Entity()

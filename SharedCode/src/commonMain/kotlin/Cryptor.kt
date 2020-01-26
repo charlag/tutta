@@ -12,13 +12,18 @@ expect class Cryptor() {
         useMac: Boolean = true
     ): ByteArray
 
-    suspend fun decrypt(value: ByteArray, key: ByteArray, usePadding: Boolean = true): ByteArray
+    suspend fun decrypt(value: ByteArray, key: ByteArray, usePadding: Boolean = true): DecryptResult
     suspend fun decryptRsaKey(value: ByteArray, key: ByteArray): PrivateKey
     suspend fun rsaDecrypt(value: ByteArray, key: PrivateKey): ByteArray
     fun generateRandomData(byteSize: Int): ByteArray
     suspend fun hash(bytes: ByteArray): ByteArray
     fun bcrypt(rounds: Int, passphrase: ByteArray, salt: ByteArray): ByteArray
 }
+
+class DecryptResult(
+    val data: ByteArray,
+    val iv: ByteArray
+)
 
 
 data class PublicKey(
@@ -53,7 +58,7 @@ suspend fun Cryptor.encryptKey(plaintextKey: ByteArray, encryptionKey: ByteArray
 }
 
 suspend fun Cryptor.decryptKey(encryptedKey: ByteArray, encryptionKey: ByteArray): ByteArray {
-    return decrypt(fixedIv + encryptedKey, encryptionKey, false)
+    return decrypt(fixedIv + encryptedKey, encryptionKey, false).data
 }
 
 suspend fun Cryptor.aes128RandomKey(): ByteArray {

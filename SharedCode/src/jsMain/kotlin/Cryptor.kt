@@ -32,15 +32,19 @@ actual class Cryptor {
         value: ByteArray,
         key: ByteArray,
         usePadding: Boolean
-    ): ByteArray {
+    ): DecryptResult {
         val cryptoKey = subtleCrypto.importKey("raw", key, AES_ALGORITHM, false, arrayOf("decrypt"))
             .await()
+        val iv = generateIV() // TODO
         return subtleCrypto.decrypt(jsObject {
             name = AES_ALGORITHM
-            iv = generateIV()
+            this.iv =  iv
         }, cryptoKey, value)
             .await()
             .toByteArray()
+            .let {
+                DecryptResult(iv, it)
+            }
     }
 
     actual fun generateRandomData(byteSize: Int): ByteArray {

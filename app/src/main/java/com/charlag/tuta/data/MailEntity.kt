@@ -1,6 +1,5 @@
 package com.charlag.tuta.data
 
-import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.charlag.tuta.entities.Id
@@ -9,7 +8,13 @@ import kotlinx.serialization.Serializable
 import java.util.*
 
 @Serializable
-data class MailAddressEntity(val name: String, val address: String, val contact: String? = null)
+data class MailAddressEntity(
+    val id: String?,
+    val name: String,
+    val address: String,
+    val contact: IdTuple? = null,
+    val finalIvs: Map<String, ByteArray?>?
+)
 
 @Entity
 data class MailEntity(
@@ -38,7 +43,8 @@ data class MailEntity(
     val attachments: List<IdTuple>,
     val body: Id,
     val conversationEntry: IdTuple,
-    val headers: Id?
+    val headers: Id?,
+    val finalIvs: Map<String, ByteArray?>?
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

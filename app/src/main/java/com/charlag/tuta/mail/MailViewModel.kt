@@ -9,21 +9,17 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagedList
 import androidx.paging.toLiveData
 import androidx.room.Room
-import com.charlag.tuta.DependencyDump
-import com.charlag.tuta.GroupType
-import com.charlag.tuta.MailFolderType
-import com.charlag.tuta.data.AppDatabase
-import com.charlag.tuta.data.MailAddressEntity
-import com.charlag.tuta.data.MailEntity
-import com.charlag.tuta.data.MailFolderEntity
+import com.charlag.tuta.*
+import com.charlag.tuta.data.*
 import com.charlag.tuta.entities.GENERATED_MAX_ID
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.*
-import com.charlag.tuta.sortSystemFolders
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.map
+import io.ktor.client.features.ClientRequestException
+import io.ktor.client.features.ResponseException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -126,7 +122,11 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
                 val mail = mailDao.getMail(id)
                     .copy(unread = unread)
                     .toMail()
-                api.updateEntity(mail)
+                try {
+                    api.updateEntity(mail)
+                } catch (e: ResponseException) {
+                    Log.e("Mail", "Failed to mark as unread", e)
+                }
             }
         }
     }
@@ -185,7 +185,7 @@ class MailViewModel(app: Application) : AndroidViewModel(app) {
     }
 }
 
-fun MailAddress.toEntity() = MailAddressEntity(name, address)
+fun MailAddress.toEntity() = MailAddressEntity(_id?.asString(), name, address, contact, finalIvs)
 fun Mail.toEntity() = MailEntity(
     id = _id.elementId.asString(),
     listId = _id.listId.asString(),
@@ -212,7 +212,8 @@ fun Mail.toEntity() = MailEntity(
     body = body,
     conversationEntry = conversationEntry,
     attachments = attachments,
-    headers = headers
+    headers = headers,
+    finalIvs = finalIvs
 )
 
 fun MailEntity.toMail() = Mail(
@@ -245,7 +246,9 @@ fun MailEntity.toMail() = Mail(
     attachments = attachments,
     headers = headers,
     restrictions = null
-)
+).also {
+    it.finalIvs = finalIvs
+}
 
 fun MailFolder.toEntity() = MailFolderEntity(
     id = _id.elementId.asString(),
@@ -255,12 +258,19 @@ fun MailFolder.toEntity() = MailFolderEntity(
     mails = mails
 )
 
-fun EncryptedMailAddress.toEntity() = MailAddressEntity(name, address)
+fun EncryptedMailAddress.toEntity() =
+    MailAddressEntity(_id?.asString(), name, address, null, finalIvs)
 
 fun com.charlag.tuta.entities.Date.toDate() = Date(millis)
 
 fun Date.toDate() = com.charlag.tuta.entities.Date(time)
 
-fun MailAddressEntity.toMailAddress() = MailAddress(null, address, name, null)
+fun MailAddressEntity.toMailAddress() = MailAddress(id?.let(::GeneratedId), address, name, null)
+    .also {
+        it.finalIvs = finalIvs
+    }
 
-fun MailAddressEntity.toEncryptedMailAddress() = EncryptedMailAddress(null, address, name)
+fun MailAddressEntity.toEncryptedMailAddress() =
+    EncryptedMailAddress(id?.let(::GeneratedId), address, name).also {
+        it.finalIvs = finalIvs
+    }

@@ -68,7 +68,7 @@ data class Group(
     val invitations: Id,
     val members: Id,
     val user: Id?
-) : Entity
+) : Entity()
 
 @Serializable
 data class GroupInfo(
@@ -86,7 +86,7 @@ data class GroupInfo(
     val mailAddressAliases: List<MailAddressAlias>,
     val group: Id,
     val localAdmin: Id?
-) : Entity
+) : Entity()
 
 @Serializable
 data class GroupMembership(
@@ -210,7 +210,7 @@ data class User(
     val failedLogins: Id,
     val secondFactorAuthentications: Id,
     val successfulLogins: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class ExternalUserReference(
@@ -245,7 +245,7 @@ data class BucketPermission(
     val type: Long,
 
     val group: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class Bucket(
@@ -269,7 +269,7 @@ data class Permission(
 
     val bucket: Bucket?,
     val group: Id?
-) : Entity
+) : Entity()
 
 @Serializable
 data class AccountingInfo(
@@ -512,13 +512,13 @@ data class PublicKeyReturn(
 @Serializable
 data class SaltData(
     val mailAddress: String
-) : Entity
+) : Entity()
 
 @Serializable
 data class SaltReturn(
     @Serializable(with = ByteArraySerializer::class)
     val salt: ByteArray
-) : Entity
+) : Entity()
 
 @Serializable
 data class UserIdData(
@@ -1215,7 +1215,7 @@ data class CreateSessionData(
     val recoverCodeVerifier: String? = null,
 
     val user: Id? = null
-) : Entity
+) : Entity()
 
 @Serializable
 data class CreateSessionReturn(
@@ -1223,7 +1223,7 @@ data class CreateSessionReturn(
 
     val challenges: List<Challenge>,
     val user: Id
-) : Entity
+) : Entity()
 
 @Serializable
 data class U2fResponseData(
@@ -1422,7 +1422,7 @@ data class WebsocketEntityData(
     val eventBatchOwner: Id,
 
     val eventBatch: List<EntityUpdate>
-) : Entity
+) : Entity()
 
 @Serializable
 data class WebsocketCounterValue(

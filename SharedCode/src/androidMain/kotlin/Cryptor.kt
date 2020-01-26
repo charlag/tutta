@@ -56,7 +56,7 @@ actual class Cryptor {
         value: ByteArray,
         key: ByteArray,
         usePadding: Boolean
-    ): ByteArray {
+    ): DecryptResult {
         try {
             var cKey = key
             val macIncluded = value.size % 2 == 1
@@ -85,7 +85,7 @@ actual class Cryptor {
             val result = cipher.doFinal(
                 actualEncryptedData.copyOfRange(AES_KEY_LENGTH_BYTES, actualEncryptedData.size)
             )
-            return result
+            return DecryptResult(result, iv)
         } catch (e: NoSuchAlgorithmException) {
             throw RuntimeException(e)
         } catch (e: NoSuchPaddingException) {
@@ -98,7 +98,7 @@ actual class Cryptor {
     }
 
     actual suspend fun decryptRsaKey(value: ByteArray, key: ByteArray): PrivateKey {
-        return hexToPrivateKey(bytesToHex(decrypt(value, key, true)))
+        return hexToPrivateKey(bytesToHex(decrypt(value, key, true).data))
     }
 
     actual suspend fun rsaDecrypt(value: ByteArray, key: PrivateKey): ByteArray {

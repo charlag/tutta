@@ -388,13 +388,18 @@ class API(
         sessionKey: ByteArray?
     ): JsonObject {
         val encrypted = mutableMapOf<String, JsonElement>()
+        @Suppress("UNCHECKED_CAST")
+        val finalIvs = map["finalIvs"] as Map<String, ByteArray?>?
         for ((fieldName, valueModel) in typeModel.values) {
             encrypted[fieldName] =
                 if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
                     @Suppress("UNCHECKED_CAST")
                     JsonArray((map[fieldName] as List<String>).map(::JsonPrimitive))
                 } else {
-                    encryptValue(fieldName, valueModel, map[fieldName], sessionKey)
+                    // If we update entity, we must get the same final fields. So we useIVs for
+                    // that.
+                    val iv = if (valueModel.final) finalIvs?.get(fieldName) else null
+                    encryptValue(fieldName, valueModel, map[fieldName], sessionKey, iv)
                 }
         }
         for ((fieldName, assocModel) in typeModel.associations) {
@@ -442,6 +447,7 @@ class API(
         sessionKey: ByteArray?
     ): Map<String, Any?> {
         val decrypted = mutableMapOf<String, Any?>()
+        val finalIvs = mutableMapOf<String, ByteArray?>()
         for ((fieldName, valueModel) in typeModel.values) {
             val fieldValue = map[fieldName]!!
             decrypted[fieldName] =
@@ -449,7 +455,7 @@ class API(
                 if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
                     listOf(fieldValue.jsonArray[0].content, fieldValue.jsonArray[1].content)
                 } else {
-                    decryptValue(fieldName, valueModel, fieldValue, sessionKey)
+                    decryptValue(fieldName, valueModel, fieldValue, sessionKey, finalIvs)
                 }
 
         }
@@ -505,6 +511,7 @@ class API(
                 }
             }
         }
+        decrypted["finalIvs"] = finalIvs
         return decrypted
     }
 
@@ -512,7 +519,8 @@ class API(
         name: String,
         valueModel: Value,
         value: Any?,
-        sessionKey: ByteArray?
+        sessionKey: ByteArray?,
+        iv: ByteArray?
     ): JsonPrimitive {
         if (value == null) {
             if (name == "_id"
@@ -529,10 +537,10 @@ class API(
             return JsonLiteral(
                 cryptor.encrypt(
                     bytes,
-                    cryptor.generateIV(),
+                    iv ?: cryptor.generateIV(),
                     sessionKey!!,
-                    true,
-                    true
+                    /*usePadding=*/true,
+                    /*useMac=*/true
                 ).toBase64()
             )
         } else {
@@ -544,7 +552,8 @@ class API(
         name: String,
         valueModel: Value,
         encryptedValue: JsonElement,
-        sessionKey: ByteArray?
+        sessionKey: ByteArray?,
+        finalIvs: MutableMap<String, ByteArray?>
     ): Any? {
         return if (encryptedValue.isNull) {
             if (valueModel.cardinality === Cardinality.ZeroOrOne) {
@@ -556,7 +565,14 @@ class API(
             val bytes = base64ToBytes(encryptedValue.primitive.content)
 
             val decryptedBytes =
-                if (bytes.isEmpty()) bytes else cryptor.decrypt(bytes, sessionKey!!, true)
+                if (bytes.isEmpty()) bytes else {
+                    val decryptResult = cryptor.decrypt(bytes, sessionKey!!, true)
+                    if (valueModel.final) {
+                        finalIvs[name] = decryptResult.iv
+                    }
+                    decryptResult.data
+                }
+
             when (valueModel.type) {
                 ValueType.BytesType -> decryptedBytes
                 ValueType.CompressedStringType -> compressor.decompressString(decryptedBytes)

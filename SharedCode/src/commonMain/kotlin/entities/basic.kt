@@ -4,14 +4,26 @@ import com.charlag.tuta.entities.sys.IdTuple
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.*
 
-interface Entity
 
-interface ElementEntity : Entity {
-    val _id: Id
+object IvSerializer : KSerializer<Map<String, ByteArray?>> by HashMapSerializer(
+    String.serializer(),
+    ByteArraySerializer.nullable
+)
+
+@Serializable
+abstract class Entity(
+    @Serializable(with = IvSerializer::class)
+    var finalIvs: Map<String, ByteArray?>? = null
+)
+
+@Serializable
+abstract class ElementEntity : Entity() {
+    abstract val _id: Id
 }
 
-interface ListElementEntity : Entity {
-    val _id: IdTuple
+@Serializable
+abstract class ListElementEntity : Entity() {
+    abstract val _id: IdTuple
 }
 
 data class Date(val millis: Long)
