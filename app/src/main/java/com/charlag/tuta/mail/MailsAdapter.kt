@@ -1,6 +1,5 @@
 package com.charlag.tuta.mail
 
-import android.content.Context
 import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -47,7 +46,7 @@ class MailsAdapter(
             if (mail.sender.name.isNotBlank()) "${mail.sender.name} ${mail.sender.address}"
             else mail.sender.address
         holder.subject.text = mail.subject
-        holder.date.text = formatDate(holder.date.context, mail)
+        holder.date.text = formatDate(mail)
         holder.itemView.setOnClickListener { onSelected(mail) }
         holder.subject.setTypeface(null, if (mail.unread) Typeface.BOLD else Typeface.NORMAL)
         if (selectionTracker.isSelected(mail.id)) {
@@ -64,7 +63,7 @@ class MailsAdapter(
         return yearNow == cal.get(Calendar.YEAR)
     }
 
-    private fun formatDate(context: Context, mail: MailEntity): String {
+    private fun formatDate(mail: MailEntity): String {
         return if (fromThisYear(mail)) {
             shortFormat.format(mail.receivedDate)
         } else {

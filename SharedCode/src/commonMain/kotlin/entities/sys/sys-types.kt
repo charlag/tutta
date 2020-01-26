@@ -1066,12 +1066,12 @@ data class BookingServiceData(
 
 @Serializable
 data class EntityEventBatch(
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _ownerGroup: Id?,
     val _permissions: Id,
 
     val events: List<EntityUpdate>
-)
+) : ListElementEntity()
 
 @Serializable
 data class DomainsRef(

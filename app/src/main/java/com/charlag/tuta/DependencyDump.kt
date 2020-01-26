@@ -1,6 +1,8 @@
 package com.charlag.tuta
 
+import android.content.Context
 import android.util.Log
+import androidx.room.Room
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.events.EntityEventListener
 import io.ktor.client.features.logging.LogLevel
@@ -16,7 +18,7 @@ object DependencyDump {
     @UseExperimental(KtorExperimentalAPI::class)
     val httpClient = makeHttpClient {
         install(Logging) {
-            level = LogLevel.ALL
+            level = LogLevel.INFO
             logger = object : Logger {
                 override fun log(message: String) {
                     Log.d("HTTP", message)
@@ -39,5 +41,10 @@ object DependencyDump {
     val loginFacade = LoginFacade(cryptor, api, groupKeysCache)
     val mailFacade = MailFacade(api, cryptor)
     lateinit var db: AppDatabase
-    val eventListener = EntityEventListener(loginFacade, api, { db })
+    private lateinit var eventListener: EntityEventListener
+
+    fun ignite(applicationContext: Context) {
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "tuta-db").build()
+        eventListener = EntityEventListener(loginFacade, api, db, applicationContext)
+    }
 }

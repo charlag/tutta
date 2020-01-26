@@ -1,46 +1,43 @@
 package com.charlag.tuta.mail
 
-import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagedList
 import androidx.paging.toLiveData
-import androidx.room.Room
-import com.charlag.tuta.*
+import com.charlag.tuta.DependencyDump
+import com.charlag.tuta.GroupType
+import com.charlag.tuta.MailFolderType
 import com.charlag.tuta.data.*
 import com.charlag.tuta.entities.GENERATED_MAX_ID
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.tutanota.*
+import com.charlag.tuta.entities.tutanota.Mail
+import com.charlag.tuta.entities.tutanota.MailBox
+import com.charlag.tuta.entities.tutanota.MailFolder
+import com.charlag.tuta.entities.tutanota.MailboxGroupRoot
+import com.charlag.tuta.sortSystemFolders
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.map
-import io.ktor.client.features.ClientRequestException
 import io.ktor.client.features.ResponseException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.*
 
-class MailViewModel(app: Application) : AndroidViewModel(app) {
+class MailViewModel : ViewModel() {
     private val loginFacade = DependencyDump.loginFacade
     private val api = DependencyDump.api
-    private val mailDao by lazy { DependencyDump.db.mailDao() }
-    private val mailRepository by lazy { MailRepository(api, mailDao) }
+    private val mailDao = DependencyDump.db.mailDao()
+    private val mailRepository = MailRepository(api, mailDao)
 
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders: LiveData<List<MailFolderEntity>>
     val selectedFolder: LiveData<MailFolderEntity?>
 
     init {
-        DependencyDump.db = Room.databaseBuilder(
-            getApplication(), AppDatabase::class.java,
-            "tuta-db"
-        ).build()
-
         folders = mailDao.getFoldersLiveData().map { dbFolders ->
             if (dbFolders.isEmpty()) {
                 viewModelScope.launch {
