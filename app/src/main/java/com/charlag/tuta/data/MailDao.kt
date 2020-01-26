@@ -38,4 +38,10 @@ interface MailDao {
 
     @Query("DELETE FROM MailFolderEntity WHERE id = :id")
     suspend fun deleteFolder(id: String)
+
+    @Insert
+    suspend fun insertMailBody(mailBody: MailBodyEntity)
+
+    @Query("SELECT * FROM MailBodyEntity WHERE id = :id LIMIT 1")
+    suspend fun getMailBody(id: String): MailBodyEntity?
 }

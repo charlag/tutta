@@ -4,7 +4,10 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [MailEntity::class, MailFolderEntity::class], version = 1)
+@Database(
+    entities = [MailEntity::class, MailFolderEntity::class, MailBodyEntity::class],
+    version = 1
+)
 @TypeConverters(TutanotaConverters::class, DateConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun mailDao(): MailDao

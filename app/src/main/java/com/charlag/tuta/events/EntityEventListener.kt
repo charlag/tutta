@@ -4,6 +4,7 @@ import android.util.Log
 import com.charlag.tuta.API
 import com.charlag.tuta.LoginFacade
 import com.charlag.tuta.data.AppDatabase
+import com.charlag.tuta.data.toEntity
 import com.charlag.tuta.entities.Entity
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.MetamodelType
@@ -13,8 +14,8 @@ import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.entities.sys.WebsocketEntityData
 import com.charlag.tuta.entities.tutanota.Mail
+import com.charlag.tuta.entities.tutanota.MailBody
 import com.charlag.tuta.entities.tutanota.MailFolder
-import com.charlag.tuta.mail.toEntity
 import com.charlag.tuta.typemodelMap
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.collect

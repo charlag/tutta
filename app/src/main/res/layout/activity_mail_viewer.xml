@@ -91,6 +91,18 @@
                         android:textColor="@color/primaryOnSurface" />
             </FrameLayout>
 
+            <Button
+                    android:id="@+id/tryAgainButton"
+                    style="?borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Failed to load. Try again?"
+                    android:visibility="gone"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/externalContentView"
+                    tools:visibility="visible" />
+
             <com.charlag.tuta.util.ZoomNestedWebView
                     android:id="@+id/webView"
                     android:layout_width="match_parent"
@@ -99,7 +111,7 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintLeft_toLeftOf="parent"
                     app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/externalContentView" />
+                    app:layout_constraintTop_toBottomOf="@id/tryAgainButton" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

@@ -5,6 +5,10 @@ import com.charlag.tuta.base64ToBytes
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.tutanota.EncryptedMailAddress
+import com.charlag.tuta.entities.tutanota.Mail
+import com.charlag.tuta.entities.tutanota.MailAddress
+import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.toBase64
 import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.Json
@@ -104,3 +108,93 @@ class DateConverter {
     @TypeConverter
     fun longToDate(long: Long): Date? = if (long == -1L) null else Date(long)
 }
+
+fun MailAddress.toEntity() = MailAddressEntity(_id?.asString(), name, address, contact, finalIvs)
+fun Mail.toEntity() = MailEntity(
+    id = _id.elementId.asString(),
+    listId = _id.listId.asString(),
+    _owner = _owner,
+    _ownerGroup = _ownerGroup,
+    _permissions = _permissions,
+    _ownerEncSessionKey = _ownerEncSessionKey,
+    confidential = confidential,
+    differentEnvelopeSender = differentEnvelopeSender,
+    listUnsubscribe = listUnsubscribe,
+    movedTime = movedTime?.toDate(),
+    receivedDate = receivedDate.toDate(),
+    replyType = replyType,
+    sentDate = sentDate.toDate(),
+    state = state,
+    subject = subject,
+    trashed = trashed,
+    unread = unread,
+    sender = sender.toEntity(),
+    toRecipients = toRecipients.map { it.toEntity() },
+    ccRecipients = ccRecipients.map { it.toEntity() },
+    bccRecipients = bccRecipients.map { it.toEntity() },
+    replyTos = replyTos.map { it.toEntity() },
+    body = body,
+    conversationEntry = conversationEntry,
+    attachments = attachments,
+    headers = headers,
+    finalIvs = finalIvs
+)
+
+fun MailEntity.toMail() = Mail(
+    _id = IdTuple(
+        GeneratedId(listId),
+        GeneratedId(id)
+    ),
+    _owner = _owner,
+    _ownerGroup = _ownerGroup,
+    _permissions = _permissions,
+    _ownerEncSessionKey = _ownerEncSessionKey,
+    confidential = confidential,
+    differentEnvelopeSender = differentEnvelopeSender,
+    listUnsubscribe = listUnsubscribe,
+    movedTime = movedTime?.toDate(),
+    receivedDate = receivedDate.toDate(),
+    replyType = replyType,
+    sentDate = sentDate.toDate(),
+    state = state,
+    subject = subject,
+    trashed = trashed,
+    unread = unread,
+    sender = sender.toMailAddress(),
+    toRecipients = toRecipients.map { it.toMailAddress() },
+    ccRecipients = ccRecipients.map { it.toMailAddress() },
+    bccRecipients = bccRecipients.map { it.toMailAddress() },
+    replyTos = replyTos.map { it.toEncryptedMailAddress() },
+    body = body,
+    conversationEntry = conversationEntry,
+    attachments = attachments,
+    headers = headers,
+    restrictions = null
+).also {
+    it.finalIvs = finalIvs
+}
+
+fun MailFolder.toEntity() = MailFolderEntity(
+    id = _id.elementId.asString(),
+    listId = _id.listId.asString(),
+    folderType = folderType,
+    name = name,
+    mails = mails
+)
+
+fun EncryptedMailAddress.toEntity() =
+    MailAddressEntity(_id?.asString(), name, address, null, finalIvs)
+
+fun com.charlag.tuta.entities.Date.toDate() = Date(millis)
+
+fun Date.toDate() = com.charlag.tuta.entities.Date(time)
+
+fun MailAddressEntity.toMailAddress() = MailAddress(id?.let(::GeneratedId), address, name, null)
+    .also {
+        it.finalIvs = finalIvs
+    }
+
+fun MailAddressEntity.toEncryptedMailAddress() =
+    EncryptedMailAddress(id?.let(::GeneratedId), address, name).also {
+        it.finalIvs = finalIvs
+    }

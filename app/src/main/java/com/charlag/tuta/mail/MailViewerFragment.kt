@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -18,8 +19,10 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.charlag.tuta.BuildConfig
 import com.charlag.tuta.R
+import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 class MailViewerFragment : Fragment() {
 
@@ -99,10 +102,11 @@ class MailViewerFragment : Fragment() {
         senderNameView.visibility =
             if (openedMail.sender.name.isBlank()) View.GONE else View.VISIBLE
         senderAddressView.text = openedMail.sender.address
-        lifecycleScope.launch {
-            val body = viewModel.loadMailBody(openedMail.body)
-            webView.loadData(body.compressedText ?: body.text, "text/html", "UTF-8")
+        tryAgainButton.setOnClickListener {
+            loadMailBody()
         }
+        loadMailBody()
+
 
         val iconColor = view.context.getColor(R.color.primaryOnSurface)
         toolbar.menu.add("Archive").setIcon(R.drawable.ic_archive_black_24dp)
@@ -114,5 +118,22 @@ class MailViewerFragment : Fragment() {
         toolbar.menu.add("Move to")
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
 
+    }
+
+    fun loadMailBody() {
+        val openedMail = viewModel.openedMail.value!!
+        lifecycleScope.launch {
+            tryAgainButton.visibility = View.GONE
+            try {
+                val body = viewModel.loadMailBody(openedMail.body)
+                webView.loadData(body.text, "text/html", "UTF-8")
+            } catch (e: IOException) {
+                tryAgainButton.visibility = View.VISIBLE
+            } catch (e: ClientRequestException) {
+                // Log for now. Can happen if we are not logged in
+                Log.w("Mails", "Failed to load mail body %e")
+                tryAgainButton.visibility = View.VISIBLE
+            }
+        }
     }
 }
