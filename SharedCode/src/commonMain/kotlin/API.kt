@@ -486,7 +486,12 @@ class API(
                             )
                         }
                     }
-                    ELEMENT_ASSOCIATION, LIST_ASSOCIATION -> value.content
+                    ELEMENT_ASSOCIATION, LIST_ASSOCIATION -> when (assocModel.cardinality) {
+                        Cardinality.One -> value.contentOrNull
+                            ?: error("association $fieldName is null even though it's cardinality One")
+                        Cardinality.ZeroOrOne -> null
+                        Cardinality.Any -> error("Cannot have ANY element assciation")
+                    }
                     LIST_ELEMENT_ASSOCIATION -> when (assocModel.cardinality) {
                         Cardinality.One -> listOf(
                             value.jsonArray[0].content,
@@ -532,6 +537,11 @@ class API(
                 throw Error("Value $name with cardinality ONE cannot be null")
             }
         } else if (valueModel.encrypted) {
+            if (value == defaultValue(valueModel.type) && iv == null) {
+                // if iv is there, we need to re-encrypt it back tp get the same value
+                // but if not we should just restore empty placeholder for default value
+                return JsonLiteral("")
+            }
             val bytes = if (valueModel.type === ValueType.BytesType) value as ByteArray
             else valueToString(value, valueModel).toBytes()
             return JsonLiteral(

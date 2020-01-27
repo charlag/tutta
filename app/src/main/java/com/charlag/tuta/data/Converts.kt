@@ -44,12 +44,12 @@ class TutanotaConverters {
     }
 
     @TypeConverter
-    fun idToString(id: Id): String = id.asString()
+    fun idToString(id: Id?): String? = id?.asString()
 
     @TypeConverter
-    fun stringToId(string: String): Id = GeneratedId(string)
+    fun stringToId(string: String?): Id? = string?.let(::GeneratedId)
 
-    // Doing IdTuple manually as automatic converrsion fails somehow
+    // Doing IdTuple manually as automatic conversion fails somehow
     @TypeConverter
     fun idTupleToString(idTuple: IdTuple): String {
         return "[\"${idTuple.listId.asString()}\", \"${idTuple.elementId.asString()}\"]"
