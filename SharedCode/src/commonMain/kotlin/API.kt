@@ -6,12 +6,14 @@ import com.charlag.tuta.entities.sys.*
 import io.ktor.client.HttpClient
 import io.ktor.client.features.feature
 import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.logging.Logging
 import io.ktor.client.features.websocket.wss
 import io.ktor.client.request.*
 import io.ktor.http.HttpMethod
 import io.ktor.http.Url
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.*
 import kotlin.collections.component1
@@ -123,15 +125,31 @@ class API(
 
     suspend fun <T : Entity> loadListElementEntity(klass: KClass<T>, id: IdTuple): T {
         val (_, model, typeModel) = typeModelByName.getValue(klass.noReflectionName)
-        return loadAndMapToEntity(
-            "${model}/${typeModel.name.toLowerCase()}/${id.listId.asString()}/${id.elementId.asString()}",
-            klass
-        )!!
+        val name = typeModel.name.toLowerCase()
+        val url = "${model}/${name}/${id.listId.asString()}/${id.elementId.asString()}"
+        return loadAndMapToEntity(url, klass)!!
     }
 
-    suspend fun <T : Entity> loadAll(klass: KClass<T>, listId: Id): List<T> {
-        // TODO load in chunks until all is loaded
-        return loadRange(klass, listId, GENERATED_MIN_ID, 1000, false)
+    suspend fun <T : ListElementEntity> loadAll(klass: KClass<T>, listId: Id): List<T> {
+        return loadRangeInBetween(klass, listId)
+    }
+
+    suspend fun <T : ListElementEntity> loadRangeInBetween(
+        klass: KClass<T>, listId: Id,
+        startId: Id = GENERATED_MIN_ID, endId: Id = GENERATED_MAX_ID
+    ): List<T> {
+        val result = mutableListOf<T>()
+        while (true) {
+            // Load chunk from the oldest to the newest
+            val loadFrom = result.lastOrNull()?._id?.elementId ?: startId
+            val range = loadRange(klass, listId, loadFrom, 1000, false)
+            // Each chunk is newer so we append it to the end
+            result += range.dropLastWhile { it._id.elementId > endId }
+            if (range.isEmpty() || range.last()._id.elementId > endId) {
+                break
+            }
+        }
+        return result
     }
 
     suspend fun <T : Entity> loadRange(
@@ -195,31 +213,42 @@ class API(
         data class Unknown(val data: ByteArray) : WSEvent()
     }
 
-    fun getEvents(userId: String): Flow<WSEvent> {
-        return flow {
-            httpClient.wss(wsUrl, {
-                url.parameters["modelVersions"] = "49.36"
-                url.parameters["clientVersion"] = "3.59.7"
-                url.parameters["userId"] = userId
-                accessToken?.let { token -> url.parameters["accessToken"] = token }
-            }) {
-                for (frame in incoming) {
-                    val (type, value) = bytesToString(frame.data).split(";")
-                    val wsEvent = when (type) {
-                        "entityUpdate" -> {
-                            val jsonElement = json.parseJson(value).jsonObject
-                            val data = deserializeEntitity(jsonElement, WebsocketEntityData::class)
-                            WSEvent.EntityUpdate(data)
+    fun getEvents(userId: String): Channel<WSEvent> {
+        val channel = Channel<WSEvent>(capacity = Channel.UNLIMITED)
+        GlobalScope.launch {
+            try {
+                httpClient.wss(wsUrl, {
+                    url.parameters["modelVersions"] = "49.36"
+                    url.parameters["clientVersion"] = "3.59.7"
+                    url.parameters["userId"] = userId
+                    accessToken?.let { token -> url.parameters["accessToken"] = token }
+                }) {
+
+                    for (frame in incoming) {
+                        val frameString = bytesToString(frame.data)
+                        httpClient.feature(Logging)!!.logger.log("Got frame $frameString")
+                        val (type, value) = frameString.split(";")
+                        val wsEvent = when (type) {
+                            "entityUpdate" -> {
+                                val jsonElement = json.parseJson(value).jsonObject
+                                val data =
+                                    deserializeEntitity(jsonElement, WebsocketEntityData::class)
+                                WSEvent.EntityUpdate(data)
+                            }
+                            "unreadCounterUpdate" -> {
+                                WSEvent.CounterUpdate
+                            }
+                            else -> WSEvent.Unknown(frame.data)
                         }
-                        "unreadCounterUpdate" -> {
-                            WSEvent.CounterUpdate
-                        }
-                        else -> WSEvent.Unknown(frame.data)
+                        channel.send(wsEvent)
                     }
-                    emit(wsEvent)
+                    channel.close()
                 }
+            } catch (e: Throwable) {
+                channel.close(e)
             }
         }
+        return channel
     }
 
     override suspend fun loadPermissions(listId: Id): List<Permission> {

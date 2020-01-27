@@ -396,7 +396,7 @@ data class DeleteMailData(
 @Serializable
 data class MailFolder(
     val _format: Long,
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
     val _permissions: Id,
@@ -405,7 +405,7 @@ data class MailFolder(
     val mails: Id,
     val parentFolder: IdTuple?,
     val subFolders: Id
-) : Entity()
+) : ListElementEntity()
 
 @Serializable
 data class MailFolderRef(

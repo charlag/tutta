@@ -235,7 +235,7 @@ data class GroupRoot(
 
 @Serializable
 data class BucketPermission(
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _ownerGroup: Id?,
     val _permissions: Id,
     val ownerEncBucketKey: ByteArray?,
@@ -245,7 +245,7 @@ data class BucketPermission(
     val type: Long,
 
     val group: Id
-) : Entity()
+) : ListElementEntity()
 
 @Serializable
 data class Bucket(
@@ -256,7 +256,7 @@ data class Bucket(
 
 @Serializable
 data class Permission(
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
     val _permissions: Id,
@@ -269,7 +269,7 @@ data class Permission(
 
     val bucket: Bucket?,
     val group: Id?
-) : Entity()
+) : ListElementEntity()
 
 @Serializable
 data class AccountingInfo(

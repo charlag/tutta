@@ -8,18 +8,19 @@ import com.charlag.tuta.LoginFacade
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.data.toEntity
 import com.charlag.tuta.entities.*
-import com.charlag.tuta.entities.sys.EntityEventBatch
-import com.charlag.tuta.entities.sys.EntityUpdate
-import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.sys.User
+import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.typemodelMap
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.lang.Exception
+import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
 class EntityEventListener(
@@ -34,52 +35,85 @@ class EntityEventListener(
     init {
         GlobalScope.launch {
             val user = loginFacade.waitForLogin()
-            processMissedEvents(user)
+            reconnect(user)
+        }
+    }
 
-            // TODO: reconnect on network error and download missed events
-            // TODO: between processing missed events and connecting to ws we can miss some things
-            // Should connect right away and queue them in some way.
-            api.getEvents(userId = user._id.asString()).collect { event ->
-                when (event) {
-                    is API.WSEvent.EntityUpdate -> {
-                        Log.d(TAG, "Entity update ${event.entityData}")
-                        processEntityUpdate(
-                            event.entityData.eventBatchOwner.asString(),
-                            event.entityData.eventBatchId.asString(),
-                            event.entityData.eventBatch
-                        )
-                        Log.d(TAG, "Entity update processed")
+    private fun reconnect(user: User) {
+        // Launching each time so that we don't run into recursive executing problems.
+        GlobalScope.launch {
+            // Start consuming events right away so that we don't miss any
+            val realtimeEvents =
+                api.getEvents(userId = user._id.asString()).consumeAsFlow()
+                    .filterIsInstance<API.WSEvent.EntityUpdate>()
+            try {
+                loadMissedEvents(user)
+                    .catch { e ->
+                        Log.w(TAG, "Error during loading missed events", e)
+                        throw e
                     }
-                    is API.WSEvent.CounterUpdate -> Log.d(TAG, "Counter update $event")
-                    is API.WSEvent.Unknown -> Log.d(TAG, "Unknown update")
+                    .onCompletion {
+                        emitAll(realtimeEvents.map { (entityData) ->
+                            WebsocketEntityData(
+                                entityData.eventBatchId,
+                                entityData.eventBatchOwner,
+                                entityData.eventBatch
+                            )
+                        })
+                    }.collect { event ->
+                        Log.d(TAG, "Entity update $event")
+                        processEntityBatchUpdate(
+                            event.eventBatchOwner.asString(),
+                            event.eventBatchId.asString(),
+                            event.eventBatch
+                        )
+                    }
+            } catch (e: IOException) {
+                Log.d(TAG, "Exception during event processing", e)
+                delay(TimeUnit.SECONDS.toMillis(30))
+            } catch (e: Exception) {
+                Log.w(TAG, "Unexpected exeption $e")
+                delay(TimeUnit.SECONDS.toMillis(90))
+            }
+            reconnect(user)
+        }
+    }
+
+    private fun loadMissedEvents(user: User): Flow<WebsocketEntityData> {
+        return flow {
+            val eventGroups = eventGroups(user)
+            for (groupId in eventGroups) {
+                val lastPref = lastProcessedPrefs.getString(groupId.asString(), null)
+                val eventBatches = api.loadRangeInBetween(
+                    EntityEventBatch::class,
+                    groupId,
+                    lastPref?.let(::GeneratedId) ?: GENERATED_MIN_ID,
+                    GENERATED_MAX_ID
+                )
+
+                for (batch in eventBatches) {
+                    val batchId = batch._id.elementId.asString()
+                    if (lastPref == null || lastPref < batchId) {
+                        emit(WebsocketEntityData(GeneratedId(batchId), groupId, batch.events))
+                    }
                 }
             }
         }
     }
 
-    private suspend fun processMissedEvents(user: User) {
-        val eventGroups = eventGroups(user)
-        for (groupId in eventGroups) {
-            val lastPref = lastProcessedPrefs.getString(groupId.asString(), null)
-            val eventBatches = api.loadAll(EntityEventBatch::class, groupId)
-
-            for (batch in eventBatches) {
-                val batchId = batch._id.elementId.asString()
-                if (lastPref == null || lastPref < batchId) {
-                    processEntityUpdate(groupId.asString(), batchId, batch.events)
-                }
-            }
-        }
-    }
-
-    private suspend fun processEntityUpdate(
+    private suspend fun processEntityBatchUpdate(
         groupId: String,
         batchId: String,
         entityUpdates: List<EntityUpdate>
     ) {
+        val lastProcessedForGroup = lastProcessedPrefs.getString(groupId, null)
+        if (lastProcessedForGroup != null && batchId <= lastProcessedForGroup) {
+            // Already processed
+            return
+        }
         for (entityUpdate in entityUpdates) {
             val typeInfo = typemodelMap[entityUpdate.type] ?: continue
-            if (typeInfo.klass !in includedEntities) return
+            if (typeInfo.klass !in includedEntities) continue
 
             when (entityUpdate.operation) {
                 OPERATION_CREATE, OPERATION_UPDATE -> {
@@ -94,6 +128,7 @@ class EntityEventListener(
             }
         }
         lastProcessedPrefs.edit().putString(groupId, batchId).apply()
+        Log.d(TAG, "Entity batch processed $batchId")
     }
 
     private suspend fun downloadAndInsert(
