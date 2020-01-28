@@ -64,3 +64,5 @@ suspend fun Cryptor.decryptKey(encryptedKey: ByteArray, encryptionKey: ByteArray
 suspend fun Cryptor.aes128RandomKey(): ByteArray {
     return generateRandomData(16)
 }
+
+class CryptoException(message: String, cause: Exception? = null) : Exception(message, cause)

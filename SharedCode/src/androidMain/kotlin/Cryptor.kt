@@ -71,7 +71,7 @@ actual class Cryptor {
                 val computedMacBytes = hmac256(subKeys.mKey, cipherTextWithoutMac)
 
                 if (!Arrays.equals(computedMacBytes, providedMacBytes)) {
-                    throw Error("invalid mac")
+                    throw CryptoException("Invaild mac")
                 }
                 cipherTextWithoutMac
             } else {
@@ -111,18 +111,18 @@ actual class Cryptor {
             )
             cipher.doFinal(value)
         } catch (e: BadPaddingException) {
-            throw CryptoError(e)
+            throw CryptoException("Error during RSA decrypt", e)
         } catch (e: InvalidKeyException) {
-            throw CryptoError(e)
+            throw CryptoException("Error during RSA decrypt", e)
         } catch (e: IllegalBlockSizeException) {
-            throw CryptoError(e)
+            throw CryptoException("Error during RSA decrypt", e)
         } catch (e: NoSuchAlgorithmException) { // These errors are not expected, fatal for the whole application and should be
             // reported.
-            throw java.lang.RuntimeException("rsaDecrypt error", e)
+            throw java.lang.RuntimeException("Error during RSA decrypt", e)
         } catch (e: NoSuchPaddingException) {
-            throw java.lang.RuntimeException("rsaDecrypt error", e)
+            throw java.lang.RuntimeException("Error during RSA decrypt", e)
         } catch (e: InvalidAlgorithmParameterException) {
-            throw java.lang.RuntimeException("rsaDecrypt error", e)
+            throw java.lang.RuntimeException("Error during RSA decrypt", e)
         }
     }
 
@@ -276,6 +276,3 @@ actual class Cryptor {
             .generatePrivate(RSAPrivateKeySpec(modulus, privateExponent))
     }
 }
-
-
-class CryptoError(e: Throwable) : Error(e)

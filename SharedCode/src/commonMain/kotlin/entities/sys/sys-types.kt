@@ -1181,7 +1181,7 @@ data class Challenge(
 
 @Serializable
 data class Session(
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
     val _permissions: Id,
@@ -1194,7 +1194,7 @@ data class Session(
 
     val challenges: List<Challenge>,
     val user: Id
-)
+) : ListElementEntity()
 
 @Serializable
 data class UserAuthentication(

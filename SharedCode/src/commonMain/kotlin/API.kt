@@ -165,7 +165,14 @@ class API(
             parameter("count", count)
             parameter("reverse", reverse.toString())
             url(baseUrl + "${model}/${typeModel.name.toLowerCase()}/${listId.asString()}")
-        }.map { deserializeEntitity(it as JsonObject, klass) }
+        }.mapNotNull {
+            try {
+                deserializeEntitity(it as JsonObject, klass)
+            } catch (e: CryptoException) {
+                httpClient.feature(Logging)!!.logger.log("Failed to decrypt entity, skipping $e")
+                null
+            }
+        }
     }
 
     suspend fun <T : Entity> updateEntity(entity: T) {
@@ -183,6 +190,19 @@ class API(
             commonHeaders()
             url(address)
             body = serializer.write(serializedEntity)
+        }
+    }
+
+
+    suspend fun <T : ListElementEntity> deleteListElementEntity(klass: KClass<T>, id: IdTuple) {
+        val (_, model, typeModel) = typeModelByName[klass.noReflectionName]!!
+        val typeName = typeModel.name.toLowerCase()
+        val address =
+            Url("$baseUrl$model/$typeName/${id.listId.asString()}/${id.elementId.asString()}")
+        return httpClient.delete {
+            commonHeaders()
+            header("v", typeModel.version)
+            url(address)
         }
     }
 

@@ -4,6 +4,7 @@ import com.charlag.tuta.entities.GENERATED_ID_BYTES_LENGTH
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.sys.Session
 import com.charlag.tuta.entities.sys.User
 import io.ktor.utils.io.core.toByteArray
 import kotlinx.coroutines.CompletableDeferred
@@ -71,13 +72,20 @@ class LoginFacade(
         _loggedIn.complete(user)
     }
 
+    suspend fun deleteSession(accessToken: String) {
+        return api.deleteListElementEntity(Session::class, getSessionId(accessToken))
+    }
+
     suspend fun getSessionId(accessToken: String): IdTuple {
-        val byteAccessToken = base64UrlToBase64(accessToken).toByteArray()
-        val listId = cryptor.hash(byteAccessToken.copyOfRange(0, GENERATED_ID_BYTES_LENGTH))
+        val byteAccessToken = base64ToBytes(base64UrlToBase64(accessToken))
+        // Be *extremely* mindful with changes for these two: has, length, format all differ
+        val listId = byteAccessToken.copyOfRange(0, GENERATED_ID_BYTES_LENGTH)
             .toBase64()
-            .let(::base64ToBase64Url)
+            .let(::base64ToBase64Ext)
             .let(::GeneratedId)
-        val elementId = cryptor.hash(byteAccessToken.copyOfRange(0, GENERATED_ID_BYTES_LENGTH))
+
+        val elementId = byteAccessToken.copyOfRange(GENERATED_ID_BYTES_LENGTH, byteAccessToken.size)
+            .let { cryptor.hash(it) }
             .toBase64()
             .let(::base64ToBase64Url)
             .let(::GeneratedId)

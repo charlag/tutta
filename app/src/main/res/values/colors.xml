@@ -3,6 +3,7 @@
     <color name="colorPrimary">#ffffff</color>
     <color name="colorPrimaryDark">#cccccc</color>
     <color name="colorAccent">#840010</color>
+    <color name="lightgray">#D5D5D5</color>
     <color name="primaryOnSurface">#707070</color>
     <color name="colorSelected">#30840010</color>
 </resources>

@@ -73,6 +73,7 @@ class MailViewModel : ViewModel() {
                     override fun onZeroItemsLoaded() {
                         Log.d("MailViewModel", "onZeroItems")
                         viewModelScope.launch {
+                            loginFacade.waitForLogin()
                             val mails =
                                 api.loadRange(Mail::class, folder.mails, GENERATED_MAX_ID, 40, true)
                                     .map { it.toEntity() }
@@ -84,6 +85,7 @@ class MailViewModel : ViewModel() {
                     override fun onItemAtEndLoaded(itemAtEnd: MailEntity) {
                         Log.d("MailViewModel", "onItemAtEndLoaded")
                         viewModelScope.launch {
+                            loginFacade.waitForLogin()
                             val mails =
                                 api.loadRange(
                                     Mail::class, folder.mails, GeneratedId(itemAtEnd.id),

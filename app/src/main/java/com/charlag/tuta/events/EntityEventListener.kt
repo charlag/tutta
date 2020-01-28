@@ -61,7 +61,6 @@ class EntityEventListener(
                             )
                         })
                     }.collect { event ->
-                        Log.d(TAG, "Entity update $event")
                         processEntityBatchUpdate(
                             event.eventBatchOwner.asString(),
                             event.eventBatchId.asString(),
@@ -128,7 +127,6 @@ class EntityEventListener(
             }
         }
         lastProcessedPrefs.edit().putString(groupId, batchId).apply()
-        Log.d(TAG, "Entity batch processed $batchId")
     }
 
     private suspend fun downloadAndInsert(
