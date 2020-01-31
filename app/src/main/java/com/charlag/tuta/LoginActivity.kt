@@ -4,14 +4,16 @@ import android.content.Intent
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
-import android.widget.Button
-import android.widget.TextView
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.charlag.tuta.entities.GeneratedId
+import kotlinx.android.synthetic.main.activity_login.*
 import kotlinx.coroutines.*
+import java.io.IOException
 import javax.crypto.Cipher
 
 class LoginActivity : AppCompatActivity() {
@@ -20,10 +22,24 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        val emailField = findViewById<TextView>(R.id.email_field)
-        val passwordField = findViewById<TextView>(R.id.password_field)
-        val loginButton = findViewById<Button>(R.id.login_btn)
-        val statusLabel = findViewById<TextView>(R.id.status_tv)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+
+        val savedUserId = prefs.getString("userId", null)
+        val savedAccessToken = prefs.getString("accessToken", null)
+        val encPassword = prefs.getString("password", null)
+        val savedMailAddress = prefs.getString("mailAddress", null)
+
+
+        if (savedUserId != null && savedAccessToken != null &&
+            encPassword != null && savedMailAddress != null
+        ) {
+            emailField.setText(savedMailAddress)
+            biometricButton.visibility = View.VISIBLE
+            biometricButton.setOnClickListener {
+                loginWithSaved(encPassword, savedUserId, savedAccessToken, savedMailAddress)
+            }
+            loginWithSaved(encPassword, savedUserId, savedAccessToken, savedMailAddress)
+        }
 
         loginButton.setOnClickListener {
             val mailAddress = emailField.text.toString()
@@ -43,7 +59,7 @@ class LoginActivity : AppCompatActivity() {
                         val userId = user._id.asString()
                         CredentialsManager()
                             .register()
-                        val cipher = getCipher() ?: return@withContext
+                        val cipher = getCipher(null) ?: return@withContext
                         val encryptedPassword = cipher.doFinal(password.toByteArray())
                         val encryptedPasswordWithIv = cipher.iv + encryptedPassword
                         PreferenceManager.getDefaultSharedPreferences(this@LoginActivity)
@@ -56,8 +72,7 @@ class LoginActivity : AppCompatActivity() {
                         DependencyDump.credentials =
                             Credentials(userId, accessToken, password, mailAddress)
                         statusLabel.text = "Success!"
-                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                        finish()
+                        goToMain()
                     }
                 } catch (e: Exception) {
                     Log.e("Main", "ooops", e)
@@ -67,10 +82,56 @@ class LoginActivity : AppCompatActivity() {
                 }
             }
         }
-
     }
 
-    suspend fun getCipher(): Cipher? {
+    private fun goToMain() {
+        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+        finish()
+    }
+
+    private fun loginWithSaved(
+        encPassword: String,
+        savedUserId: String,
+        savedAccessToken: String,
+        savedMailAddress: String
+    ) {
+        lifecycleScope.launch {
+            try {
+                val passwordWithIvBytes = base64ToBytes(encPassword)
+                val iv = passwordWithIvBytes.copyOfRange(0, 16)
+                val encPasswordBytes =
+                    passwordWithIvBytes.copyOfRange(16, passwordWithIvBytes.size)
+                val cipher = getCipher(iv)
+                if (cipher == null) {
+                    Log.d("Main", "Failed to get login cipher")
+                    return@launch
+                }
+                val password = bytesToString(cipher.doFinal(encPasswordBytes))
+                DependencyDump.credentials =
+                    Credentials(savedUserId, savedAccessToken, password, savedMailAddress)
+                goToMain()
+                GlobalScope.launch {
+                    try {
+                        DependencyDump.loginFacade.resumeSession(
+                            savedMailAddress,
+                            GeneratedId(savedUserId),
+                            savedAccessToken,
+                            password
+                        )
+                    } catch (e: IOException) {
+                        val msg = "Failed to log in because of IO $e"
+                        statusLabel.text = msg
+                        Log.w("Main", msg)
+                    }
+                }
+            } catch (e: java.lang.Exception) {
+                Log.d("Mail", "Failed to log in", e)
+                statusLabel.text = "Failed to log in $e"
+            }
+        }
+    }
+
+    suspend fun getCipher(iv: ByteArray?): Cipher? {
         val deferred = CompletableDeferred<Cipher?>()
         val prompt = BiometricPrompt(
             this,
@@ -112,7 +173,7 @@ class LoginActivity : AppCompatActivity() {
             .build()
         prompt.authenticate(
             promptInfo,
-            BiometricPrompt.CryptoObject(CredentialsManager().prepareCipher(iv = null))
+            BiometricPrompt.CryptoObject(CredentialsManager().prepareCipher(iv))
         )
         return deferred.await()
     }

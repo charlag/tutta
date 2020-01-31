@@ -12,43 +12,57 @@
             android:padding="24dp">
 
         <EditText
-                android:id="@+id/email_field"
+                android:id="@+id/emailField"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="e-mail"
                 android:inputType="textEmailAddress"
-                app:layout_constraintBottom_toTopOf="@id/password_field"
+                app:layout_constraintBottom_toTopOf="@id/passwordField"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintVertical_chainStyle="packed" />
 
         <EditText
-                android:id="@+id/password_field"
+                android:id="@+id/passwordField"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:hint="password"
                 android:inputType="textPassword"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/email_field" />
+                app:layout_constraintTop_toBottomOf="@id/emailField" />
 
         <Button
-                android:id="@+id/login_btn"
+                android:id="@+id/loginButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="Login"
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/password_field" />
+                app:layout_constraintTop_toBottomOf="@id/passwordField" />
 
         <TextView
-                android:id="@+id/status_tv"
+                android:id="@+id/statusLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/login_btn" />
+                app:layout_constraintTop_toBottomOf="@id/loginButton" />
+
+        <ImageButton
+                android:id="@+id/biometricButton"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_marginTop="16dp"
+                android:background="?selectableItemBackground"
+                android:src="@drawable/ic_fingerprint_black_24dp"
+                android:tint="@color/colorAccent"
+                android:visibility="gone"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/loginButton"
+                tools:visibility="visible" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>
