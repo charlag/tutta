@@ -1,12 +1,12 @@
 import com.charlag.tuta.Cryptor
-import com.charlag.tuta.entities.ByteArraySerializer
-import com.charlag.tuta.entities.Entity
-import kotlinx.io.core.toByteArray
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.stringFromUtf8Bytes
+import com.charlag.tuta.decryptKey
+import com.charlag.tuta.encryptKey
 import kotlin.test.Test
 
 class CryptorTest {
+
+    var cryptor = Cryptor()
+
     @Test
     fun testRoundtrip() {
 //        val value = "Test string!".toByteArray()
@@ -17,5 +17,14 @@ class CryptorTest {
 //        val decrypted = cryptor.decrypt(encrypted, key)
 //        println(stringFromUtf8Bytes(decrypted))
 //        assertArrayEquals(value, decrypted)
+    }
+
+    @Test
+    fun testKeyEncryptionRoundtrip() = runTest {
+        val plaintextKey = cryptor.generateRandomData(16)
+        val encryptionKey = cryptor.generateRandomData(16)
+        val encryptedKey = cryptor.encryptKey(plaintextKey, encryptionKey)
+        val decryptedKey = cryptor.decryptKey(encryptedKey, encryptionKey)
+        assertArrayEquals(plaintextKey, decryptedKey)
     }
 }

@@ -54,7 +54,9 @@ suspend fun Cryptor.generateKeyFromPassphrase(passphrase: String, salt: ByteArra
 val fixedIv: ByteArray = ByteArray(16) { 0x88.toByte() }
 
 suspend fun Cryptor.encryptKey(plaintextKey: ByteArray, encryptionKey: ByteArray): ByteArray {
-    return encrypt(plaintextKey, fixedIv, encryptionKey, false, false)
+    return encrypt(plaintextKey, fixedIv, encryptionKey, false, false).run {
+        copyOfRange(fixedIv.size, this.size)
+    }
 }
 
 suspend fun Cryptor.decryptKey(encryptedKey: ByteArray, encryptionKey: ByteArray): ByteArray {

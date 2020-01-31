@@ -1,14 +1,9 @@
-import com.charlag.tuta.NestedMapper
 import com.charlag.tuta.base64ToBytes
-import com.charlag.tuta.entities.ByteArraySerializer
-import com.charlag.tuta.entities.Entity
 import com.charlag.tuta.toBase64
-import kotlinx.io.core.toByteArray
-import kotlinx.serialization.Serializable
+import io.ktor.utils.io.core.toByteArray
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 
 
 class Base64Test {
