@@ -77,7 +77,14 @@ actual class Cryptor {
 
     actual suspend fun rsaDecrypt(
         value: ByteArray,
-        key: PrivateKey
+        privateKey: PrivateKey
+    ): ByteArray {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    actual suspend fun rsaEncrypt(
+        value: ByteArray,
+        publicKey: PublicKey
     ): ByteArray {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }

@@ -7,6 +7,8 @@ expect fun ByteArray.toBase64(): String
 expect fun bytesToString(bytes: ByteArray): String
 expect fun String.toBytes(): ByteArray
 
+expect fun hexToPublicKey(hex: String): PublicKey
+
 fun base64ToBase64Url(base64: String): String =
     base64.replace('+', '-').replace('/', '_').replace("=", "")
 
@@ -19,6 +21,20 @@ fun base64UrlToBase64(base64url: String): String {
         else -> error("Illegal Base64 string length: $base64url ${base64url.length}")
     }
     return replaced + padding
+}
+
+private val hexArray =
+    charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
+
+fun bytesToHex(bytes: ByteArray): String {
+    val hexChars = CharArray(bytes.size * 2)
+    var v: Int
+    for (j in bytes.indices) {
+        v = bytes[j].toInt() and 0xFF
+        hexChars[j * 2] = hexArray[v ushr 4]
+        hexChars[j * 2 + 1] = hexArray[v and 0x0F]
+    }
+    return String(hexChars)
 }
 
 /**

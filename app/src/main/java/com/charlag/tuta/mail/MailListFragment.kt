@@ -15,6 +15,7 @@ import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.MainActivity
 import com.charlag.tuta.R
+import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.getFolderName
 import com.charlag.tuta.util.map
 import com.charlag.tuta.util.withLifecycleContext

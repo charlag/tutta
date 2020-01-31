@@ -7,6 +7,7 @@ import java.math.BigInteger
 import java.security.*
 import java.security.spec.MGF1ParameterSpec
 import java.security.spec.RSAPrivateKeySpec
+import java.security.spec.RSAPublicKeySpec
 import java.util.*
 import javax.crypto.*
 import javax.crypto.spec.IvParameterSpec
@@ -101,12 +102,32 @@ actual class Cryptor {
         return hexToPrivateKey(bytesToHex(decrypt(value, key, true).data))
     }
 
-    actual suspend fun rsaDecrypt(value: ByteArray, key: PrivateKey): ByteArray {
+    actual suspend fun rsaEncrypt(value: ByteArray, publicKey: PublicKey): ByteArray {
+        return try {
+            val cipher = Cipher.getInstance(RSA_ALGORITHM)
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey.toJava(), OAEP_PARAMETER_SPEC)
+            cipher.doFinal(value)
+        } catch (e: NoSuchAlgorithmException) {
+            throw java.lang.RuntimeException(e)
+        } catch (e: NoSuchPaddingException) {
+            throw java.lang.RuntimeException(e)
+        } catch (e: InvalidAlgorithmParameterException) {
+            throw java.lang.RuntimeException(e)
+        } catch (e: BadPaddingException) {
+            throw CryptoException("Error during RSA encryption", e)
+        } catch (e: IllegalBlockSizeException) {
+            throw CryptoException("Error during RSA encryption", e)
+        } catch (e: InvalidKeyException) {
+            throw CryptoException("Error during RSA encryption", e)
+        }
+    }
+
+    actual suspend fun rsaDecrypt(value: ByteArray, privateKey: PrivateKey): ByteArray {
         return try {
             val cipher = Cipher.getInstance(RSA_ALGORITHM)
             cipher.init(
                 Cipher.DECRYPT_MODE,
-                key.toJava(),
+                privateKey.toJava(),
                 OAEP_PARAMETER_SPEC
             )
             cipher.doFinal(value)
@@ -188,6 +209,7 @@ actual class Cryptor {
             MGF1ParameterSpec.SHA256,
             PSource.PSpecified.DEFAULT
         )
+        private val RSA_PUBLIC_EXPONENT = BigInteger.valueOf(65537)
     }
 
     actual suspend fun hash(bytes: ByteArray): ByteArray {
@@ -202,77 +224,15 @@ actual class Cryptor {
         return BCrypt.with(VERSION_BC).hashRaw(rounds, salt, passphrase).rawHash
     }
 
-
-    fun hexToPrivateKey(hex: String): PrivateKey {
-        return arrayToPrivateKey(hexToKeyArray(hex))
-    }
-
-    fun hexToPublicKey(hex: String): PublicKey {
-        return arrayToPublicKey(hexToKeyArray(hex))
-    }
-
-    fun hexToKeyArray(hex: String): Array<BigInteger> {
-        val key: ArrayList<BigInteger> = ArrayList()
-        var pos = 0
-        while (pos < hex.length) {
-            val nextParamLen = hex.substring(pos, pos + 4).toInt(16)
-            pos += 4
-            key.add(BigInteger(hex.substring(pos, pos + nextParamLen), 16))
-            pos += nextParamLen
-        }
-        return key.toArray(arrayOf<BigInteger>())
-    }
-
-    fun arrayToPrivateKey(keyArray: Array<BigInteger>): PrivateKey {
-        return PrivateKey(
-            version = 0,
-            modulus = keyArray[0].toByteArray(),
-            privateExponent = keyArray[1].toByteArray(),
-            primeP = keyArray[2].toByteArray(),
-            primeQ = keyArray[3].toByteArray(),
-            primeExponentP = keyArray[4].toByteArray(),
-            primeExponentQ = keyArray[5].toByteArray(),
-            crtCoefficient = keyArray[6].toByteArray()
-        )
-    }
-
-    fun arrayToPublicKey(keyArray: Array<BigInteger>): PublicKey {
-        return PublicKey(
-            version = 0,
-            modulus = keyArray[0].toByteArray()
-        )
-    }
-
-    fun hexToBytes(s: String): ByteArray {
-        val len = s.length
-        val data = ByteArray(len / 2)
-        var i = 0
-        while (i < len) {
-            data[i / 2] = ((Character.digit(s[i], 16) shl 4)
-                    + Character.digit(s[i + 1], 16)).toByte()
-            i += 2
-        }
-        return data
-    }
-
-    private val hexArray =
-        charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
-
-    fun bytesToHex(bytes: ByteArray): String {
-        val hexChars = CharArray(bytes.size * 2)
-        var v: Int
-        for (j in bytes.indices) {
-            v = bytes[j].toInt() and 0xFF
-            hexChars[j * 2] = hexArray[v ushr 4]
-            hexChars[j * 2 + 1] = hexArray[v and 0x0F]
-        }
-        return String(hexChars)
-    }
-
     private fun PrivateKey.toJava(): java.security.PrivateKey {
         val modulus = BigInteger(this.modulus)
         val privateExponent = BigInteger(this.privateExponent)
         return KeyFactory.getInstance("RSA")
             .generatePrivate(RSAPrivateKeySpec(modulus, privateExponent))
+    }
+
+    private fun PublicKey.toJava(): java.security.PublicKey {
+        return KeyFactory.getInstance("RSA")
+            .generatePublic(RSAPublicKeySpec(BigInteger(modulus), RSA_PUBLIC_EXPONENT))
     }
 }

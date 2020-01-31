@@ -74,3 +74,7 @@ actual fun bytesToString(bytes: ByteArray): String {
 actual fun String.toBytes(): ByteArray {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
 }
+
+actual fun hexToPublicKey(hex: String): PublicKey {
+    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+}

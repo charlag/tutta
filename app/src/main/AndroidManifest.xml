@@ -27,7 +27,7 @@
                 android:name=".LoginActivity"
                 android:screenOrientation="portrait" />
         <activity
-                android:name=".mail.ComposeActivity"
+                android:name=".compose.ComposeActivity"
                 android:screenOrientation="portrait"
                 android:theme="@style/AppTheme"
                 android:windowSoftInputMode="adjustResize" />

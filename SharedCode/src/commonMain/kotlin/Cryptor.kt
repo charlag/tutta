@@ -14,7 +14,8 @@ expect class Cryptor() {
 
     suspend fun decrypt(value: ByteArray, key: ByteArray, usePadding: Boolean = true): DecryptResult
     suspend fun decryptRsaKey(value: ByteArray, key: ByteArray): PrivateKey
-    suspend fun rsaDecrypt(value: ByteArray, key: PrivateKey): ByteArray
+    suspend fun rsaEncrypt(value: ByteArray, publicKey: PublicKey): ByteArray
+    suspend fun rsaDecrypt(value: ByteArray, privateKey: PrivateKey): ByteArray
     fun generateRandomData(byteSize: Int): ByteArray
     suspend fun hash(bytes: ByteArray): ByteArray
     fun bcrypt(rounds: Int, passphrase: ByteArray, salt: ByteArray): ByteArray

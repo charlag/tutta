@@ -93,7 +93,20 @@ class API(
         queryParams: Map<String, String>? = null,
         sk: ByteArray? = null
     ): T {
-        return post("${app}/${name}", requestEntity, responseClass, sk)!!
+        val path = "${app}/${name}"
+        return if (method == HttpMethod.Get) {
+            val serializedEntity = requestEntity?.let { serializeEntity(it, sk) }
+            val address = Url(baseUrl + path)
+            httpClient.get<JsonObject?> {
+                commonHeaders()
+                url(address)
+                if (serializedEntity != null) {
+                    parameter("_body", json.stringify(JsonObjectSerializer, serializedEntity))
+                }
+            }!!.let { deserializeEntitity(it, responseClass) }
+        } else {
+            post(path, requestEntity, responseClass, sk)!!
+        }
     }
 
     suspend fun serviceRequestVoid(
@@ -115,11 +128,11 @@ class API(
         )!!
     }
 
-    suspend inline fun <reified T : Entity> loadElementEntity(id: Id): T {
+    suspend inline fun <reified T : ElementEntity> loadElementEntity(id: Id): T {
         return loadElementEntity(T::class, id)
     }
 
-    suspend inline fun <reified T : Entity> loadListElementEntity(id: IdTuple): T {
+    suspend inline fun <reified T : ListElementEntity> loadListElementEntity(id: IdTuple): T {
         return loadListElementEntity(T::class, id)
     }
 
@@ -356,26 +369,21 @@ class API(
     private fun Any?.stringOrJsonContent() =
         this as? String ?: (this as? JsonElement)?.contentOrNull
 
-    private suspend fun resolveSessionKey(
+    suspend fun resolveSessionKey(
         typeModel: TypeModel,
-        instance: Map<String, Any?>,
+        ownerEncSessionKey: ByteArray?,
+        ownerGroup: String?,
+        permissions: String?,
         loaders: SessionKeyLoaders
     ): ByteArray? {
         if (!typeModel.encrypted) return null
-        val key = instance["_ownerEncSessionKey"]
-        val ownerGroup = instance["_ownerGroup"].stringOrJsonContent()
         val groupKey = ownerGroup?.let { groupKeysCache.getGroupKey(ownerGroup) }
-        if (key != null && groupKey != null && key !is JsonNull) {
-            return cryptor.decryptKey(
-                key.stringOrJsonContent()?.let(::base64ToBytes) ?: key as ByteArray,
-                groupKey
-            )
+        if (ownerEncSessionKey != null && groupKey != null) {
+            return cryptor.decryptKey(ownerEncSessionKey, groupKey)
         }
-        val permissionsString =
-            if (instance["_permissions"] is String) instance["_permissions"] as String
-            else (instance["_permissions"] as JsonLiteral).content
+        permissions ?: error("No symmetric key and also no permissions")
         val listPermissions =
-            loaders.loadPermissions(GeneratedId(permissionsString))
+            loaders.loadPermissions(GeneratedId(permissions))
         val symmetricPermission = listPermissions.find { p ->
             (p.type == PermissionType.PublicSymemtric.value ||
                     p.type == PermissionType.Symmetric.value) &&
@@ -389,21 +397,14 @@ class API(
         val publicPermission =
             listPermissions.find { lp ->
                 lp.type == PermissionType.Public.value || lp.type == PermissionType.External.value
-            }
-        if (publicPermission == null) {
-            error("Could not find permission $typeModel $instance")
-        }
+            } ?: error("Could not find permission")
 
         val bucketPermissions = loadBuckerPermissions(publicPermission.bucket!!.bucketPermissions)
         // find the bucket permission with the same group as the permission and public type
         val bucketPermission = bucketPermissions.find { bp ->
             (bp.type == BucketPermissionType.Public.value || bp.type == BucketPermissionType.External.value) &&
                     publicPermission._ownerGroup == bp._ownerGroup
-        }
-
-        if (bucketPermission == null) {
-            error("no corresponding bucket permission found")
-        }
+        } ?: error("no corresponding bucket permission found")
 
         if (bucketPermission.type == BucketPermissionType.External.value) {
             error("External permissions are not implemented")
@@ -411,7 +412,7 @@ class API(
             bucketPermission.pubEncBucketKey
                 ?: error("PubEncBucketKey is not defined for BucketPermission $bucketPermissions")
             publicPermission.bucketEncSessionKey
-                ?: error("BucketEncSessionKey is not defined for ${symmetricPermission}")
+                ?: error("BucketEncSessionKey is not defined for $symmetricPermission")
             val group = loadGroup(bucketPermission.group)
             val keypair = group.keys[0]
             // decrypt RSA keys
@@ -431,6 +432,20 @@ class API(
         }
     }
 
+    suspend fun resolveSessionKey(
+        typeModel: TypeModel,
+        instance: Map<String, Any?>,
+        loaders: SessionKeyLoaders
+    ): ByteArray? {
+        return this.resolveSessionKey(
+            typeModel,
+            instance["_ownerEncSessionKey"].stringOrJsonContent()?.let(::base64ToBytes),
+            instance["_ownerGroup"].stringOrJsonContent(),
+            instance["_permissions"].stringOrJsonContent(),
+            loaders
+        )
+    }
+
     private suspend fun encryptAndMapToLiteral(
         map: Map<String, Any?>,
         typeModel: TypeModel,
@@ -441,7 +456,13 @@ class API(
         val finalIvs = map["finalIvs"] as Map<String, ByteArray?>?
         for ((fieldName, valueModel) in typeModel.values) {
             encrypted[fieldName] =
-                if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
+                if (typeModel.type == MetamodelType.AGGREGATED_TYPE &&
+                    fieldName == "_id" &&
+                    map[fieldName] == null
+                ) {
+                    // We must give aggregates IDs
+                    JsonLiteral(base64ToBase64Url(cryptor.generateRandomData(4).toBase64()))
+                } else if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
                     @Suppress("UNCHECKED_CAST")
                     JsonArray((map[fieldName] as List<String>).map(::JsonPrimitive))
                 } else {
@@ -538,7 +559,7 @@ class API(
                     ELEMENT_ASSOCIATION, LIST_ASSOCIATION -> when (assocModel.cardinality) {
                         Cardinality.One -> value.contentOrNull
                             ?: error("association $fieldName is null even though it's cardinality One")
-                        Cardinality.ZeroOrOne -> null
+                        Cardinality.ZeroOrOne -> value.contentOrNull
                         Cardinality.Any -> error("Cannot have ANY element assciation")
                     }
                     LIST_ELEMENT_ASSOCIATION -> when (assocModel.cardinality) {

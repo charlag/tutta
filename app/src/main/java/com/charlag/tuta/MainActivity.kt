@@ -70,8 +70,13 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val passwordWithIvBytes = base64ToBytes(encPassword)
                     val iv = passwordWithIvBytes.copyOfRange(0, 16)
-                    val encPasswordBytes = passwordWithIvBytes.copyOfRange(16, passwordWithIvBytes.size)
-                    val cipher = getCipher(iv) ?: return@launch
+                    val encPasswordBytes =
+                        passwordWithIvBytes.copyOfRange(16, passwordWithIvBytes.size)
+                    val cipher = getCipher(iv)
+                    if (cipher == null) {
+                        Log.d("Main", "Failed to get login cipher")
+                        return@launch
+                    }
                     val password = bytesToString(cipher.doFinal(encPasswordBytes))
                     DependencyDump.credentials =
                         Credentials(userId, accessToken, password, mailAddress)

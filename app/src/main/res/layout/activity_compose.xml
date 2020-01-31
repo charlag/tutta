@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -29,6 +30,28 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
+
+            <TextView
+                    android:id="@+id/fromTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center_vertical"
+                    android:padding="8dp"
+                    android:text="From"
+                    app:layout_constraintBottom_toBottomOf="@id/fromSpinner"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.appcompat.widget.AppCompatSpinner
+                    android:id="@+id/fromSpinner"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintLeft_toRightOf="@id/fromTextView"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/fromTextView"
+                    tools:listitem="@android:layout/simple_spinner_dropdown_item" />
+
             <TextView
                     android:id="@+id/toTextView"
                     android:layout_width="wrap_content"
@@ -37,7 +60,7 @@
                     android:padding="8dp"
                     android:text="To"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toBottomOf="@id/fromTextView" />
 
             <EditText
                     android:id="@+id/toField"

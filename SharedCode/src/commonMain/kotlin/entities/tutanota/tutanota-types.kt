@@ -67,14 +67,14 @@ data class FileSystem(
 data class MailBody(
     val _area: Long,
     val _format: Long,
-    val _id: Id,
+    override val _id: Id,
     val _owner: Id,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
     val _permissions: Id,
     val compressedText: String?,
     val text: String?
-) : Entity()
+) : ElementEntity()
 
 @Serializable
 data class ContactMailAddress(
@@ -190,7 +190,7 @@ data class Mail(
 @Serializable
 data class MailBox(
     val _format: Long,
-    val _id: Id,
+    override val _id: Id,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
     val _permissions: Id,
@@ -200,7 +200,7 @@ data class MailBox(
     val mails: Id,
     val receivedAttachments: Id,
     val sentAttachments: Id
-) : Entity()
+) : ElementEntity()
 
 @Serializable
 data class PasswordChannelPhoneNumber(
@@ -449,7 +449,7 @@ data class EncryptTutanotaPropertiesData(
 
 @Serializable
 data class DraftRecipient(
-    val _id: Id,
+    val _id: Id? = null,
     val mailAddress: String,
     val name: String
 ) : Entity()
@@ -473,7 +473,7 @@ data class DraftAttachment(
 
 @Serializable
 data class DraftData(
-    val _id: Id,
+    val _id: Id? = null,
     val bodyText: String,
     val confidential: Boolean,
     val senderMailAddress: String,
@@ -518,7 +518,7 @@ data class DraftUpdateReturn(
 
 @Serializable
 data class InternalRecipientKeyData(
-    val _id: Id,
+    val _id: Id? = null,
     val mailAddress: String,
     val pubEncBucketKey: ByteArray,
     val pubKeyVersion: Long
@@ -548,7 +548,7 @@ data class AttachmentKeyData(
 
 @Serializable
 data class SendDraftData(
-    val _format: Long,
+    val _format: Long = 0,
     val bucketEncMailSessionKey: ByteArray?,
     val language: String,
     val mailSessionKey: ByteArray?,
@@ -674,7 +674,7 @@ data class MailboxServerProperties(
 @Serializable
 data class MailboxGroupRoot(
     val _format: Long,
-    val _id: Id,
+    override val _id: Id,
     val _ownerGroup: Id?,
     val _permissions: Id,
     val contactFormUserContactForm: IdTuple?,
@@ -683,7 +683,7 @@ data class MailboxGroupRoot(
     val serverProperties: Id,
     val targetMailGroupContactForm: IdTuple?,
     val whitelistRequests: Id
-) : Entity()
+) : ElementEntity()
 
 @Serializable
 data class CreateLocalAdminGroupData(

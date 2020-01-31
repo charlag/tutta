@@ -52,7 +52,7 @@ data class KeyPair(
 
 @Serializable
 data class Group(
-    val _id: Id,
+    override val _id: Id,
     val _ownerGroup: Id?,
     val _permissions: Id,
     val adminGroupEncGKey: ByteArray?,
@@ -68,11 +68,11 @@ data class Group(
     val invitations: Id,
     val members: Id,
     val user: Id?
-) : Entity()
+) : ElementEntity()
 
 @Serializable
 data class GroupInfo(
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _listEncSessionKey: ByteArray?,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
@@ -86,7 +86,7 @@ data class GroupInfo(
     val mailAddressAliases: List<MailAddressAlias>,
     val group: Id,
     val localAdmin: Id?
-) : Entity()
+) : ListElementEntity()
 
 @Serializable
 data class GroupMembership(
@@ -188,7 +188,7 @@ data class UserExternalAuthInfo(
 
 @Serializable
 data class User(
-    val _id: Id,
+    override val _id: Id,
     val _ownerGroup: Id?,
     val _permissions: Id,
     val accountType: Long,
@@ -210,7 +210,7 @@ data class User(
     val failedLogins: Id,
     val secondFactorAuthentications: Id,
     val successfulLogins: Id
-) : Entity()
+) : ElementEntity()
 
 @Serializable
 data class ExternalUserReference(
@@ -501,13 +501,13 @@ data class UserDataDelete(
 @Serializable
 data class PublicKeyData(
     val mailAddress: String
-)
+): Entity()
 
 @Serializable
 data class PublicKeyReturn(
     val pubKey: ByteArray,
     val pubKeyVersion: Long
-)
+) : Entity()
 
 @Serializable
 data class SaltData(

@@ -1,16 +1,11 @@
 package com.charlag.tuta
 
-import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
-import com.charlag.tuta.entities.sys.Group
-import com.charlag.tuta.entities.sys.GroupInfo
-import com.charlag.tuta.entities.sys.GroupMembership
-import com.charlag.tuta.entities.sys.User
+import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.*
 import io.ktor.http.HttpMethod
 
 data class RecipientInfo(val name: String, val mailAddress: String)
-
 
 class MailFacade(val api: API, val cryptor: Cryptor) {
 
@@ -38,7 +33,6 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
 
         val sk = cryptor.aes128RandomKey()
         val draftData = DraftData(
-            _id = generateId(cryptor),
             subject = subject,
             bodyText = body,
             senderMailAddress = senderAddress,
@@ -75,9 +69,72 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
         return api.loadListElementEntity(draftCreateReturn.draft)
     }
 
-    suspend fun getMailGroupIdForMailAddress(user: User, mailAddress: String): Id {
-        val mailMemberips = getUserGroupMemberships(user, GroupType.Mail)
-        val filteredMemberships = mailMemberips.filter { groupMembership ->
+    suspend fun sendDraft(
+        user: User, draft: Mail, recipientInfos: List<RecipientInfo>, language: String
+    ) {
+        // We don't need a user currently but we'll need them for external secure mails
+        val bucketKey = cryptor.aes128RandomKey()
+        // Skipping attachments for now
+        val mailTypeModel = typemodelMap.getValue(Mail::class.noReflectionName).typemodel
+        // Get the current session key of the email. Should be just _ownerEncSessionKey.
+        val resolvedMailKey = api.resolveSessionKey(
+            mailTypeModel,
+            draft._ownerEncSessionKey,
+            draft._ownerGroup?.asString(),
+            draft._permissions.asString(),
+            api
+        ) ?: error("Could not resolve draft session key $draft")
+
+        val internalRecipientKeyData: List<InternalRecipientKeyData>
+        val bucketEncMailSessionKey: ByteArray?
+        val sessionKeyToPass: ByteArray?
+        if (draft.confidential) {
+            // If it's confidential email, we do public encryption of the session key.
+            bucketEncMailSessionKey = cryptor.encryptKey(resolvedMailKey, bucketKey)
+            internalRecipientKeyData = recipientInfos.map {
+                encryptBucketKeyForInternalRecipient(bucketKey, it.mailAddress)
+                    ?: error("Did not find public key for ${it.mailAddress}")
+            }.filterNotNull()
+            sessionKeyToPass = null
+        } else {
+            // If it's non/confidential email, we just hand session key to the server so it can
+            // send it to the external recipients
+            bucketEncMailSessionKey = null
+            internalRecipientKeyData = listOf()
+            sessionKeyToPass = resolvedMailKey
+        }
+
+        val requestBody = SendDraftData(
+            bucketEncMailSessionKey = bucketEncMailSessionKey,
+            language = language,
+            mailSessionKey = sessionKeyToPass,
+            plaintext = false, // for now
+            senderNameUnencrypted = null, // for now
+            attachmentKeyData = listOf(), // for now
+            internalRecipientKeyData = internalRecipientKeyData,
+            mail = draft._id,
+            secureExternalRecipientKeyData = listOf() // for now
+        )
+        api.serviceRequestVoid("tutanota", "senddraftservice", HttpMethod.Post, requestBody)
+    }
+
+    suspend fun getEnabledMailAddresses(
+        user: User,
+        userGroupInfo: GroupInfo,
+        mailGroup: Group
+    ): List<String> {
+        return if (mailGroup.user != null) {
+            getEnabledMailAddressesForGroupInfo(userGroupInfo)
+        } else {
+            // TODO: placeholder impl for now
+            val mailGroupInfo = api.loadListElementEntity<GroupInfo>(mailGroup.groupInfo)
+            getEnabledMailAddressesForGroupInfo(mailGroupInfo)
+        }
+    }
+
+    private suspend fun getMailGroupIdForMailAddress(user: User, mailAddress: String): Id {
+        val mailMemberships = getUserGroupMemberships(user, GroupType.Mail)
+        val filteredMemberships = mailMemberships.filter { groupMembership ->
             val mailGroup = api.loadElementEntity<Group>(groupMembership.group)
             when (mailGroup.user) {
                 null -> {
@@ -99,16 +156,36 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
     }
 
 
-    private fun recipientInfoToDraftRecipient(toRecipients: List<RecipientInfo>): List<DraftRecipient> {
+    private fun recipientInfoToDraftRecipient(
+        toRecipients: List<RecipientInfo>
+    ): List<DraftRecipient> {
         return toRecipients.map { ri ->
             DraftRecipient(
-                _id = generateId(cryptor),
                 mailAddress = ri.mailAddress,
                 name = ri.name
             )
         }
     }
 
+    suspend fun encryptBucketKeyForInternalRecipient(
+        bucketKey: ByteArray,
+        recipientAddress: String
+    ): InternalRecipientKeyData? {
+        val publicKeyData = api.serviceRequest(
+            "sys",
+            "publickeyservice",
+            HttpMethod.Get,
+            PublicKeyData(recipientAddress),
+            PublicKeyReturn::class
+        )
+        val publicKey = hexToPublicKey(bytesToHex(publicKeyData.pubKey))
+        val encrypted = cryptor.rsaEncrypt(bucketKey, publicKey)
+        return InternalRecipientKeyData(
+            mailAddress = recipientAddress,
+            pubEncBucketKey = encrypted,
+            pubKeyVersion = publicKeyData.pubKeyVersion
+        )
+    }
 }
 
 fun getUserGroupMemberships(user: User, groupType: GroupType): List<GroupMembership> {
@@ -127,6 +204,3 @@ fun getEnabledMailAddressesForGroupInfo(groupInfo: GroupInfo): List<String> {
     }
     return addresses
 }
-
-fun generateId(cryptor: Cryptor) =
-    GeneratedId(base64ToBase64Url(cryptor.generateRandomData(4).toBase64()))
