@@ -36,10 +36,10 @@ data class Subfiles(
 ) : Entity()
 
 @Serializable
-data class TutanotaFile(
+data class File(
     val _area: Long,
     val _format: Long,
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _owner: Id,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
@@ -51,7 +51,7 @@ data class TutanotaFile(
     val subFiles: Subfiles?,
     val data: Id?,
     val parent: IdTuple?
-) : Entity()
+) : ListElementEntity()
 
 @Serializable
 data class FileSystem(
@@ -351,7 +351,7 @@ data class PasswordChannelReturn(
 
 @Serializable
 data class FileDataDataGet(
-    val _format: Long,
+    val _format: Long = 0,
     val base64: Boolean,
     val file: IdTuple
 ) : Entity()

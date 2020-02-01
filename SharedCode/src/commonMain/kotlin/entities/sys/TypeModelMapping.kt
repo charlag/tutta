@@ -3186,48 +3186,6 @@ val typeInfos = listOf(
         ),
         Feature.serializer()
     ),
-
-    TypeInfo(
-        File::class,
-        "sys",
-        TypeModel(
-            name = "File",
-            encrypted = false,
-            type = AGGREGATED_TYPE,
-            id = 917,
-            rootId = "A3N5cwADlQ",
-            values = mapOf(
-                "_id" to Value(
-                    type = CustomIdType,
-                    cardinality = One,
-                    final = true,
-                    encrypted = false
-                ),
-                "data" to Value(
-                    type = BytesType,
-                    cardinality = One,
-                    final = false,
-                    encrypted = false
-                ),
-                "mimeType" to Value(
-                    type = StringType,
-                    cardinality = One,
-                    final = false,
-                    encrypted = false
-                ),
-                "name" to Value(
-                    type = StringType,
-                    cardinality = One,
-                    final = false,
-                    encrypted = false
-                )
-            ),
-            associations = mapOf(),
-            version = 49
-        ),
-        File.serializer()
-    ),
-
     TypeInfo(
         GeneratedIdWrapper::class,
         "sys",

@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.BuildConfig
 import com.charlag.tuta.R
 import io.ktor.client.features.ClientRequestException
@@ -106,6 +107,7 @@ class MailViewerFragment : Fragment() {
             loadMailBody()
         }
         loadMailBody()
+        loadAttachments()
 
 
         val iconColor = view.context.getColor(R.color.primaryOnSurface)
@@ -117,10 +119,9 @@ class MailViewerFragment : Fragment() {
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         toolbar.menu.add("Move to")
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
-
     }
 
-    fun loadMailBody() {
+    private fun loadMailBody() {
         val openedMail = viewModel.openedMail.value!!
         lifecycleScope.launch {
             tryAgainButton.visibility = View.GONE
@@ -134,6 +135,23 @@ class MailViewerFragment : Fragment() {
                 Log.w("Mails", "Failed to load mail body %e")
                 tryAgainButton.visibility = View.VISIBLE
             }
+        }
+    }
+
+    private fun loadAttachments() {
+        lifecycleScope.launch {
+            val files = viewModel.loadAttachments(viewModel.openedMail.value!!)
+            val adapter = AttachmentAdapter(
+                onItemSelected = { file ->
+                    viewModel.openFile(file)
+                },
+                onDownloadFile = { file ->
+                    viewModel.downloadFile(file)
+                })
+            adapter.items.addAll(files)
+            attachmentsRecycler.adapter = adapter
+            attachmentsRecycler.layoutManager = LinearLayoutManager(attachmentsRecycler.context)
+            attachmentsRecycler.setHasFixedSize(true)
         }
     }
 }

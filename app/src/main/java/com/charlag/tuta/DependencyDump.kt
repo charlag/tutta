@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.room.Room
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.events.EntityEventListener
+import com.charlag.tuta.files.FileHandler
 import io.ktor.client.features.logging.LogLevel
 import io.ktor.client.features.logging.Logger
 import io.ktor.client.features.logging.Logging
@@ -40,11 +41,14 @@ object DependencyDump {
     )
     val loginFacade = LoginFacade(cryptor, api, groupKeysCache)
     val mailFacade = MailFacade(api, cryptor)
+    val fileFacade = FileFacade(api)
     lateinit var db: AppDatabase
     private lateinit var eventListener: EntityEventListener
+    lateinit var fileHandler: FileHandler
 
     fun ignite(applicationContext: Context) {
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "tuta-db").build()
         eventListener = EntityEventListener(loginFacade, api, db, applicationContext)
+        fileHandler = FileHandler(fileFacade, applicationContext)
     }
 }

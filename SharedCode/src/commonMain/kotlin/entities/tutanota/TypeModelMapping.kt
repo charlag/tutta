@@ -2510,7 +2510,7 @@ val typeInfos = listOf(
     ),
 
     TypeInfo(
-        TutanotaFile::class,
+        File::class,
         "tutanota",
         TypeModel(
             name = "File",
@@ -2611,7 +2611,7 @@ val typeInfos = listOf(
             ),
             version = 36
         ),
-        TutanotaFile.serializer()
+        File.serializer()
     ),
 
     TypeInfo(

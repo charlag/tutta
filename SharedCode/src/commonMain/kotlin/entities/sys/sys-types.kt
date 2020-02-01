@@ -6,6 +6,7 @@
 package com.charlag.tuta.entities.sys
 
 import com.charlag.tuta.entities.*
+import com.charlag.tuta.entities.tutanota.File
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.ArrayListSerializer
 import kotlinx.serialization.internal.SerialClassDescImpl
@@ -995,14 +996,6 @@ data class MembershipRemoveData(
 
     val group: Id,
     val user: Id
-)
-
-@Serializable
-data class File(
-    val _id: Id,
-    val data: ByteArray,
-    val mimeType: String,
-    val name: String
 )
 
 @Serializable

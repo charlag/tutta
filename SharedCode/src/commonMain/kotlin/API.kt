@@ -109,6 +109,37 @@ class API(
         }
     }
 
+    suspend fun serviceRequestBinary(
+        app: String,
+        name: String,
+        method: HttpMethod,
+        requestEntity: Entity,
+        sessionKey: ByteArray? = null
+    ): ByteArray {
+        val path = "${app}/${name}"
+        val serializedEntity = requestEntity.let { serializeEntity(it, sessionKey) }
+        val address = Url(baseUrl + path)
+        return if (method == HttpMethod.Get) {
+            httpClient.get<ByteArray> {
+                commonHeaders()
+                url(address)
+                parameter("_body", json.stringify(JsonObjectSerializer, serializedEntity))
+            }
+        } else {
+            httpClient.post<ByteArray>() {
+                commonHeaders()
+                url(address)
+                body = json.stringify(JsonObjectSerializer, serializedEntity)
+            }
+        }.let { data ->
+            if (sessionKey != null) {
+                cryptor.decrypt(data, sessionKey, true).data
+            } else {
+                data
+            }
+        }
+    }
+
     suspend fun serviceRequestVoid(
         app: String,
         name: String,
@@ -182,7 +213,7 @@ class API(
             try {
                 deserializeEntitity(it as JsonObject, klass)
             } catch (e: CryptoException) {
-                httpClient.feature(Logging)!!.logger.log("Failed to decrypt entity, skipping $e")
+                println("Failed to decrypt entity, skipping $e")
                 null
             }
         }
@@ -379,7 +410,12 @@ class API(
         if (!typeModel.encrypted) return null
         val groupKey = ownerGroup?.let { groupKeysCache.getGroupKey(ownerGroup) }
         if (ownerEncSessionKey != null && groupKey != null) {
-            return cryptor.decryptKey(ownerEncSessionKey, groupKey)
+            try {
+                return cryptor.decryptKey(ownerEncSessionKey, groupKey)
+            } catch (e: CryptoException) {
+                println("Failed to decrypt ownerEncSessionKey $ownerEncSessionKey with $groupKey, $e")
+                throw e
+            }
         }
         permissions ?: error("No symmetric key and also no permissions")
         val listPermissions =
@@ -437,13 +473,23 @@ class API(
         instance: Map<String, Any?>,
         loaders: SessionKeyLoaders
     ): ByteArray? {
-        return this.resolveSessionKey(
-            typeModel,
-            instance["_ownerEncSessionKey"].stringOrJsonContent()?.let(::base64ToBytes),
-            instance["_ownerGroup"].stringOrJsonContent(),
-            instance["_permissions"].stringOrJsonContent(),
-            loaders
-        )
+        val sessionKeyBytes =
+            instance["_ownerEncSessionKey"].stringOrJsonContent()?.let(::base64ToBytes)
+        try {
+            return this.resolveSessionKey(
+                typeModel,
+                sessionKeyBytes,
+                instance["_ownerGroup"].stringOrJsonContent(),
+                instance["_permissions"].stringOrJsonContent(),
+                loaders
+            )
+        } catch (e: CryptoException) {
+            println(
+                "Failed resolve session key of instance $instance with key of length " +
+                        "${sessionKeyBytes?.size}, $e"
+            )
+            throw e
+        }
     }
 
     private suspend fun encryptAndMapToLiteral(

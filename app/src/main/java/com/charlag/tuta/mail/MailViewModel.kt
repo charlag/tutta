@@ -15,10 +15,8 @@ import com.charlag.tuta.entities.GENERATED_MAX_ID
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.tutanota.Mail
-import com.charlag.tuta.entities.tutanota.MailBox
-import com.charlag.tuta.entities.tutanota.MailFolder
-import com.charlag.tuta.entities.tutanota.MailboxGroupRoot
+import com.charlag.tuta.entities.tutanota.*
+import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.sortSystemFolders
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.map
@@ -32,6 +30,7 @@ class MailViewModel : ViewModel() {
     private val api = DependencyDump.api
     private val mailDao = DependencyDump.db.mailDao()
     private val mailRepository = MailRepository(api, mailDao)
+    private val fileHandler: FileHandler = DependencyDump.fileHandler
 
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders: LiveData<List<MailFolderEntity>>
@@ -157,6 +156,12 @@ class MailViewModel : ViewModel() {
         return mailRepository.getMailBody(mailBodyId)
     }
 
+    suspend fun loadAttachments(mail: MailEntity): List<File> {
+        return mail.attachments.map {
+            api.loadListElementEntity<File>(it)
+        }
+    }
+
     fun search(query: String): LiveData<PagedList<MailEntity>> {
         Log.d("Mails", "search $query")
         return mailDao.search(query).toLiveData(40)
@@ -174,6 +179,17 @@ class MailViewModel : ViewModel() {
             api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
                 .map { it.toEntity() }
                 .let(::sortSystemFolders)
+        }
+    }
+
+    fun openFile(file: File) {
+        // TODO
+        downloadFile(file)
+    }
+
+    fun downloadFile(file: File) {
+        viewModelScope.launch {
+            fileHandler.downloadFile(file)
         }
     }
 }
