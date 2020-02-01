@@ -112,10 +112,9 @@ class MailListFragment : Fragment() {
         withLifecycleContext {
             viewModel.selectedFolder.switchMap { folder ->
                 if (folder == null) MutableLiveData<Unit>()
-                else viewModel.loadMails(folder).map {
-                    adapter.submitList(it)
-                    progress.visibility = View.GONE
-                    emptyTextView.visibility = if (it.isEmpty()) View.VISIBLE else View.GONE
+                else viewModel.loadMails(folder).map { mails ->
+                    adapter.submitList(mails)
+                    emptyTextView.visibility = if (mails.isEmpty()) View.VISIBLE else View.GONE
                 }
             }.subscribe()
             viewModel.selectedFolder.observe { folder ->
