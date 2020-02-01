@@ -30,16 +30,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-
             <TextView
                     android:id="@+id/fromTextView"
                     android:layout_width="wrap_content"
-                    android:layout_height="0dp"
-                    android:layout_marginTop="16dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
                     android:gravity="center_vertical"
+                    android:minHeight="60dp"
                     android:padding="8dp"
                     android:text="From"
-                    app:layout_constraintBottom_toBottomOf="@id/fromSpinner"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
@@ -47,65 +46,199 @@
                     android:id="@+id/fromSpinner"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    app:layout_constraintLeft_toRightOf="@id/fromTextView"
+                    android:minHeight="60dp"
+                    app:layout_constraintLeft_toRightOf="@id/fieldsBarrier"
                     app:layout_constraintRight_toRightOf="parent"
                     app:layout_constraintTop_toTopOf="@id/fromTextView"
                     tools:listitem="@android:layout/simple_spinner_dropdown_item" />
+
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginLeft="16dp"
+                    android:layout_marginRight="16dp"
+                    android:background="@color/grey_10"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/fromSpinner" />
 
             <TextView
                     android:id="@+id/toTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginLeft="8dp"
+                    android:gravity="center_vertical"
+                    android:minHeight="60dp"
                     android:padding="8dp"
                     android:text="To"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/fromTextView" />
 
-            <EditText
+            <androidx.appcompat.widget.AppCompatEditText
                     android:id="@+id/toField"
+                    style="@style/NoUnderlineField"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:importantForAutofill="no"
-                    android:inputType="textEmailAddress"
+                    android:inputType="textEmailAddress|textMultiLine"
+                    android:minHeight="60dp"
                     android:padding="8dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toEndOf="@id/toTextView"
                     app:layout_constraintTop_toTopOf="@id/toTextView" />
 
-            <TextView
-                    android:id="@+id/subjectTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    android:text="Subject"
-                    app:layout_constraintStart_toStartOf="parent"
+            <ImageButton
+                    android:id="@+id/expandRecipientsButton"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginRight="8dp"
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_expand_more_black_24dp"
+                    android:tint="@color/primaryOnSurface"
+                    app:layout_constraintRight_toRightOf="@id/toField"
+                    app:layout_constraintTop_toTopOf="@id/toField" />
+
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginLeft="16dp"
+                    android:layout_marginRight="16dp"
+                    android:background="@color/grey_10"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/toField" />
 
-            <EditText
-                    android:id="@+id/subjectField"
+            <TextView
+                    android:id="@+id/ccTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
+                    android:gravity="center_vertical"
+                    android:minHeight="60dp"
+                    android:padding="8dp"
+                    android:text="CC"
+                    android:visibility="gone"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/toTextView"
+                    tools:visibility="visible" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/ccField"
+                    style="@style/NoUnderlineField"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:importantForAutofill="no"
-                    android:inputType="textEmailSubject"
+                    android:inputType="textEmailAddress|textMultiLine"
+                    android:minHeight="60dp"
                     android:padding="8dp"
+                    android:visibility="gone"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/subjectTextView"
-                    app:layout_constraintTop_toTopOf="@id/subjectTextView" />
+                    app:layout_constraintStart_toEndOf="@id/ccTextView"
+                    app:layout_constraintTop_toTopOf="@id/ccTextView"
+                    tools:visibility="visible" />
+
+            <View
+                    android:id="@+id/ccBccSeparator"
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginLeft="16dp"
+                    android:layout_marginRight="16dp"
+                    android:background="@color/grey_10"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/ccField" />
+
+            <TextView
+                    android:id="@+id/bccTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
+                    android:gravity="center_vertical"
+                    android:minHeight="60dp"
+                    android:padding="8dp"
+                    android:text="BCC"
+                    android:visibility="gone"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/ccTextView"
+                    tools:visibility="visible" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/bccField"
+                    style="@style/NoUnderlineField"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:importantForAutofill="no"
+                    android:inputType="textEmailAddress|textMultiLine"
+                    android:minHeight="60dp"
+                    android:padding="8dp"
+                    android:visibility="gone"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/bccTextView"
+                    app:layout_constraintTop_toTopOf="@id/bccTextView"
+                    tools:visibility="visible" />
+
+            <View
+                    android:id="@+id/bccSubjectSeparator"
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginLeft="16dp"
+                    android:layout_marginRight="16dp"
+                    android:background="@color/grey_10"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/bccField" />
+
+            <EditText
+                    android:id="@+id/subjectField"
+                    style="@style/NoUnderlineField"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
+                    android:hint="Subject"
+                    android:importantForAutofill="no"
+                    android:inputType="textEmailSubject"
+                    android:minHeight="60dp"
+                    android:padding="8dp"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/bccField" />
+
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginLeft="16dp"
+                    android:layout_marginRight="16dp"
+                    android:background="@color/grey_10"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/subjectField" />
 
             <EditText
                     android:id="@+id/contentField"
+                    style="@style/NoUnderlineField"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:gravity="top"
                     android:hint="Write email"
                     android:minHeight="200dp"
-                    android:padding="8dp"
+                    android:paddingLeft="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingRight="16dp"
+                    android:paddingBottom="8dp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/subjectField" />
+
+            <androidx.constraintlayout.widget.Barrier
+                    android:id="@+id/fieldsBarrier"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:barrierDirection="right"
+                    app:constraint_referenced_ids="fromTextView,toTextView,ccTextView,bccTextView"
+                    tools:layout_editor_absoluteX="411dp" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

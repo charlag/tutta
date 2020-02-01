@@ -5,7 +5,13 @@ import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.*
 import io.ktor.http.HttpMethod
 
-data class RecipientInfo(val name: String, val mailAddress: String)
+enum class RecipientType {
+    UNKNOWN,
+    INTENRAL,
+    EXTERNAL
+}
+
+data class RecipientInfo(val name: String, val mailAddress: String, val type: RecipientType)
 
 class MailFacade(val api: API, val cryptor: Cryptor) {
 
@@ -94,7 +100,7 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
             internalRecipientKeyData = recipientInfos.map {
                 encryptBucketKeyForInternalRecipient(bucketKey, it.mailAddress)
                     ?: error("Did not find public key for ${it.mailAddress}")
-            }.filterNotNull()
+            }
             sessionKeyToPass = null
         } else {
             // If it's non/confidential email, we just hand session key to the server so it can

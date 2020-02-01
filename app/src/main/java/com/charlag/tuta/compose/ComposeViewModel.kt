@@ -1,14 +1,8 @@
 package com.charlag.tuta.compose
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.charlag.tuta.ConversationType
-import com.charlag.tuta.DependencyDump
-import com.charlag.tuta.GroupType
-import com.charlag.tuta.RecipientInfo
+import androidx.lifecycle.*
+import com.charlag.tuta.*
 import com.charlag.tuta.entities.sys.Group
 import com.charlag.tuta.entities.sys.GroupInfo
 import kotlinx.coroutines.launch
@@ -19,6 +13,9 @@ class ComposeViewModel : ViewModel() {
     private val loginFacade = DependencyDump.loginFacade
 
     val enabledMailAddresses: LiveData<List<String>>
+    val toRecipients = MutableLiveData<List<String>>(listOf())
+    val ccRecipients = MutableLiveData<List<String>>(listOf())
+    val bccRecipients = MutableLiveData<List<String>>(listOf())
 
     init {
         val enabledMailAddresses = MutableLiveData<List<String>>()
@@ -46,26 +43,55 @@ class ComposeViewModel : ViewModel() {
     suspend fun send(
         subject: String,
         body: String,
-        senderAddress: String,
-        recipients: List<RecipientInfo>
-    ) {
+        senderAddress: String
+    ): Boolean {
+        // All internal for now
+        val to = toRecipients.value!!.map { RecipientInfo("", it, RecipientType.INTENRAL) }
+        val cc = ccRecipients.value!!.map { RecipientInfo("", it, RecipientType.INTENRAL) }
+        val bcc = bccRecipients.value!!.map { RecipientInfo("", it, RecipientType.INTENRAL) }
+        val recipients = to + cc + bcc
+        if (recipients.isEmpty()) {
+            return false
+        }
         val draft = mailFacade.createDraft(
             user = loginFacade.user!!,
             subject = subject,
             body = body,
             senderAddress = senderAddress,
             senderName = "bed",
-            toRecipients = recipients,
-            ccRecipients = listOf(),
-            bccRecipients = listOf(),
+            toRecipients = to,
+            ccRecipients = cc,
+            bccRecipients = bcc,
             conversationType = ConversationType.NEW,
             previousMessageId = null,
             confidential = true,
             replyTos = listOf()
         )
 
-        val allRecipients = draft.toRecipients + draft.ccRecipients + draft.bccRecipients
-
         mailFacade.sendDraft(loginFacade.user!!, draft, recipients, "en")
+        return true
     }
+
+    fun addRecipient(type: RecipientField, mailAddress: String) {
+        // TODO: start checking if internal recipient here
+        val liveData = liveDataForField(type)
+        liveData.value = liveData.value!! + mailAddress
+    }
+
+    private fun liveDataForField(type: RecipientField): MutableLiveData<List<String>> {
+        return when (type) {
+            RecipientField.TO -> toRecipients
+            RecipientField.CC -> ccRecipients
+            RecipientField.BCC -> bccRecipients
+        }
+    }
+
+    fun removeRecipient(type: RecipientField, mailAddress: String) {
+        val liveData = liveDataForField(type)
+        liveData.value = liveData.value!! - mailAddress
+    }
+}
+
+enum class RecipientField {
+    TO, CC, BCC;
 }
