@@ -3,9 +3,9 @@
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:background="?selectableItemBackground"
+        android:clickable="true"
         android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:clickable="true">
+        android:orientation="horizontal">
 
     <ImageView
             android:layout_width="24dp"
@@ -24,9 +24,9 @@
 
     <ImageButton
             android:id="@+id/downloadButton"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginRight="16dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="?selectableItemBackgroundBorderless"
             android:src="@drawable/ic_file_download_black_24dp"
             android:tint="@color/primaryOnSurface" />
 
