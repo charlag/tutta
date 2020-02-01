@@ -14,10 +14,8 @@ import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.typemodelMap
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpStatusCode
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.io.IOException
 import java.lang.Exception
 import java.util.concurrent.TimeUnit
@@ -105,28 +103,30 @@ class EntityEventListener(
         batchId: String,
         entityUpdates: List<EntityUpdate>
     ) {
-        val lastProcessedForGroup = lastProcessedPrefs.getString(groupId, null)
-        if (lastProcessedForGroup != null && batchId <= lastProcessedForGroup) {
-            // Already processed
-            return
-        }
-        for (entityUpdate in entityUpdates) {
-            val typeInfo = typemodelMap[entityUpdate.type] ?: continue
-            if (typeInfo.klass !in includedEntities) continue
+        withContext(Dispatchers.Default) {
+            val lastProcessedForGroup = lastProcessedPrefs.getString(groupId, null)
+            if (lastProcessedForGroup != null && batchId <= lastProcessedForGroup) {
+                // Already processed
+                return@withContext
+            }
+            for (entityUpdate in entityUpdates) {
+                val typeInfo = typemodelMap[entityUpdate.type] ?: continue
+                if (typeInfo.klass !in includedEntities) continue
 
-            when (entityUpdate.operation) {
-                OPERATION_CREATE, OPERATION_UPDATE -> {
-                    downloadAndInsert(typeInfo, entityUpdate)
-                }
-                OPERATION_DELETE -> {
-                    when (typeInfo.klass) {
-                        Mail::class -> db.mailDao().deleteMail(entityUpdate.instanceId)
-                        MailFolder::class -> db.mailDao().deleteMail(entityUpdate.instanceId)
+                when (entityUpdate.operation) {
+                    OPERATION_CREATE, OPERATION_UPDATE -> {
+                        downloadAndInsert(typeInfo, entityUpdate)
+                    }
+                    OPERATION_DELETE -> {
+                        when (typeInfo.klass) {
+                            Mail::class -> db.mailDao().deleteMail(entityUpdate.instanceId)
+                            MailFolder::class -> db.mailDao().deleteMail(entityUpdate.instanceId)
+                        }
                     }
                 }
             }
+            lastProcessedPrefs.edit().putString(groupId, batchId).apply()
         }
-        lastProcessedPrefs.edit().putString(groupId, batchId).apply()
     }
 
     private suspend fun downloadAndInsert(
@@ -155,12 +155,10 @@ class EntityEventListener(
                 throw e
             }
         }
-        Log.d(TAG, "Loaded $downloaded")
         when (downloaded) {
             is Mail -> db.mailDao().insertMail(downloaded.toEntity())
             is MailFolder -> db.mailDao().insertFolder(downloaded.toEntity())
         }
-        Log.d(TAG, "Inserted $downloaded")
     }
 
     private fun eventGroups(user: User): List<Id> {
