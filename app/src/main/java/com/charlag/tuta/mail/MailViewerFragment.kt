@@ -27,6 +27,8 @@ import java.io.IOException
 
 class MailViewerFragment : Fragment() {
 
+    private lateinit var unreadItem: MenuItem
+    private lateinit var readItem: MenuItem
     val viewModel: MailViewModel by activityViewModels()
 
     override fun onCreateView(
@@ -91,6 +93,7 @@ class MailViewerFragment : Fragment() {
         toolbar.navigationIcon = view.context.getDrawable(R.drawable.ic_arrow_back_black_24dp)
         toolbar.setNavigationOnClickListener {
             parentFragmentManager.popBackStack()
+            goBack()
         }
 
         val openedMail = viewModel.openedMail.value
@@ -111,14 +114,57 @@ class MailViewerFragment : Fragment() {
 
 
         val iconColor = view.context.getColor(R.color.primaryOnSurface)
+        val tint = ColorStateList.valueOf(iconColor)
         toolbar.menu.add("Archive").setIcon(R.drawable.ic_archive_black_24dp)
-            .setIconTintList(ColorStateList.valueOf(iconColor))
+            .setOnMenuItemClickListener {
+                archiveMails(toolbar, viewModel, listOf(openedMail.id))
+                goBack()
+                true
+            }
+            .setIconTintList(tint)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         toolbar.menu.add("Trash").setIcon(R.drawable.ic_delete_black_24dp)
-            .setIconTintList(ColorStateList.valueOf(iconColor))
+            .setOnMenuItemClickListener {
+                trashMails(toolbar, viewModel, listOf(openedMail.id))
+                goBack()
+                true
+            }
+            .setIconTintList(tint)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-        toolbar.menu.add("Move to")
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        toolbar.menu.add("Move to").setIcon(R.drawable.ic_folder_black_24dp)
+            .setOnMenuItemClickListener {
+                lifecycleScope.launch {
+                    moveMails(toolbar, viewModel, listOf(openedMail.id))
+                    goBack()
+                }
+                true
+            }
+            .setIconTintList(tint)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+        readItem = toolbar.menu.add("Mark as read").setIcon(R.drawable.ic_email_black_24dp)
+            .setOnMenuItemClickListener {
+                markAsRead(toolbar, viewModel, listOf(openedMail.id), false)
+                updateUnreadStatus(true)
+                true
+            }
+            .setIconTintList(tint)
+            .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
+        unreadItem = toolbar.menu.add("Mark as unread").setIcon(R.drawable.ic_email_black_24dp)
+            .setOnMenuItemClickListener {
+                markAsRead(toolbar, viewModel, listOf(openedMail.id), true)
+                updateUnreadStatus(false)
+                true
+            }
+            .setIconTintList(tint)
+            .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
+
+        updateUnreadStatus(openedMail.unread)
+    }
+
+    private fun updateUnreadStatus(unread: Boolean) {
+        // This is not pretty (should be reactive) but will do for now
+        unreadItem.isVisible = unread
+        readItem.isVisible = !unread
     }
 
     private fun loadMailBody() {
@@ -153,5 +199,9 @@ class MailViewerFragment : Fragment() {
             attachmentsRecycler.layoutManager = LinearLayoutManager(attachmentsRecycler.context)
             attachmentsRecycler.setHasFixedSize(true)
         }
+    }
+
+    private fun goBack() {
+        parentFragmentManager.popBackStack()
     }
 }

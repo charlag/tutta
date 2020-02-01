@@ -11,10 +11,13 @@ actual class Compressor {
     }
 
     actual fun decompressString(bytes: ByteArray): String {
-        val mb20InBytes = 20 * 1024 * 1024
-        return String(
-            LZ4Factory.safeInstance().safeDecompressor()
-                .decompress(bytes, mb20InBytes)
-        )
+        return if (bytes.isEmpty()) {
+            ""
+        } else {
+            val mb20InBytes = 20 * 1024 * 1024
+            String(
+                LZ4Factory.safeInstance().safeDecompressor().decompress(bytes, mb20InBytes)
+            )
+        }
     }
 }

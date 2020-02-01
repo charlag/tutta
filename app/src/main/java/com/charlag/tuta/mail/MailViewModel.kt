@@ -103,54 +103,55 @@ class MailViewModel : ViewModel() {
 
     fun setOpenedMail(mail: MailEntity?) {
         openedMail.value = mail
-    }
-
-    fun markAsRead(ids: List<String>) {
-        markReadUnread(ids, false)
-    }
-
-    fun markAsUnread(ids: List<String>) {
-        markReadUnread(ids, true)
-    }
-
-    private fun markReadUnread(ids: List<String>, unread: Boolean) {
-        viewModelScope.launch {
-            for (id in ids) {
-                val mail = mailDao.getMail(id)
-                    .copy(unread = unread)
-                    .toMail()
-                try {
-                    api.updateEntity(mail)
-                } catch (e: ResponseException) {
-                    Log.e("Mail", "Failed to mark as unread", e)
-                }
+        if (mail != null && mail.unread) {
+            viewModelScope.launch {
+                markAsRead(listOf(mail.id))
             }
         }
     }
 
-    fun delete(ids: List<String>) {
+    suspend fun markAsRead(ids: List<String>) {
+        markReadUnread(ids, false)
+    }
+
+    suspend fun markAsUnread(ids: List<String>) {
+        markReadUnread(ids, true)
+    }
+
+    private suspend fun markReadUnread(ids: List<String>, unread: Boolean) {
+        for (id in ids) {
+            val mail = mailDao.getMail(id)
+                .copy(unread = unread)
+                .toMail()
+            try {
+                api.updateEntity(mail)
+            } catch (e: ResponseException) {
+                Log.e("Mail", "Failed to mark as unread", e)
+            }
+        }
+    }
+
+    suspend fun trash(ids: List<String>) {
         val folders = folders.value ?: return
         val trashFolder = folders.find { it.folderType == MailFolderType.TRASH.value }!!
         moveMails(ids, trashFolder)
     }
 
-    fun archive(ids: List<String>) {
+    suspend fun archive(ids: List<String>) {
         val folders = folders.value ?: return
         val archiveFolder = folders.find { it.folderType == MailFolderType.ARCHIVE.value }!!
         moveMails(ids, archiveFolder)
     }
 
-    fun moveMails(ids: List<String>, targetFolder: MailFolderEntity) {
-        viewModelScope.launch {
-            val currentMailList = selectedFolder.value!!.mails
-            mailRepository.moveMails(
-                ids.map { id -> IdTuple(currentMailList, GeneratedId(id)) },
-                IdTuple(
-                    GeneratedId(targetFolder.listId),
-                    GeneratedId(targetFolder.id)
-                )
+    suspend fun moveMails(ids: List<String>, targetFolder: MailFolderEntity) {
+        val currentMailList = selectedFolder.value!!.mails
+        mailRepository.moveMails(
+            ids.map { id -> IdTuple(currentMailList, GeneratedId(id)) },
+            IdTuple(
+                GeneratedId(targetFolder.listId),
+                GeneratedId(targetFolder.id)
             )
-        }
+        )
     }
 
     suspend fun loadMailBody(mailBodyId: Id): MailBodyEntity {

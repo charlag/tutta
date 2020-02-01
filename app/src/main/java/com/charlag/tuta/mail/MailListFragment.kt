@@ -3,13 +3,12 @@ package com.charlag.tuta.mail
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.util.Log
 import android.view.*
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.switchMap
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,6 +19,7 @@ import com.charlag.tuta.getFolderName
 import com.charlag.tuta.util.map
 import com.charlag.tuta.util.withLifecycleContext
 import kotlinx.android.synthetic.main.fragment_mail_list.*
+import kotlinx.coroutines.launch
 
 class MailListFragment : Fragment() {
 
@@ -130,11 +130,12 @@ class MailListFragment : Fragment() {
             }
 
             override fun onCreateActionMode(mode: ActionMode?, menu: Menu): Boolean {
+                val view = view!!
                 menu.add("Delete")
                     .setIcon(R.drawable.ic_delete_black_24dp)
                     .setIconTintList(tint)
                     .setOnMenuItemClickListener {
-                        viewModel.delete(selectedIds())
+                        trashMails(view, viewModel, selectedIds())
                         actionmode?.finish()
                         true
                     }
@@ -142,15 +143,15 @@ class MailListFragment : Fragment() {
                     .setIcon(R.drawable.ic_archive_black_24dp)
                     .setIconTintList(tint)
                     .setOnMenuItemClickListener {
-                        viewModel.archive(selectedIds())
+                        archiveMails(view, viewModel, selectedIds())
                         actionmode?.finish()
                         true
                     }
                 menu.add("Mark as read")
-                    .setIcon(R.drawable.ic_eye_black_24dp)
+                    .setIcon(R.drawable.ic_drafts_black_24dp)
                     .setIconTintList(tint)
                     .setOnMenuItemClickListener {
-                        viewModel.markAsRead(selectedIds())
+                        markAsRead(view, viewModel, selectedIds(), false)
                         actionmode?.finish()
                         true
                     }
@@ -158,26 +159,17 @@ class MailListFragment : Fragment() {
                     .setIcon(R.drawable.ic_email_black_24dp)
                     .setIconTintList(tint)
                     .setOnMenuItemClickListener {
-                        viewModel.markAsUnread(selectedIds())
+                        markAsRead(view, viewModel, selectedIds(), true)
                         actionmode?.finish()
                         true
                     }
 
                 menu.add("Move to")
                     .setOnMenuItemClickListener {
-                        val currentFolder = viewModel.selectedFolderId.value?.elementId?.asString()
-                        val folders = viewModel.folders.value?.filter { it.id != currentFolder }
-                            ?: return@setOnMenuItemClickListener false
-                        val selectedIds = selectedIds()
-                        AlertDialog.Builder(toolbar.context)
-                            .setItems(folders.map { getFolderName(it) }.toTypedArray()) { dialog, which ->
-                                val folder = folders[which]
-                                Log.d("Mails", "Folder was selected $which $folder")
-                                viewModel.moveMails(selectedIds, folder)
-                                dialog.dismiss()
-                            }
-                            .show()
-                        actionmode?.finish()
+                        lifecycleScope.launch {
+                            moveMails(view, viewModel, selectedIds())
+                            actionmode?.finish()
+                        }
                         true
                     }
                 return true
