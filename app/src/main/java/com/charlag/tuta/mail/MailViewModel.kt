@@ -183,8 +183,9 @@ class MailViewModel : ViewModel() {
     }
 
     fun openFile(file: File) {
-        // TODO
-        downloadFile(file)
+        viewModelScope.launch {
+            fileHandler.openFile(file)
+        }
     }
 
     fun downloadFile(file: File) {
