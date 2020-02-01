@@ -27,8 +27,14 @@ interface MailDao {
     @Query("DELETE FROM MailEntity WHERE id = :id")
     suspend fun deleteMail(id: String)
 
+    @Query("DELETE FROM MailFolderEntity")
+    suspend fun deleteAllMailFolders()
+
     @Query("DELETE FROM MailEntity")
     suspend fun deleteAllMails()
+
+    @Query("DELETE FROM MailBodyEntity")
+    suspend fun deleteAllMailBodies()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFolder(folder: MailFolderEntity)

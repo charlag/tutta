@@ -4,12 +4,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.preference.PreferenceManager
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.charlag.tuta.DependencyDump
 import com.charlag.tuta.LoginActivity
 import com.charlag.tuta.R
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_settings.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
@@ -39,6 +42,28 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings) {
                 )
                 finish()
             }
+        }
+
+        clearButton.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Are you sure you want to delete mail data?")
+                .setPositiveButton(android.R.string.yes) { dialog, _ ->
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        DependencyDump.db.mailDao().deleteAllMails()
+                        DependencyDump.db.mailDao().deleteAllMailFolders()
+                        DependencyDump.db.mailDao().deleteAllMailBodies()
+                        Snackbar.make(
+                            findViewById(android.R.id.content),
+                            "Deleted",
+                            Snackbar.LENGTH_SHORT
+                        ).show()
+                    }
+                    dialog.dismiss()
+                }
+                .setNegativeButton(android.R.string.no) { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .show()
         }
     }
 }

@@ -30,6 +30,14 @@
             android:textSize="20sp" />
 
     <Button
+            android:id="@+id/clearButton"
+            style="?borderlessButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            android:text="Clear data" />
+
+    <Button
             android:id="@+id/logoutButton"
             style="?borderlessButtonStyle"
             android:layout_width="match_parent"
