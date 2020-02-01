@@ -5,27 +5,63 @@
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:background="?selectableItemBackground"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
         android:paddingTop="12dp"
         android:paddingBottom="12dp">
+
+    <ImageView
+            android:id="@+id/unreadIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/shape_unread"
+            app:layout_constraintBottom_toBottomOf="@id/sender"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/sender"
+            app:layout_constraintTop_toTopOf="@id/sender" />
 
     <TextView
             android:id="@+id/sender"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
             android:layout_marginRight="4dp"
             android:singleLine="true"
             android:textSize="14dp"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toLeftOf="@id/date"
+            app:layout_constraintRight_toLeftOf="@id/encryptionIndicator"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_goneMarginRight="4dp"
             tools:text="Sender name" />
+
+    <ImageView
+            android:id="@+id/encryptionIndicator"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:src="@drawable/ic_lock_black_24dp"
+            android:tint="@color/primaryOnSurface"
+            app:layout_constraintBottom_toBottomOf="@id/date"
+            app:layout_constraintDimensionRatio="W,1:1"
+            app:layout_constraintRight_toLeftOf="@id/fileIndicator"
+            app:layout_constraintTop_toTopOf="@id/date" />
+
+    <ImageView
+            android:id="@+id/fileIndicator"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginRight="4dp"
+            android:src="@drawable/ic_clip_rotate"
+            android:tint="@color/primaryOnSurface"
+            app:layout_constraintBottom_toBottomOf="@id/date"
+            app:layout_constraintDimensionRatio="W,1:1"
+            app:layout_constraintRight_toLeftOf="@id/date"
+            app:layout_constraintTop_toTopOf="@id/date" />
 
     <TextView
             android:id="@+id/date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginRight="16dp"
             app:layout_constraintBottom_toBottomOf="@id/sender"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="@id/sender"
@@ -35,11 +71,12 @@
             android:id="@+id/subject"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
             android:singleLine="true"
             android:textSize="16dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toLeftOf="@id/date"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toBottomOf="@id/sender"
             tools:text="Email subject line" />

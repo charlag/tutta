@@ -5,7 +5,9 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.view.isGone
 import androidx.paging.PagedListAdapter
 import androidx.recyclerview.selection.ItemDetailsLookup
 import androidx.recyclerview.selection.ItemKeyProvider
@@ -54,6 +56,9 @@ class MailsAdapter(
         } else {
             holder.itemView.background = null
         }
+        holder.fileIndicator.isGone = mail.attachments.isEmpty()
+        holder.encryptionIndicator.isGone = !mail.confidential
+        holder.unreadIndicator.isGone = !mail.unread
     }
 
     private fun fromThisYear(mail: MailEntity): Boolean {
@@ -98,15 +103,12 @@ class MailsAdapter(
     }
 
     inner class MailviewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val sender: TextView = itemView.findViewById(
-            R.id.sender
-        )
-        val date: TextView = itemView.findViewById(
-            R.id.date
-        )
-        val subject: TextView = itemView.findViewById(
-            R.id.subject
-        )
+        val sender: TextView = itemView.findViewById(R.id.sender)
+        val date: TextView = itemView.findViewById(R.id.date)
+        val subject: TextView = itemView.findViewById(R.id.subject)
+        val fileIndicator: ImageView = itemView.findViewById(R.id.fileIndicator)
+        val encryptionIndicator: ImageView = itemView.findViewById(R.id.encryptionIndicator)
+        val unreadIndicator: ImageView = itemView.findViewById(R.id.unreadIndicator)
 
         fun itemDetails() =
             if (adapterPosition == -1) null
