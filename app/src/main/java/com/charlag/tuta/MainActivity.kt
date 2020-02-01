@@ -138,19 +138,6 @@ fun getFolderIcon(folder: MailFolderEntity): Int {
         MailFolderType.ARCHIVE.value -> R.drawable.ic_archive_black_24dp
         MailFolderType.DRAFT.value -> R.drawable.ic_drafts_black_24dp
         MailFolderType.SPAM.value -> R.drawable.ic_announcement_black_24dp
-        else -> R.drawable.ic_email_black_24dp
+        else -> R.drawable.ic_folder_black_24dp
     }
-}
-
-val mailFolderOrder = mapOf(
-    MailFolderType.INBOX.value to 0,
-    MailFolderType.DRAFT.value to 1,
-    MailFolderType.SENT.value to 2,
-    MailFolderType.TRASH.value to 4,
-    MailFolderType.ARCHIVE.value to 5,
-    MailFolderType.SPAM.value to 6
-)
-
-fun sortSystemFolders(folders: List<MailFolderEntity>): List<MailFolderEntity> {
-    return folders.sortedBy { mailFolderOrder[it.folderType] }
 }

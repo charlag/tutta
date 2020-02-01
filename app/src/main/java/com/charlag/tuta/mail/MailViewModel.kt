@@ -17,7 +17,6 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.files.FileHandler
-import com.charlag.tuta.sortSystemFolders
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.map
 import io.ktor.client.features.ResponseException
@@ -37,24 +36,26 @@ class MailViewModel : ViewModel() {
     val selectedFolder: LiveData<MailFolderEntity?>
 
     init {
-        folders = mailDao.getFoldersLiveData().map { dbFolders ->
-            if (dbFolders.isEmpty()) {
-                viewModelScope.launch {
-                    val folders = loadFolders()
-                    mailDao.insertFolders(folders)
-                }
-            } else if (selectedFolderId.value == null) {
-                val selectedFolder =
-                    dbFolders.find { it.folderType == MailFolderType.INBOX.value }!!
-                selectFolder(
-                    IdTuple(
-                        GeneratedId(selectedFolder.listId),
-                        GeneratedId(selectedFolder.id)
+        folders = mailDao.getFoldersLiveData()
+            .map(this::sortFolders)
+            .map { dbFolders ->
+                if (dbFolders.isEmpty()) {
+                    viewModelScope.launch {
+                        val folders = loadFolders()
+                        mailDao.insertFolders(folders)
+                    }
+                } else if (selectedFolderId.value == null) {
+                    val selectedFolder =
+                        dbFolders.find { it.folderType == MailFolderType.INBOX.value }!!
+                    selectFolder(
+                        IdTuple(
+                            GeneratedId(selectedFolder.listId),
+                            GeneratedId(selectedFolder.id)
+                        )
                     )
-                )
+                }
+                dbFolders
             }
-            dbFolders
-        }
         selectedFolder = combineLiveData(selectedFolderId, folders) { folderId, folders ->
             folders.find { it.id == folderId.elementId.asString() }
         }
@@ -177,8 +178,23 @@ class MailViewModel : ViewModel() {
                 .loadElementEntity<MailboxGroupRoot>(mailMembership.group)
             val mailbox = api.loadElementEntity<MailBox>(groupRoot.mailbox)
             api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
-                .map { it.toEntity() }
-                .let(::sortSystemFolders)
+                .flatMap { folder ->
+                    val folderWithSubfolders = mutableListOf(folder)
+                    if (folder.folderType == MailFolderType.ARCHIVE.value) {
+                        folderWithSubfolders.addAll(
+                            api.loadAll(
+                                MailFolder::class,
+                                folder.subFolders
+                            )
+                        )
+                    }
+                    folderWithSubfolders
+                }
+                .map {
+                    it.toEntity()
+                }
+                .let(::sortFolders)
+
         }
     }
 
@@ -192,5 +208,28 @@ class MailViewModel : ViewModel() {
         viewModelScope.launch {
             fileHandler.downloadFile(file)
         }
+    }
+
+
+    private val mailFolderOrder = mapOf(
+        MailFolderType.INBOX.value to 0,
+        MailFolderType.DRAFT.value to 1,
+        MailFolderType.SENT.value to 2,
+        MailFolderType.TRASH.value to 4,
+        MailFolderType.ARCHIVE.value to 5,
+        MailFolderType.SPAM.value to 6,
+        MailFolderType.CUSTOM.value to 7
+    )
+
+    private fun sortFolders(folders: List<MailFolderEntity>): List<MailFolderEntity> {
+        return folders.sortedWith(Comparator { left, right ->
+            val leftOrder = mailFolderOrder.getValue(left.folderType)
+            val rightOrder = mailFolderOrder.getValue(right.folderType)
+            if (leftOrder == rightOrder) {
+                left.name.compareTo(right.name)
+            } else {
+                leftOrder.compareTo(rightOrder)
+            }
+        })
     }
 }
