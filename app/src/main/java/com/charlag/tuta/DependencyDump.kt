@@ -3,6 +3,7 @@ package com.charlag.tuta
 import android.content.Context
 import android.util.Log
 import androidx.room.Room
+import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.events.EntityEventListener
 import com.charlag.tuta.files.FileHandler
@@ -43,12 +44,15 @@ object DependencyDump {
     val mailFacade = MailFacade(api, cryptor)
     val fileFacade = FileFacade(api)
     lateinit var db: AppDatabase
+    lateinit var contactRepository: ContactsRepository
     private lateinit var eventListener: EntityEventListener
     lateinit var fileHandler: FileHandler
 
     fun ignite(applicationContext: Context) {
-        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "tuta-db").build()
-        eventListener = EntityEventListener(loginFacade, api, db, applicationContext)
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "tuta-db")
+            .build()
+        contactRepository = ContactsRepository(api, db, loginFacade)
+        eventListener = EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
         fileHandler = FileHandler(fileFacade, applicationContext)
     }
 }

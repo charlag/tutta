@@ -5,10 +5,12 @@ import android.util.Log
 import com.charlag.tuta.API
 import com.charlag.tuta.GroupType
 import com.charlag.tuta.LoginFacade
+import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.data.toEntity
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.sys.*
+import com.charlag.tuta.entities.tutanota.Contact
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.typemodelMap
@@ -25,6 +27,7 @@ class EntityEventListener(
     private val loginFacade: LoginFacade,
     private val api: API,
     private val db: AppDatabase,
+    private val contactsRepository: ContactsRepository,
     appContext: Context
 ) {
     private val lastProcessedPrefs =
@@ -33,6 +36,8 @@ class EntityEventListener(
     init {
         GlobalScope.launch {
             val user = loginFacade.waitForLogin()
+            // Wait for contact list to load
+            contactsRepository.ignite()
             reconnect(user)
         }
     }
@@ -158,6 +163,7 @@ class EntityEventListener(
         when (downloaded) {
             is Mail -> db.mailDao().insertMail(downloaded.toEntity())
             is MailFolder -> db.mailDao().insertFolder(downloaded.toEntity())
+            is Contact -> db.contactDao().insertContact(downloaded.toEntity())
         }
     }
 

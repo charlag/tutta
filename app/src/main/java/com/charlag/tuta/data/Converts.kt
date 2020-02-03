@@ -5,10 +5,7 @@ import com.charlag.tuta.base64ToBytes
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.tutanota.EncryptedMailAddress
-import com.charlag.tuta.entities.tutanota.Mail
-import com.charlag.tuta.entities.tutanota.MailAddress
-import com.charlag.tuta.entities.tutanota.MailFolder
+import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.toBase64
 import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.Json
@@ -198,3 +195,53 @@ fun MailAddressEntity.toEncryptedMailAddress() =
     EncryptedMailAddress(id?.let(::GeneratedId), address, name).also {
         it.finalIvs = finalIvs
     }
+
+
+fun Contact.toEntity() = ContactEntity(
+    id = _id.elementId.asString(),
+    listId = _id.listId.asString(),
+    _owner = _owner,
+    _ownerEncSessionKey = _ownerEncSessionKey,
+    _ownerGroup = _ownerGroup,
+    _permissions = _permissions,
+    autoTransmitPassword = autoTransmitPassword,
+    comment = comment,
+    company = company,
+    firstName = firstName,
+    lastName = lastName,
+    nickname = nickname,
+    oldBirthday = oldBirthday?.toDate(),
+    presharedPassword = presharedPassword,
+    role = role,
+    title = title,
+    addresses = addresses,
+    birthday = birthday,
+    mailAddresses = mailAddresses,
+    phoneNumbers = phoneNumbers,
+    socialIds = socialIds,
+    photo = photo
+)
+
+fun ContactEntity.toContact() = Contact(
+    _id = IdTuple(GeneratedId(listId), GeneratedId(id)),
+    _owner = _owner,
+    _ownerEncSessionKey = _ownerEncSessionKey,
+    _ownerGroup = _ownerGroup,
+    _permissions = _permissions,
+    autoTransmitPassword = autoTransmitPassword,
+    comment = comment,
+    company = company,
+    firstName = firstName,
+    lastName = lastName,
+    nickname = nickname,
+    oldBirthday = oldBirthday?.toDate(),
+    presharedPassword = presharedPassword,
+    role = role,
+    title = title,
+    addresses = addresses,
+    birthday = birthday,
+    mailAddresses = mailAddresses,
+    phoneNumbers = phoneNumbers,
+    socialIds = socialIds,
+    photo = photo
+)

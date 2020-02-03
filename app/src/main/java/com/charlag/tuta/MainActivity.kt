@@ -13,6 +13,7 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.charlag.tuta.contacts.ContactsActivity
 import com.charlag.tuta.data.MailFolderEntity
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.IdTuple
@@ -44,6 +45,10 @@ class MainActivity : AppCompatActivity() {
 
         settingsButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        contactsButton.setOnClickListener {
+            startActivity(Intent(this, ContactsActivity::class.java))
         }
 
         supportFragmentManager

@@ -27,6 +27,10 @@
             </intent-filter>
         </activity>
         <activity
+                android:name=".contacts.ContactsActivity"
+                android:screenOrientation="portrait"
+                android:theme="@style/AppTheme" />
+        <activity
                 android:name=".compose.ComposeActivity"
                 android:screenOrientation="portrait"
                 android:theme="@style/AppTheme"

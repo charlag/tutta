@@ -347,11 +347,11 @@ data class GroupMember(
 
 @Serializable
 data class RootInstance(
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _ownerGroup: Id?,
     val _permissions: Id,
     val reference: Id
-)
+) : ListElementEntity()
 
 @Serializable
 data class VersionInfo(

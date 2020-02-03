@@ -219,6 +219,12 @@ class API(
         }
     }
 
+    suspend fun <T : Entity> loadRoot(klass: KClass<T>, groupId: Id): T {
+        val rootIdTuple = IdTuple(groupId, GeneratedId(getTypeModelByClass(klass).rootId))
+        val rootInstance = loadListElementEntity<RootInstance>(rootIdTuple)
+        return loadElementEntity(klass, rootInstance.reference)
+    }
+
     suspend fun <T : Entity> updateEntity(entity: T) {
         val (_, model, typeModel) = typeModelByName[entity::class.noReflectionName]!!
 

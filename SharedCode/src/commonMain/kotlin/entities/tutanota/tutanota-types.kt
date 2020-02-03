@@ -110,9 +110,9 @@ data class ContactSocialId(
 
 @Serializable
 data class Contact(
-    val _area: Long,
-    val _format: Long,
-    val _id: IdTuple,
+    val _area: Long = 0,
+    val _format: Long = 0,
+    override val _id: IdTuple,
     val _owner: Id,
     val _ownerEncSessionKey: ByteArray?,
     val _ownerGroup: Id?,
@@ -133,7 +133,7 @@ data class Contact(
     val phoneNumbers: List<ContactPhoneNumber>,
     val socialIds: List<ContactSocialId>,
     val photo: IdTuple?
-) : Entity()
+) : ListElementEntity()
 
 @Serializable
 data class ConversationEntry(
