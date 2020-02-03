@@ -3,7 +3,9 @@ package com.charlag.tuta
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.*
+import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 
 enum class RecipientType {
     UNKNOWN,
@@ -31,9 +33,8 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
         replyTos: List<RecipientInfo>
     ): Mail {
         val mailGroupId = getMailGroupIdForMailAddress(user, senderAddress).asString()
-        val userGroupKey = api.groupKeysCache.getGroupKey(user.userGroup.group.asString()) ?: error(
-            "Could not get user group key"
-        )
+        val userGroupKey = api.groupKeysCache.getGroupKey(user.userGroup.group.asString())
+            ?: error("Could not get user group key")
         val mailGroupKey =
             api.groupKeysCache.getGroupKey(mailGroupId) ?: error("Could not get mail group key")
 
@@ -138,6 +139,22 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
         }
     }
 
+    suspend fun resolveRecipient(mailAddress: String): RecipientType {
+        return try {
+            api.serviceRequest(
+                "sys", "publickeyservice", HttpMethod.Get, PublicKeyData(mailAddress),
+                PublicKeyReturn::class
+            )
+            RecipientType.INTENRAL
+        } catch (e: ClientRequestException) {
+            if (e.response.status == HttpStatusCode.NotFound) {
+                RecipientType.EXTERNAL
+            } else {
+                throw e
+            }
+        }
+    }
+
     private suspend fun getMailGroupIdForMailAddress(user: User, mailAddress: String): Id {
         val mailMemberships = getUserGroupMemberships(user, GroupType.Mail)
         val filteredMemberships = mailMemberships.filter { groupMembership ->
@@ -173,7 +190,7 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
         }
     }
 
-    suspend fun encryptBucketKeyForInternalRecipient(
+    private suspend fun encryptBucketKeyForInternalRecipient(
         bucketKey: ByteArray,
         recipientAddress: String
     ): InternalRecipientKeyData? {

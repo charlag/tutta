@@ -5,6 +5,7 @@ import androidx.lifecycle.*
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.sys.Group
 import com.charlag.tuta.entities.sys.GroupInfo
+import com.charlag.tuta.util.FilledMutableLiveData
 import kotlinx.coroutines.launch
 
 class ComposeViewModel : ViewModel() {
@@ -13,9 +14,23 @@ class ComposeViewModel : ViewModel() {
     private val loginFacade = DependencyDump.loginFacade
 
     val enabledMailAddresses: LiveData<List<String>>
-    val toRecipients = MutableLiveData<List<String>>(listOf())
-    val ccRecipients = MutableLiveData<List<String>>(listOf())
-    val bccRecipients = MutableLiveData<List<String>>(listOf())
+    val toRecipients = FilledMutableLiveData<List<String>>(listOf())
+    val ccRecipients = FilledMutableLiveData<List<String>>(listOf())
+    val bccRecipients = FilledMutableLiveData<List<String>>(listOf())
+
+    val recipientTypes =
+        FilledMutableLiveData<Map<String, RecipientType>>(
+            mapOf()
+        )
+
+    private val confidentialIsSelected: Boolean
+        // For now always assume non-confidential because we don't send "external secure" emails
+        // yet and if we have only internal then we will use confidential draft
+        get() = false
+    val willBeSentEncrypted = recipientTypes.map { types ->
+        confidentialIsSelected ||
+                types.isNotEmpty() && types.values.none { it == RecipientType.EXTERNAL }
+    }
 
     init {
         val enabledMailAddresses = MutableLiveData<List<String>>()
@@ -23,14 +38,14 @@ class ComposeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val user = loginFacade.waitForLogin()
-                val userGroupinfo = api.loadListElementEntity<GroupInfo>(user.userGroup.groupInfo)
+                val userGroupInfo = api.loadListElementEntity<GroupInfo>(user.userGroup.groupInfo)
                 val mailGroupMembership =
                     user.memberships.first { it.groupType == GroupType.Mail.value }
                 val mailGroup = api.loadElementEntity<Group>(mailGroupMembership.group)
                 enabledMailAddresses.postValue(
                     mailFacade.getEnabledMailAddresses(
                         user,
-                        userGroupinfo,
+                        userGroupInfo,
                         mailGroup
                     )
                 )
@@ -45,14 +60,23 @@ class ComposeViewModel : ViewModel() {
         body: String,
         senderAddress: String
     ): Boolean {
-        // All internal for now
-        val to = toRecipients.value!!.map { RecipientInfo("", it, RecipientType.INTENRAL) }
-        val cc = ccRecipients.value!!.map { RecipientInfo("", it, RecipientType.INTENRAL) }
-        val bcc = bccRecipients.value!!.map { RecipientInfo("", it, RecipientType.INTENRAL) }
+        val recipientTypes = this.recipientTypes.value
+        val to = toRecipients.value.map {
+            RecipientInfo("", it, recipientTypes.getOrDefault(it, RecipientType.UNKNOWN))
+        }
+        val cc = ccRecipients.value.map {
+            RecipientInfo("", it, recipientTypes.getOrDefault(it, RecipientType.UNKNOWN))
+        }
+        val bcc = bccRecipients.value.map {
+            RecipientInfo("", it, recipientTypes.getOrDefault(it, RecipientType.UNKNOWN))
+        }
         val recipients = to + cc + bcc
         if (recipients.isEmpty()) {
             return false
         }
+
+        this.recipientTypes.postValue(resolveRemainingRecipients(recipients, recipientTypes))
+
         val draft = mailFacade.createDraft(
             user = loginFacade.user!!,
             subject = subject,
@@ -64,7 +88,8 @@ class ComposeViewModel : ViewModel() {
             bccRecipients = bcc,
             conversationType = ConversationType.NEW,
             previousMessageId = null,
-            confidential = true,
+            confidential = confidentialIsSelected
+                    || recipients.all { it.type == RecipientType.INTENRAL },
             replyTos = listOf()
         )
 
@@ -72,14 +97,35 @@ class ComposeViewModel : ViewModel() {
         return true
     }
 
-    fun addRecipient(type: RecipientField, mailAddress: String) {
-        // TODO: start checking if internal recipient here
-        val liveData = liveDataForField(type)
-        liveData.value = liveData.value!! + mailAddress
+    private suspend fun resolveRemainingRecipients(
+        recipients: List<RecipientInfo>,
+        recipientTypes: Map<String, RecipientType>
+    ): Map<String, RecipientType> {
+        val mutableRecipientTypes = recipientTypes.toMutableMap()
+        for (recipient in recipients) {
+            if (recipient.type == RecipientType.UNKNOWN) {
+                mutableRecipientTypes[recipient.mailAddress] =
+                    mailFacade.resolveRecipient(recipient.mailAddress)
+            }
+        }
+        return mutableRecipientTypes
     }
 
-    private fun liveDataForField(type: RecipientField): MutableLiveData<List<String>> {
-        return when (type) {
+    fun addRecipient(field: RecipientField, mailAddress: String) {
+        viewModelScope.launch {
+            val recipientList = recipientListForField(field)
+            val recipientTypes = recipientTypes.value.toMutableMap()
+            val type = recipientTypes.getOrPut(mailAddress) { RecipientType.UNKNOWN }
+            if (type == RecipientType.UNKNOWN) {
+                recipientTypes[mailAddress] = mailFacade.resolveRecipient(mailAddress)
+            }
+            recipientList.value = recipientList.value + mailAddress
+            this@ComposeViewModel.recipientTypes.postValue(recipientTypes)
+        }
+    }
+
+    private fun recipientListForField(field: RecipientField): FilledMutableLiveData<List<String>> {
+        return when (field) {
             RecipientField.TO -> toRecipients
             RecipientField.CC -> ccRecipients
             RecipientField.BCC -> bccRecipients
@@ -87,11 +133,25 @@ class ComposeViewModel : ViewModel() {
     }
 
     fun removeRecipient(type: RecipientField, mailAddress: String) {
-        val liveData = liveDataForField(type)
-        liveData.value = liveData.value!! - mailAddress
+        val liveData = recipientListForField(type)
+        liveData.value = liveData.value - mailAddress
+        if (mailAddress !in toRecipients.value &&
+            mailAddress !in ccRecipients.value &&
+            mailAddress !in bccRecipients.value
+        ) {
+            recipientTypes.mutate { it - mailAddress }
+        }
     }
 }
 
 enum class RecipientField {
     TO, CC, BCC;
+}
+
+inline fun <T> MutableLiveData<T>.mutate(block: (T?) -> T) {
+    this.value = block(this.value)
+}
+
+inline fun <T> FilledMutableLiveData<T>.mutate(block: (T) -> T) {
+    this.value = block(this.value)
 }

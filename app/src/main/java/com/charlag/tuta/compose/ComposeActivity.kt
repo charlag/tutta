@@ -20,12 +20,14 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.getSpans
+import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.widget.doBeforeTextChanged
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
 import com.charlag.tuta.R
+import com.charlag.tuta.RecipientType
 import com.google.android.material.chip.ChipDrawable
 import kotlinx.android.synthetic.main.activity_compose.*
 import kotlinx.coroutines.launch
@@ -62,6 +64,10 @@ class ComposeActivity : AppCompatActivity() {
         expandRecipientsButton.setOnClickListener {
             expandRecipients()
         }
+
+        viewModel.willBeSentEncrypted.observe(this) {
+            encryptionIndicator.isVisible = it
+        }
     }
 
     private fun expandRecipients() {
@@ -74,7 +80,6 @@ class ComposeActivity : AppCompatActivity() {
     }
 
     private fun setupRecipientField(setupField: EditText, fieldType: RecipientField) {
-
         val spanWatcher = object : SpanWatcher {
             override fun onSpanChanged(
                 text: Spannable?,

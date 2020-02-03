@@ -82,7 +82,10 @@
                     android:importantForAutofill="no"
                     android:inputType="textEmailAddress|textMultiLine"
                     android:minHeight="60dp"
-                    android:padding="8dp"
+                    android:paddingLeft="8dp"
+                    android:paddingTop="8dp"
+                    android:paddingRight="32dp"
+                    android:paddingBottom="8dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toEndOf="@id/toTextView"
                     app:layout_constraintTop_toTopOf="@id/toTextView" />
@@ -120,7 +123,7 @@
                     android:text="CC"
                     android:visibility="gone"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/toTextView"
+                    app:layout_constraintTop_toBottomOf="@id/toField"
                     tools:visibility="visible" />
 
             <androidx.appcompat.widget.AppCompatEditText
@@ -189,6 +192,36 @@
                     app:layout_constraintRight_toRightOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/bccField" />
 
+            <LinearLayout
+                    android:id="@+id/encryptionIndicator"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/colorAccent"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:padding="8dp"
+                    android:visibility="gone"
+                    app:layout_constraintTop_toBottomOf="@id/bccSubjectSeparator"
+                    tools:visibility="visible">
+
+                <ImageView
+                        android:layout_width="16sp"
+                        android:layout_height="16sp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_lock_black_24dp"
+                        android:tint="@android:color/white" />
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:paddingLeft="4dp"
+                        android:paddingRight="4dp"
+                        android:text="Will be sent end-to-end encrypted"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold" />
+            </LinearLayout>
+
             <EditText
                     android:id="@+id/subjectField"
                     style="@style/NoUnderlineField"
@@ -202,9 +235,10 @@
                     android:padding="8dp"
                     app:layout_constraintLeft_toLeftOf="parent"
                     app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/bccField" />
+                    app:layout_constraintTop_toBottomOf="@id/encryptionIndicator" />
 
             <View
+                    android:id="@+id/subjectSeparator"
                     android:layout_width="match_parent"
                     android:layout_height="1px"
                     android:layout_marginLeft="16dp"

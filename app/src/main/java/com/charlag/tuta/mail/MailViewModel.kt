@@ -7,9 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagedList
 import androidx.paging.toLiveData
-import com.charlag.tuta.DependencyDump
-import com.charlag.tuta.GroupType
-import com.charlag.tuta.MailFolderType
+import com.charlag.tuta.*
 import com.charlag.tuta.data.*
 import com.charlag.tuta.entities.GENERATED_MAX_ID
 import com.charlag.tuta.entities.GeneratedId
