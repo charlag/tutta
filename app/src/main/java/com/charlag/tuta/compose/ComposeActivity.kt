@@ -140,14 +140,15 @@ class ComposeActivity : AppCompatActivity() {
         var textStart =
             if (spans.isEmpty()) 0 else fieldText.getSpanEnd(spans.last())
         // Clean up all whitespaces in the beginning
-        while (fieldText[textStart].isWhitespace()) {
+        while (textStart < fieldText.lastIndex && fieldText[textStart].isWhitespace()) {
             textStart++
         }
         val newText = fieldText.substring(textStart, end)
         if (emailRegex.matches(newText)) {
             val chip = ChipDrawable.createFromResource(this, R.xml.recipient_chip)
             chip.setText(newText)
-            chip.setBounds(0, 0, chip.intrinsicWidth, chip.intrinsicHeight
+            chip.setBounds(
+                0, 0, chip.intrinsicWidth, chip.intrinsicHeight
             )
             val span = RecipientSpan(chip, newText, fieldType, setupField)
             fieldText.setSpan(
