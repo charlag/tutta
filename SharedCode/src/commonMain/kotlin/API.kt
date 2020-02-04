@@ -659,11 +659,6 @@ class API(
                 throw Error("Value $name with cardinality ONE cannot be null")
             }
         } else if (valueModel.encrypted) {
-            if (value == defaultValue(valueModel.type) && iv == null) {
-                // if iv is there, we need to re-encrypt it back tp get the same value
-                // but if not we should just restore empty placeholder for default value
-                return JsonLiteral("")
-            }
             val bytes = if (valueModel.type === ValueType.BytesType) value as ByteArray
             else valueToString(value, valueModel).toBytes()
             return JsonLiteral(
