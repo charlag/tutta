@@ -12,6 +12,8 @@ import io.ktor.client.features.logging.Logger
 import io.ktor.client.features.logging.Logging
 import io.ktor.client.features.websocket.WebSockets
 import io.ktor.util.KtorExperimentalAPI
+import net.sqlcipher.database.SQLiteDatabase
+import net.sqlcipher.database.SupportFactory
 
 object DependencyDump {
     var credentials: Credentials? = null
@@ -48,11 +50,14 @@ object DependencyDump {
     private lateinit var eventListener: EntityEventListener
     lateinit var fileHandler: FileHandler
 
-    fun ignite(applicationContext: Context) {
+    fun ignite(dbPassword: String, applicationContext: Context) {
+        val factory = SupportFactory(SQLiteDatabase.getBytes(dbPassword.toCharArray()))
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "tuta-db")
+            .openHelperFactory(factory)
             .build()
         contactRepository = ContactsRepository(api, db, loginFacade)
-        eventListener = EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
+        eventListener =
+            EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
         fileHandler = FileHandler(fileFacade, applicationContext)
     }
 }

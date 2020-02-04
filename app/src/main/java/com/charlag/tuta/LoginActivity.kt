@@ -62,6 +62,8 @@ class LoginActivity : AppCompatActivity() {
                         val cipher = getCipher(null) ?: return@withContext
                         val encryptedPassword = cipher.doFinal(password.toByteArray())
                         val encryptedPasswordWithIv = cipher.iv + encryptedPassword
+                        igniteApp(password)
+
                         PreferenceManager.getDefaultSharedPreferences(this@LoginActivity)
                             .edit()
                             .putString("userId", userId)
@@ -107,6 +109,7 @@ class LoginActivity : AppCompatActivity() {
                     return@launch
                 }
                 val password = bytesToString(cipher.doFinal(encPasswordBytes))
+                igniteApp(password)
                 DependencyDump.credentials =
                     Credentials(savedUserId, savedAccessToken, password, savedMailAddress)
                 goToMain()
@@ -129,6 +132,12 @@ class LoginActivity : AppCompatActivity() {
                 statusLabel.text = "Failed to log in $e"
             }
         }
+    }
+
+    private fun igniteApp(password: String) {
+        // We *probably* should use another password but we would need another level of indirection
+        // and that's not what we want probably.
+        DependencyDump.ignite(password, applicationContext)
     }
 
     suspend fun getCipher(iv: ByteArray?): Cipher? {
