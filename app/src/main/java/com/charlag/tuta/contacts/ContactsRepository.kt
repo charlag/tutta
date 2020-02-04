@@ -18,6 +18,9 @@ class ContactsRepository(
     fun loadContacts(): DataSource.Factory<Int, ContactEntity> =
         db.contactDao().getContacts()
 
+    fun findContacts(query: String): List<ContactEntity> =
+        db.contactDao().findContacts(query)
+
     suspend fun ignite() {
         val contactNumber = db.contactDao().countContacts()
         if (contactNumber > 0) {

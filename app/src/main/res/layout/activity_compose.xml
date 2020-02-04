@@ -74,7 +74,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/fromTextView" />
 
-            <androidx.appcompat.widget.AppCompatEditText
+            <androidx.appcompat.widget.AppCompatAutoCompleteTextView
                     android:id="@+id/toField"
                     style="@style/NoUnderlineField"
                     android:layout_width="0dp"
@@ -126,7 +126,7 @@
                     app:layout_constraintTop_toBottomOf="@id/toField"
                     tools:visibility="visible" />
 
-            <androidx.appcompat.widget.AppCompatEditText
+            <androidx.appcompat.widget.AppCompatAutoCompleteTextView
                     android:id="@+id/ccField"
                     style="@style/NoUnderlineField"
                     android:layout_width="0dp"
@@ -166,7 +166,7 @@
                     app:layout_constraintTop_toBottomOf="@id/ccTextView"
                     tools:visibility="visible" />
 
-            <androidx.appcompat.widget.AppCompatEditText
+            <androidx.appcompat.widget.AppCompatAutoCompleteTextView
                     android:id="@+id/bccField"
                     style="@style/NoUnderlineField"
                     android:layout_width="0dp"

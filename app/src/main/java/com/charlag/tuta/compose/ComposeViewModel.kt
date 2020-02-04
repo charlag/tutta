@@ -1,6 +1,8 @@
 package com.charlag.tuta.compose
 
 import android.util.Log
+import androidx.annotation.MainThread
+import androidx.annotation.WorkerThread
 import androidx.lifecycle.*
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.sys.Group
@@ -12,6 +14,7 @@ class ComposeViewModel : ViewModel() {
     private val api = DependencyDump.api
     private val mailFacade = DependencyDump.mailFacade
     private val loginFacade = DependencyDump.loginFacade
+    private val contactRepo = DependencyDump.contactRepository
 
     val enabledMailAddresses: LiveData<List<String>>
     val toRecipients = FilledMutableLiveData<List<String>>(listOf())
@@ -111,6 +114,7 @@ class ComposeViewModel : ViewModel() {
         return mutableRecipientTypes
     }
 
+    @MainThread
     fun addRecipient(field: RecipientField, mailAddress: String) {
         viewModelScope.launch {
             val recipientList = recipientListForField(field)
@@ -132,6 +136,7 @@ class ComposeViewModel : ViewModel() {
         }
     }
 
+    @MainThread
     fun removeRecipient(type: RecipientField, mailAddress: String) {
         val liveData = recipientListForField(type)
         liveData.value = liveData.value - mailAddress
@@ -140,6 +145,19 @@ class ComposeViewModel : ViewModel() {
             mailAddress !in bccRecipients.value
         ) {
             recipientTypes.mutate { it - mailAddress }
+        }
+    }
+
+    @WorkerThread
+    fun autocompleteMailAddress(query: String): ContactAutocompleteResult {
+        // This is far from the most efficient, we should read only what we need but this'll do
+        // for now.
+        return contactRepo.findContacts(query).flatMap { contact ->
+            contact.mailAddresses.filter {
+                it.address.contains(query)
+            }.map { address ->
+                ContactResult(address.address, contact)
+            }
         }
     }
 }
