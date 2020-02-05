@@ -50,10 +50,29 @@ enum class ConversationType(val value: Long) {
 
     companion object {
         fun fromRaw(raw: Long): ConversationType {
-            return when(raw) {
+            return when (raw) {
                 NEW.value -> NEW
                 REPLY.value -> REPLY
                 FORWARD.value -> FORWARD
+                else -> throw IllegalArgumentException("Unknown conversation type $raw")
+            }
+        }
+    }
+}
+
+enum class ReplyType(val raw: Long) {
+    NONE(0),
+    REPLY(1),
+    FORWARD(2),
+    REPLY_FORWARD(3);
+
+    companion object {
+        fun fromRaw(raw: Long): ReplyType {
+            return when (raw) {
+                NONE.raw -> NONE
+                REPLY.raw -> REPLY
+                FORWARD.raw -> FORWARD
+                REPLY_FORWARD.raw -> REPLY_FORWARD
                 else -> throw IllegalArgumentException("Unknown conversation type $raw")
             }
         }

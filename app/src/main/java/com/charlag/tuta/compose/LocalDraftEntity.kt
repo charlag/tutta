@@ -1,12 +1,10 @@
 package com.charlag.tuta.compose
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import androidx.room.TypeConverter
-import androidx.room.TypeConverters
+import androidx.room.*
 import com.charlag.tuta.ConversationType
 import com.charlag.tuta.RecipientInfo
 import com.charlag.tuta.data.json
+import com.charlag.tuta.entities.sys.IdTuple
 import kotlinx.serialization.internal.ArrayListSerializer
 
 @Entity
@@ -26,7 +24,9 @@ data class LocalDraftEntity(
     val previousMessageId: String?,
     val confidential: Boolean,
     val replyTos: List<RecipientInfo>,
-    val files: List<FileReference>
+    val files: List<FileReference>,
+    @Embedded(prefix = "prev_mail")
+    val previousMail: IdTuple?
 )
 
 class LocalDraftConverters {

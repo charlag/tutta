@@ -5,8 +5,12 @@ import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.*
 import com.charlag.tuta.*
+import com.charlag.tuta.data.MailEntity
+import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.Group
 import com.charlag.tuta.entities.sys.GroupInfo
+import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.tutanota.ConversationEntry
 import com.charlag.tuta.util.FilledMutableLiveData
 import com.charlag.tuta.util.combineLiveData
 import kotlinx.coroutines.launch
@@ -36,6 +40,9 @@ class ComposeViewModel : ViewModel() {
             mapOf()
         )
     private var localDraftId: Long = 0
+    private var conversationType: ConversationType = ConversationType.NEW
+    private var previousMessageId: String? = null
+    private var previousMail: IdTuple? = null
 
     private val confidentialIsSelected: Boolean
         // For now always assume non-confidential because we don't send "external secure" emails
@@ -107,12 +114,13 @@ class ComposeViewModel : ViewModel() {
             to,
             cc,
             bcc,
-            ConversationType.NEW,
-            previousMessageId = null,
+            conversationType,
+            previousMessageId,
             confidential = confidentialIsSelected
                     || recipients.all { it.type == RecipientType.INTENRAL },
             replyTos = listOf(),
-            files = attachments.value
+            files = attachments.value,
+            previousMail = previousMail
         )
         mailSender.send(loginFacade.user!!, localDraft)
         return true
@@ -188,10 +196,20 @@ class ComposeViewModel : ViewModel() {
         attachments.mutate { it - file }
     }
 
+    // All init functions should return some structure so that view doesn't have to think about it
     suspend fun initWIthLocalDraftId(id: Long): LocalDraftEntity? {
         // TODO: init things like replyto and conversationType with these things
         this.localDraftId = localDraftId
         return db.mailDao().getLocalDraft(id)
+    }
+
+    suspend fun initWithReplyMailId(replyMailId: String): MailEntity {
+        val mail = db.mailDao().getMail(replyMailId)
+        conversationType = ConversationType.REPLY
+        val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
+        previousMessageId = conversationEntry.messageId
+        previousMail = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
+        return mail
     }
 }
 

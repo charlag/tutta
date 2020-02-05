@@ -47,6 +47,9 @@ class ComposeActivity : AppCompatActivity() {
         if (intent.hasExtra(LOCAL_DRAFT_EXTRA)) {
             val localDraftId = intent.getLongExtra(LOCAL_DRAFT_EXTRA, 0)
             initWithLocalDraft(localDraftId)
+        } else if (intent.hasExtra(REPLY_MAIL_ID)) {
+            val replyMailId = intent.getStringExtra(REPLY_MAIL_ID)
+            initWithReplyId(replyMailId)
         }
 
         setContentView(R.layout.activity_compose)
@@ -129,6 +132,15 @@ class ComposeActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun initWithReplyId(replyMailId: String) {
+        lifecycleScope.launch {
+            val mail = viewModel.initWithReplyMailId(replyMailId)
+            subjectField.setText("Re: ${mail.subject}")
+            toField.text.append(mail.sender.address + " ")
+        }
+    }
+
 
     private fun expandRecipients() {
         ccTextView.isVisible = true
@@ -225,6 +237,7 @@ class ComposeActivity : AppCompatActivity() {
 
     companion object {
         const val LOCAL_DRAFT_EXTRA = "localDraft"
+        const val REPLY_MAIL_ID = "replyMailId"
     }
 }
 

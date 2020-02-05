@@ -138,14 +138,14 @@ data class Contact(
 @Serializable
 data class ConversationEntry(
     val _format: Long,
-    val _id: IdTuple,
+    override val _id: IdTuple,
     val _ownerGroup: Id?,
     val _permissions: Id,
     val conversationType: Long,
     val messageId: String,
     val mail: IdTuple?,
     val previous: IdTuple?
-) : Entity()
+) : ListElementEntity()
 
 @Serializable
 data class MailAddress(

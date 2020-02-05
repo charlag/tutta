@@ -1,12 +1,15 @@
 package com.charlag.tuta.compose
 
 import android.util.Log
+import com.charlag.tuta.API
 import com.charlag.tuta.LocalNotificationManager
 import com.charlag.tuta.MailFacade
 import com.charlag.tuta.data.AppDatabase
+import com.charlag.tuta.data.toMail
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.files.FileHandler
+import io.ktor.client.features.ClientRequestException
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -14,7 +17,8 @@ class MailSender(
     private val mailFacade: MailFacade,
     private val fileHandler: FileHandler,
     private val notificationManager: LocalNotificationManager,
-    private val db: AppDatabase
+    private val db: AppDatabase,
+    private val api: API
 ) {
     fun send(user: User, localDraft: LocalDraftEntity) {
         GlobalScope.launch {
@@ -41,15 +45,30 @@ class MailSender(
                 )
                 val recipients =
                     localDraft.toRecipients + localDraft.ccRecipients + localDraft.bccRecipients
-
                 mailFacade.sendDraft(user, draft, recipients, "en")
                 db.mailDao().deleteLocalDraft(localDraft)
             } catch (e: Throwable) {
-                Log.e("MailSender", "Failed to send mail", e)
+                Log.e(TAG, "Failed to send mail", e)
                 notificationManager.showFailedToSendNotification(localDraftId)
             } finally {
                 notificationManager.hideSendingNotification(notificationId)
             }
+            if (localDraft.previousMail != null) {
+                try {
+                    val previousMail =
+                        db.mailDao().getMail(localDraft.previousMail.elementId.asString())
+                    val replyType =
+                        (previousMail.replyType + localDraft.conversationType.value).coerceAtMost(3)
+                    api.updateEntity(previousMail.copy(replyType = replyType).toMail())
+                } catch (e: ClientRequestException) {
+                    Log.w(TAG, "Failed to update previious mail $e")
+                }
+
+            }
         }
+    }
+
+    companion object {
+        private const val TAG = "MailSender"
     }
 }

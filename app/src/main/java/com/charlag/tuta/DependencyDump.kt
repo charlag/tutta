@@ -67,7 +67,7 @@ object DependencyDump {
             EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
         fileHandler = FileHandler(fileFacade, loginFacade, applicationContext)
         val notificationManager = LocalNotificationManager(applicationContext)
-        mailSender = MailSender(mailFacade, fileHandler, notificationManager, db)
+        mailSender = MailSender(mailFacade, fileHandler, notificationManager, db, api)
         _hasLoggedin = true
     }
 }

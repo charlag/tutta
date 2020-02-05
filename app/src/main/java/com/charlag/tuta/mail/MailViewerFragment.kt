@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.BuildConfig
 import com.charlag.tuta.R
+import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.entities.tutanota.File
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
@@ -160,6 +161,12 @@ class MailViewerFragment : Fragment() {
             .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
 
         updateUnreadStatus(openedMail.unread)
+
+        replyButton.setOnClickListener {
+            startActivity(Intent(activity, ComposeActivity::class.java).apply {
+                putExtra(ComposeActivity.REPLY_MAIL_ID, viewModel.openedMail.value!!.id)
+            })
+        }
     }
 
     private fun updateUnreadStatus(unread: Boolean) {

@@ -684,6 +684,10 @@ class API(
                 throw Error("Value $name with cardinality ONE cannot be null")
             }
         } else if (valueModel.encrypted) {
+            if (iv != null && iv.isEmpty()) {
+                // We use empty byte array to indicate that it's final default value
+                return JsonLiteral("")
+            }
             val bytes = if (valueModel.type === ValueType.BytesType) value as ByteArray
             else valueToString(value, valueModel).toBytes()
             return JsonLiteral(
@@ -717,7 +721,13 @@ class API(
             val bytes = base64ToBytes(encryptedValue.primitive.content)
 
             val decryptedBytes =
-                if (bytes.isEmpty()) bytes else {
+                if (bytes.isEmpty()) {
+                    if (valueModel.final) {
+                        // We use empty byte array to indicate that it's final default value
+                        finalIvs[name] = byteArrayOf()
+                    }
+                    bytes
+                } else {
                     val decryptResult = cryptor.decrypt(bytes, sessionKey!!, true)
                     if (valueModel.final) {
                         finalIvs[name] = decryptResult.iv
