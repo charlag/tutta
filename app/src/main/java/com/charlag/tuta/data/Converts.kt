@@ -1,6 +1,8 @@
 package com.charlag.tuta.data
 
 import androidx.room.TypeConverter
+import com.charlag.tuta.ConversationType
+import com.charlag.tuta.RecipientType
 import com.charlag.tuta.base64ToBytes
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
@@ -94,7 +96,27 @@ class TutanotaConverters {
     @TypeConverter
     fun stringToFinalIvs(string: String?): Map<String, ByteArray?>? {
         string ?: return null
-        return json.parse(ivsSerializer, string).mapValues { (k, v) -> v?.let(::base64ToBytes) }
+        return json.parse(ivsSerializer, string).mapValues { (_, v) -> v?.let(::base64ToBytes) }
+    }
+
+    @TypeConverter
+    fun recipientTypeToInt(recipientType: RecipientType): Int {
+        return recipientType.raw
+    }
+
+    @TypeConverter
+    fun intToRecipientType(raw: Int): RecipientType {
+        return RecipientType.fromRaw(raw)
+    }
+
+    @TypeConverter
+    fun conversationTypeToLong(conversationType: ConversationType): Long {
+        return conversationType.value
+    }
+
+    @TypeConverter
+    fun longToConversationType(raw: Long): ConversationType {
+        return ConversationType.fromRaw(raw)
     }
 }
 

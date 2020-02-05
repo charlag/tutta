@@ -3,6 +3,7 @@ package com.charlag.tuta
 import android.content.Context
 import android.util.Log
 import androidx.room.Room
+import com.charlag.tuta.compose.MailSender
 import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.events.EntityEventListener
@@ -49,15 +50,24 @@ object DependencyDump {
     lateinit var contactRepository: ContactsRepository
     private lateinit var eventListener: EntityEventListener
     lateinit var fileHandler: FileHandler
+    lateinit var mailSender: MailSender
+
+    private var _hasLoggedin = false
+    val hasLoggedIn: Boolean
+        get() = _hasLoggedin
 
     fun ignite(dbPassword: String, applicationContext: Context) {
         val factory = SupportFactory(SQLiteDatabase.getBytes(dbPassword.toCharArray()))
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "tuta-db")
             .openHelperFactory(factory)
+            .fallbackToDestructiveMigration()
             .build()
         contactRepository = ContactsRepository(api, db, loginFacade)
         eventListener =
             EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
         fileHandler = FileHandler(fileFacade, loginFacade, applicationContext)
+        val notificationManager = LocalNotificationManager(applicationContext)
+        mailSender = MailSender(mailFacade, fileHandler, notificationManager, db)
+        _hasLoggedin = true
     }
 }

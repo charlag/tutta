@@ -69,10 +69,11 @@ class FileHandler(
 
     suspend fun uploadFile(file: FileReference): UploadedFile {
         Log.d("FileHandler", "Upload file $file")
-        val fileData = context.contentResolver.openInputStream(file.reference)?.readBytes()
+        val fileData = context.contentResolver.openInputStream(file.reference.toUri())?.readBytes()
             ?: error("Failed to read file")
         Log.d("FileHandler", "Retrieved filData $file")
-        val mimeType = context.contentResolver.getType(file.reference) ?: FileFacade.DEFAULT_MIME
+        val mimeType =
+            context.contentResolver.getType(file.reference.toUri()) ?: FileFacade.DEFAULT_MIME
         val mailGroupId =
             loginFacade.waitForLogin().memberships
                 .find { it.groupType == GroupType.Mail.value }!!

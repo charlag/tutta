@@ -1,6 +1,5 @@
 package com.charlag.tuta.compose
 
-import android.net.Uri
 import android.util.Log
 import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
@@ -11,8 +10,10 @@ import com.charlag.tuta.entities.sys.GroupInfo
 import com.charlag.tuta.util.FilledMutableLiveData
 import com.charlag.tuta.util.combineLiveData
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
-data class FileReference(val name: String, val size: Long, val reference: Uri)
+@Serializable
+data class FileReference(val name: String, val size: Long, val reference: String)
 
 typealias Attachment = FileReference
 
@@ -21,7 +22,8 @@ class ComposeViewModel : ViewModel() {
     private val mailFacade = DependencyDump.mailFacade
     private val loginFacade = DependencyDump.loginFacade
     private val contactRepo = DependencyDump.contactRepository
-    private val fileHandler = DependencyDump.fileHandler
+    private val mailSender = DependencyDump.mailSender
+    private val db = DependencyDump.db
 
     val enabledMailAddresses: LiveData<List<String>>
     val toRecipients = FilledMutableLiveData<List<String>>(listOf())
@@ -33,6 +35,7 @@ class ComposeViewModel : ViewModel() {
         FilledMutableLiveData<Map<String, RecipientType>>(
             mapOf()
         )
+    private var localDraftId: Long = 0
 
     private val confidentialIsSelected: Boolean
         // For now always assume non-confidential because we don't send "external secure" emails
@@ -94,25 +97,24 @@ class ComposeViewModel : ViewModel() {
         }
 
         this.recipientTypes.postValue(resolveRemainingRecipients(recipients, recipientTypes))
-
-        val draft = mailFacade.createDraft(
-            user = loginFacade.user!!,
-            subject = subject,
-            body = body,
-            senderAddress = senderAddress,
-            senderName = "bed",
-            toRecipients = to,
-            ccRecipients = cc,
-            bccRecipients = bcc,
-            conversationType = ConversationType.NEW,
+        val localDraft = LocalDraftEntity(
+            localDraftId,
+            loginFacade.user!!._id.asString(),
+            subject,
+            body,
+            senderAddress,
+            "bed",
+            to,
+            cc,
+            bcc,
+            ConversationType.NEW,
             previousMessageId = null,
             confidential = confidentialIsSelected
                     || recipients.all { it.type == RecipientType.INTENRAL },
             replyTos = listOf(),
-            files = attachments.value.map { fileHandler.uploadFile(it) }
+            files = attachments.value
         )
-
-        mailFacade.sendDraft(loginFacade.user!!, draft, recipients, "en")
+        mailSender.send(loginFacade.user!!, localDraft)
         return true
     }
 
@@ -184,6 +186,12 @@ class ComposeViewModel : ViewModel() {
 
     fun removeAttachment(file: FileReference) {
         attachments.mutate { it - file }
+    }
+
+    suspend fun initWIthLocalDraftId(id: Long): LocalDraftEntity? {
+        // TODO: init things like replyto and conversationType with these things
+        this.localDraftId = localDraftId
+        return db.mailDao().getLocalDraft(id)
     }
 }
 

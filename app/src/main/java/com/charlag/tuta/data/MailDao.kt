@@ -3,6 +3,7 @@ package com.charlag.tuta.data
 import androidx.lifecycle.LiveData
 import androidx.paging.DataSource
 import androidx.room.*
+import com.charlag.tuta.compose.LocalDraftEntity
 
 @Dao
 interface MailDao {
@@ -56,4 +57,13 @@ interface MailDao {
 
     @Query("SELECT * FROM MailEntity WHERE subject LIKE '%' || :query || '%' OR sender LIKE '%' || :query || '%' OR toRecipients LIKE '%' || :query || '%'")
     fun search(query: String): DataSource.Factory<Int, MailEntity>
+
+    @Query("SELECT * FROM LocalDraftEntity WHERE id = :id LIMIT 1")
+    suspend fun getLocalDraft(id: Long): LocalDraftEntity
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLocalDraft(localDraft: LocalDraftEntity): Long
+
+    @Delete
+    suspend fun deleteLocalDraft(localDraft: LocalDraftEntity)
 }

@@ -46,7 +46,18 @@ enum class GroupType(val value: Long) {
 enum class ConversationType(val value: Long) {
     NEW(0),
     REPLY(1),
-    FORWARD(2)
+    FORWARD(2);
+
+    companion object {
+        fun fromRaw(raw: Long): ConversationType {
+            return when(raw) {
+                NEW.value -> NEW
+                REPLY.value -> REPLY
+                FORWARD.value -> FORWARD
+                else -> throw IllegalArgumentException("Unknown conversation type $raw")
+            }
+        }
+    }
 }
 
 enum class MailFolderType(val value: Long) {

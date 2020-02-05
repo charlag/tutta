@@ -6,13 +6,25 @@ import com.charlag.tuta.entities.tutanota.*
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import kotlinx.serialization.Serializable
 
-enum class RecipientType {
-    UNKNOWN,
-    INTENRAL,
-    EXTERNAL
+enum class RecipientType(val raw: Int) {
+    UNKNOWN(0),
+    INTENRAL(1),
+    EXTERNAL(2);
+
+    companion object {
+        fun fromRaw(raw: Int): RecipientType {
+            return when (raw) {
+                INTENRAL.raw -> INTENRAL
+                EXTERNAL.raw -> EXTERNAL
+                else -> UNKNOWN
+            }
+        }
+    }
 }
 
+@Serializable
 data class RecipientInfo(val name: String, val mailAddress: String, val type: RecipientType)
 
 class MailFacade(val api: API, val cryptor: Cryptor) {

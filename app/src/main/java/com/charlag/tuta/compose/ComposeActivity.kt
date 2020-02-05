@@ -15,6 +15,8 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.charlag.tuta.DependencyDump
+import com.charlag.tuta.LoginActivity
 import com.charlag.tuta.R
 import com.charlag.tuta.mail.AttachmentAdapter
 import com.charlag.tuta.mail.ListedAttachment
@@ -37,6 +39,16 @@ class ComposeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!DependencyDump.hasLoggedIn) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
+        }
+        if (intent.hasExtra(LOCAL_DRAFT_EXTRA)) {
+            val localDraftId = intent.getLongExtra(LOCAL_DRAFT_EXTRA, 0)
+            initWithLocalDraft(localDraftId)
+        }
+
         setContentView(R.layout.activity_compose)
         setSupportActionBar(toolbar)
         supportActionBar?.apply {
@@ -98,6 +110,23 @@ class ComposeActivity : AppCompatActivity() {
             attachmentAdapter.items.clear()
             attachmentAdapter.items.addAll(it.map(::ListedFileReference))
             attachmentAdapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun initWithLocalDraft(localDraftId: Long) {
+        lifecycleScope.launch {
+            val localDraft = viewModel.initWIthLocalDraftId(localDraftId) ?: return@launch
+            subjectField.setText(localDraft.subject)
+            contentField.setText(localDraft.body)
+            for (toRecipient in localDraft.toRecipients) {
+                toField.text.append(toRecipient.mailAddress + " ")
+            }
+            for (ccRecipient in localDraft.ccRecipients) {
+                ccField.text.append(ccRecipient.mailAddress + " ")
+            }
+            for (bccRecipient in localDraft.bccRecipients) {
+                bccField.text.append(bccRecipient.mailAddress + " ")
+            }
         }
     }
 
@@ -188,10 +217,14 @@ class ComposeActivity : AppCompatActivity() {
             val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
             val fileRef = FileReference(
                 cursor.getString(nameIndex),
-                cursor.getLong(sizeIndex), uri
+                cursor.getLong(sizeIndex), uri.toString()
             )
             viewModel.addAttachment(fileRef)
         }
+    }
+
+    companion object {
+        const val LOCAL_DRAFT_EXTRA = "localDraft"
     }
 }
 
