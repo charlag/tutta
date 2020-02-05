@@ -456,7 +456,7 @@ data class DraftRecipient(
 
 @Serializable
 data class NewDraftAttachment(
-    val _id: Id,
+    val _id: Id? = null,
     val encCid: ByteArray?,
     val encFileName: ByteArray,
     val encMimeType: ByteArray,
@@ -465,7 +465,7 @@ data class NewDraftAttachment(
 
 @Serializable
 data class DraftAttachment(
-    val _id: Id,
+    val _id: Id? = null,
     val ownerEncFileSessionKey: ByteArray,
     val newFile: NewDraftAttachment?,
     val existingFile: IdTuple?
@@ -540,7 +540,7 @@ data class SecureExternalRecipientKeyData(
 
 @Serializable
 data class AttachmentKeyData(
-    val _id: Id,
+    val _id: Id? = null,
     val bucketEncFileSessionKey: ByteArray?,
     val fileSessionKey: ByteArray?,
     val file: IdTuple

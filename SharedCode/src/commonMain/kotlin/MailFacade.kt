@@ -28,7 +28,7 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
         bccRecipients: List<RecipientInfo>,
         conversationType: ConversationType,
         previousMessageId: Id?,
-//        attachments: List<TutanotaFile | DataFile | FileReference>,
+        files: List<UploadedFile>,
         confidential: Boolean,
         replyTos: List<RecipientInfo>
     ): Mail {
@@ -37,6 +37,10 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
             ?: error("Could not get user group key")
         val mailGroupKey =
             api.groupKeysCache.getGroupKey(mailGroupId) ?: error("Could not get mail group key")
+
+
+        // For now we assume that all files are new
+        val draftAttachments = prepareAttachments(files, mailGroupKey)
 
         val sk = cryptor.aes128RandomKey()
         val draftData = DraftData(
@@ -54,7 +58,7 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
                     name = recipient.name
                 )
             },
-            addedAttachments = listOf(),
+            addedAttachments = draftAttachments,
             removedAttachments = listOf()
         )
         val service = DraftCreateData(
@@ -74,6 +78,25 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
             "tutanota", "draftservice", HttpMethod.Post, service, DraftCreateReturn::class, null, sk
         )
         return api.loadListElementEntity(draftCreateReturn.draft)
+    }
+
+    private suspend fun prepareAttachments(
+        files: List<UploadedFile>,
+        mailGroupKey: ByteArray
+    ): List<DraftAttachment> {
+        return files.map { attachment ->
+            val fileSessionKey = attachment.fileSessionKey
+            DraftAttachment(
+                newFile = NewDraftAttachment(
+                    encCid = null,
+                    encFileName = cryptor.encryptString(attachment.name, fileSessionKey),
+                    encMimeType = cryptor.encryptString(attachment.mimeType, fileSessionKey),
+                    fileData = attachment.fileDataId
+                ),
+                ownerEncFileSessionKey = cryptor.encryptKey(fileSessionKey, mailGroupKey),
+                existingFile = null
+            )
+        }
     }
 
     suspend fun sendDraft(
@@ -111,13 +134,37 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
             sessionKeyToPass = resolvedMailKey
         }
 
+        val attachmentKeyData = draft.attachments.map { fileId ->
+            val file = api.loadListElementEntity<File>(fileId)
+            val fileSessionKey = api.resolveSessionKey(
+                typemodelMap.getValue(File::class.noReflectionName).typemodel,
+                file._ownerEncSessionKey,
+                file._ownerGroup?.asString(),
+                file._permissions.asString(),
+                api
+            ) ?: error("Count not resolve file key $fileId")
+            if (draft.confidential) {
+                AttachmentKeyData(
+                    bucketEncFileSessionKey = cryptor.encryptKey(fileSessionKey, bucketKey),
+                    file = fileId,
+                    fileSessionKey = null
+                )
+            } else {
+                AttachmentKeyData(
+                    bucketEncFileSessionKey = null,
+                    file = fileId,
+                    fileSessionKey = fileSessionKey
+                )
+            }
+        }
+
         val requestBody = SendDraftData(
             bucketEncMailSessionKey = bucketEncMailSessionKey,
             language = language,
             mailSessionKey = sessionKeyToPass,
             plaintext = false, // for now
             senderNameUnencrypted = null, // for now
-            attachmentKeyData = listOf(), // for now
+            attachmentKeyData = attachmentKeyData,
             internalRecipientKeyData = internalRecipientKeyData,
             mail = draft._id,
             secureExternalRecipientKeyData = listOf() // for now

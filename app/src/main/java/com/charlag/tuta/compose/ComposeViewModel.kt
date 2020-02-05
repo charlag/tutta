@@ -1,5 +1,6 @@
 package com.charlag.tuta.compose
 
+import android.net.Uri
 import android.util.Log
 import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
@@ -8,18 +9,25 @@ import com.charlag.tuta.*
 import com.charlag.tuta.entities.sys.Group
 import com.charlag.tuta.entities.sys.GroupInfo
 import com.charlag.tuta.util.FilledMutableLiveData
+import com.charlag.tuta.util.combineLiveData
 import kotlinx.coroutines.launch
+
+data class FileReference(val name: String, val size: Long, val reference: Uri)
+
+typealias Attachment = FileReference
 
 class ComposeViewModel : ViewModel() {
     private val api = DependencyDump.api
     private val mailFacade = DependencyDump.mailFacade
     private val loginFacade = DependencyDump.loginFacade
     private val contactRepo = DependencyDump.contactRepository
+    private val fileHandler = DependencyDump.fileHandler
 
     val enabledMailAddresses: LiveData<List<String>>
     val toRecipients = FilledMutableLiveData<List<String>>(listOf())
     val ccRecipients = FilledMutableLiveData<List<String>>(listOf())
     val bccRecipients = FilledMutableLiveData<List<String>>(listOf())
+    val attachments = FilledMutableLiveData<List<Attachment>>(listOf())
 
     val recipientTypes =
         FilledMutableLiveData<Map<String, RecipientType>>(
@@ -34,6 +42,13 @@ class ComposeViewModel : ViewModel() {
         confidentialIsSelected ||
                 types.isNotEmpty() && types.values.none { it == RecipientType.EXTERNAL }
     }
+    val anyRecipients =
+        combineLiveData(
+            combineLiveData(toRecipients, ccRecipients) { toRecipients, ccRecipients ->
+                toRecipients.isNotEmpty() || ccRecipients.isNotEmpty()
+            },
+            bccRecipients
+        ) { hasOther, bccRecipients -> hasOther || bccRecipients.isNotEmpty() }
 
     init {
         val enabledMailAddresses = MutableLiveData<List<String>>()
@@ -93,7 +108,8 @@ class ComposeViewModel : ViewModel() {
             previousMessageId = null,
             confidential = confidentialIsSelected
                     || recipients.all { it.type == RecipientType.INTENRAL },
-            replyTos = listOf()
+            replyTos = listOf(),
+            files = attachments.value.map { fileHandler.uploadFile(it) }
         )
 
         mailFacade.sendDraft(loginFacade.user!!, draft, recipients, "en")
@@ -159,6 +175,15 @@ class ComposeViewModel : ViewModel() {
                 ContactResult(address.address, contact)
             }
         }
+    }
+
+    @MainThread
+    fun addAttachment(fileReference: FileReference) {
+        attachments.mutate { it + fileReference }
+    }
+
+    fun removeAttachment(file: FileReference) {
+        attachments.mutate { it - file }
     }
 }
 

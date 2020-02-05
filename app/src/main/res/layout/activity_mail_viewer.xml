@@ -85,10 +85,10 @@
                         android:layout_gravity="center"
                         android:drawableStart="@drawable/ic_image_black_24dp"
                         android:drawablePadding="8dp"
-                        android:drawableTint="@color/primaryOnSurface"
+                        android:drawableTint="@color/grey_30"
                         android:gravity="center"
                         android:text="Load external content"
-                        android:textColor="@color/primaryOnSurface" />
+                        android:textColor="@color/grey_30" />
             </FrameLayout>
 
             <Button

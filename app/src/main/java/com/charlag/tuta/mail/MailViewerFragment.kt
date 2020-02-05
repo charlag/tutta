@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.BuildConfig
 import com.charlag.tuta.R
+import com.charlag.tuta.entities.tutanota.File
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
@@ -113,7 +114,7 @@ class MailViewerFragment : Fragment() {
         loadAttachments()
 
 
-        val iconColor = view.context.getColor(R.color.primaryOnSurface)
+        val iconColor = view.context.getColor(R.color.grey_30)
         val tint = ColorStateList.valueOf(iconColor)
         toolbar.menu.add("Archive").setIcon(R.drawable.ic_archive_black_24dp)
             .setOnMenuItemClickListener {
@@ -187,12 +188,14 @@ class MailViewerFragment : Fragment() {
     private fun loadAttachments() {
         lifecycleScope.launch {
             val files = viewModel.loadAttachments(viewModel.openedMail.value!!)
-            val adapter = AttachmentAdapter(
+                .map(::ListedAttachmentFile)
+            val adapter = AttachmentAdapter<ListedAttachmentFile>(
+                iconRes = R.drawable.ic_file_download_black_24dp,
                 onItemSelected = { file ->
-                    viewModel.openFile(file)
+                    viewModel.openFile(file.file)
                 },
-                onDownloadFile = { file ->
-                    viewModel.downloadFile(file)
+                onAction = { file ->
+                    viewModel.downloadFile(file.file)
                 })
             adapter.items.addAll(files)
             attachmentsRecycler.adapter = adapter
@@ -204,4 +207,11 @@ class MailViewerFragment : Fragment() {
     private fun goBack() {
         parentFragmentManager.popBackStack()
     }
+}
+
+data class ListedAttachmentFile(val file: File) : ListedAttachment {
+    override val name: String
+        get() = file.name
+    override val size: Long
+        get() = file.size
 }

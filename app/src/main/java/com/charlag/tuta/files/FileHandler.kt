@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
+import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
-import com.charlag.tuta.FileFacade
+import com.charlag.tuta.*
+import com.charlag.tuta.compose.FileReference
 import com.charlag.tuta.entities.tutanota.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,6 +19,7 @@ typealias SystemFile = java.io.File
 
 class FileHandler(
     private val fileFacade: FileFacade,
+    private val loginFacade: LoginFacade,
     private val context: Context
 ) {
     suspend fun downloadFile(file: File): Uri {
@@ -62,5 +65,19 @@ class FileHandler(
             systemFile.writeBytes(dataFile.data)
         }
         return systemFile
+    }
+
+    suspend fun uploadFile(file: FileReference): UploadedFile {
+        Log.d("FileHandler", "Upload file $file")
+        val fileData = context.contentResolver.openInputStream(file.reference)?.readBytes()
+            ?: error("Failed to read file")
+        Log.d("FileHandler", "Retrieved filData $file")
+        val mimeType = context.contentResolver.getType(file.reference) ?: FileFacade.DEFAULT_MIME
+        val mailGroupId =
+            loginFacade.waitForLogin().memberships
+                .find { it.groupType == GroupType.Mail.value }!!
+                .group
+        val dataFile = DataFile(name = file.name, data = fileData, mimeType = mimeType)
+        return fileFacade.uploadFile(dataFile, mailGroupId)
     }
 }

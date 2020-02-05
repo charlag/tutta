@@ -25,41 +25,10 @@ fun setupRecipientField(
     onAddRecipient: (type: RecipientField, address: String) -> Unit,
     onRemoveRecipient: (type: RecipientField, address: String) -> Unit
 ) {
-    val spanWatcher = object : SpanWatcher {
-        override fun onSpanChanged(
-            text: Spannable?,
-            what: Any?,
-            ostart: Int,
-            oend: Int,
-            nstart: Int,
-            nend: Int
-        ) {
-        }
-
-        override fun onSpanAdded(text: Spannable?, what: Any?, start: Int, end: Int) {
-            if (what is RecipientSpan) {
-                onAddRecipient(what.fieldType, what.mailAddress)
-            }
-        }
-
-        override fun onSpanRemoved(text: Spannable?, what: Any?, start: Int, end: Int) {
-            if (what is RecipientSpan) {
-                what.remove()
-                onRemoveRecipient(what.fieldType, what.mailAddress)
-            }
-        }
-    }
-    setupField.text.setSpan(
-        spanWatcher,
-        0,
-        setupField.text.length,
-        Spannable.SPAN_INCLUSIVE_INCLUSIVE
-    )
-
     setupField.doOnTextChanged { text, start, before, count ->
         val lastChar = (start + count - 1).coerceAtLeast(0)
         if (text != null && text.isNotEmpty() && text[lastChar].isSeparator()) {
-            tryCompleteRecipient(setupField, lastChar, fieldType)
+            tryCompleteRecipient(setupField, lastChar, fieldType, onAddRecipient)
         }
     }
     setupField.movementMethod = LinkMovementMethod()
@@ -69,13 +38,14 @@ fun setupRecipientField(
             fieldText.getSpans<RecipientSpan>(start = start + 1, end = start + 1 + count)
         for (span in spans) {
             fieldText.removeSpan(span)
+            onRemoveRecipient(span.fieldType, span.mailAddress)
         }
     }
     setupField.highlightColor = Color.TRANSPARENT
     setupField.onFocusChangeListener
     setupField.setOnFocusChangeListener { _, hasFocus ->
         if (!hasFocus) {
-            tryCompleteRecipient(setupField, setupField.text.length, fieldType)
+            tryCompleteRecipient(setupField, setupField.text.length, fieldType, onAddRecipient)
         }
     }
 
@@ -86,7 +56,8 @@ fun setupRecipientField(
 private fun tryCompleteRecipient(
     setupField: EditText,
     end: Int,
-    fieldType: RecipientField
+    fieldType: RecipientField,
+    onAddRecipient: (type: RecipientField, address: String) -> Unit
 ) {
     val fieldText = setupField.text ?: return
     val spans = fieldText.getSpans<RecipientSpan>(end = end)
@@ -117,6 +88,7 @@ private fun tryCompleteRecipient(
             textStart + newText.length,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
+        onAddRecipient(fieldType, newText)
     }
 }
 

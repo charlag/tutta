@@ -48,7 +48,7 @@
                     android:layout_gravity="center_vertical"
                     android:layout_marginLeft="16dp"
                     android:src="@drawable/ic_account_box_black_24dp"
-                    android:tint="@color/primaryOnSurface" />
+                    android:tint="@color/grey_30" />
 
             <TextView
                     android:id="@+id/contactsName"
@@ -60,7 +60,7 @@
                     android:layout_marginRight="16dp"
                     android:layout_marginBottom="8dp"
                     android:text="Contacts"
-                    android:textColor="@color/primaryOnSurface"
+                    android:textColor="@color/grey_30"
                     android:textStyle="bold" />
         </LinearLayout>
 
@@ -81,7 +81,7 @@
                     android:layout_gravity="center_vertical"
                     android:layout_marginLeft="16dp"
                     android:src="@drawable/ic_settings_black_24dp"
-                    android:tint="@color/primaryOnSurface" />
+                    android:tint="@color/grey_30" />
 
             <TextView
                     android:id="@+id/folderName"
@@ -93,7 +93,7 @@
                     android:layout_marginRight="16dp"
                     android:layout_marginBottom="8dp"
                     android:text="Settings"
-                    android:textColor="@color/primaryOnSurface"
+                    android:textColor="@color/grey_30"
                     android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

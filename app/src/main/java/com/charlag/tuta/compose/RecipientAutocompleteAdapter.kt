@@ -45,7 +45,7 @@ class RecipientAutocompleteAdapter(
             return if (constraint == null) {
                 FilterResults()
             } else {
-                val contacts = resultProvider(constraint.toString())
+                val contacts = resultProvider(constraint.toString().trim())
                 FilterResults().apply {
                     count = contacts.size
                     values = contacts

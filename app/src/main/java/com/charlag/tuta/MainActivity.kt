@@ -109,7 +109,7 @@ class MailFoldersAdapter(
         val folder = folders[position]
         val isSelectedFolder = folder.id == selectedFolder?.elementId?.asString()
         val contentColor = holder.itemView.context.getColor(
-            if (isSelectedFolder) R.color.colorAccent else R.color.primaryOnSurface
+            if (isSelectedFolder) R.color.colorAccent else R.color.grey_30
         )
         val bgId = if (isSelectedFolder) R.drawable.selected_mail_bg
         else android.R.color.transparent

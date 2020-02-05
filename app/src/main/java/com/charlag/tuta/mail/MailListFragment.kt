@@ -28,7 +28,7 @@ class MailListFragment : Fragment() {
 
 
     private val tint by lazy(LazyThreadSafetyMode.NONE) {
-        val tintColor = toolbar.context.getColor(R.color.primaryOnSurface)
+        val tintColor = toolbar.context.getColor(R.color.grey_30)
         ColorStateList.valueOf(tintColor)
     }
 
@@ -86,7 +86,7 @@ class MailListFragment : Fragment() {
 
         val emptyDrawable = view.context.getDrawable(R.drawable.ic_inbox_black_24dp)!!
         val emptyDrawableSize = (60 * view.context.resources.displayMetrics.density).toInt()
-        emptyDrawable.setTint(view.context.getColor(R.color.primaryOnSurface))
+        emptyDrawable.setTint(view.context.getColor(R.color.grey_30))
         emptyDrawable.setBounds(
             0,
             0,

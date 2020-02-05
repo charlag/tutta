@@ -44,7 +44,7 @@ object DependencyDump {
     )
     val loginFacade = LoginFacade(cryptor, api, groupKeysCache)
     val mailFacade = MailFacade(api, cryptor)
-    val fileFacade = FileFacade(api)
+    val fileFacade = FileFacade(api, cryptor)
     lateinit var db: AppDatabase
     lateinit var contactRepository: ContactsRepository
     private lateinit var eventListener: EntityEventListener
@@ -58,6 +58,6 @@ object DependencyDump {
         contactRepository = ContactsRepository(api, db, loginFacade)
         eventListener =
             EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
-        fileHandler = FileHandler(fileFacade, applicationContext)
+        fileHandler = FileHandler(fileFacade, loginFacade, applicationContext)
     }
 }

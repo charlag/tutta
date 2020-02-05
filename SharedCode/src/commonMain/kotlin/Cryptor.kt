@@ -8,8 +8,8 @@ expect class Cryptor() {
         value: ByteArray,
         iv: ByteArray,
         key: ByteArray,
-        usePadding: Boolean = true,
-        useMac: Boolean = true
+        usePadding: Boolean, // should default to true but it doesn't work
+        useMac: Boolean // this should default to true too
     ): ByteArray
 
     suspend fun decrypt(value: ByteArray, key: ByteArray, usePadding: Boolean = true): DecryptResult
@@ -66,6 +66,10 @@ suspend fun Cryptor.decryptKey(encryptedKey: ByteArray, encryptionKey: ByteArray
 
 suspend fun Cryptor.aes128RandomKey(): ByteArray {
     return generateRandomData(16)
+}
+
+suspend fun Cryptor.encryptString(data: String, encryptionKey: ByteArray): ByteArray {
+    return encrypt(data.toBytes(), generateIV(), encryptionKey, true, true)
 }
 
 class CryptoException(message: String, cause: Exception? = null) : Exception(message, cause)

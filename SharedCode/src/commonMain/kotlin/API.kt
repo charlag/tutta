@@ -103,13 +103,13 @@ class API(
                 if (serializedEntity != null) {
                     parameter("_body", json.stringify(JsonObjectSerializer, serializedEntity))
                 }
-            }!!.let { deserializeEntitity(it, responseClass) }
+            }!!.let { deserializeEntitity(it, responseClass, sk) }
         } else {
             post(path, requestEntity, responseClass, sk)!!
         }
     }
 
-    suspend fun serviceRequestBinary(
+    suspend fun serviceRequestBinaryGet(
         app: String,
         name: String,
         method: HttpMethod,
@@ -136,6 +136,30 @@ class API(
                 cryptor.decrypt(data, sessionKey, true).data
             } else {
                 data
+            }
+        }
+    }
+
+    suspend fun serviceRequestBinaryPost(
+        app: String,
+        name: String,
+        method: HttpMethod,
+        data: ByteArray,
+        queryParams: Map<String, String>? = null,
+        sessionKey: ByteArray
+    ) {
+        val path = "${app}/${name}"
+        val address = Url(baseUrl + path)
+        val encData = cryptor.encrypt(data, cryptor.generateIV(), sessionKey, true, true)
+        httpClient.request<Unit> {
+            this.method = method
+            commonHeaders()
+            url(address)
+            body = encData
+            if (queryParams != null) {
+                for ((key, value) in queryParams) {
+                    parameter(key, value)
+                }
             }
         }
     }
@@ -362,7 +386,7 @@ class API(
                 url(address)
 
                 if (serializedEntity != null) body = serializer.write(serializedEntity)
-            }?.let { deserializeEntitity(it, responseClass) }
+            }?.let { deserializeEntitity(it, responseClass, sessionKey) }
 
         } else {
             httpClient.post<Unit> {
@@ -393,10 +417,11 @@ class API(
 
     private suspend fun <T : Entity> deserializeEntitity(
         map: JsonObject,
-        klass: KClass<T>
+        klass: KClass<T>,
+        serviceSessionKey: ByteArray? = null
     ): T {
         val typeModel = getTypeModelByClass(klass)
-        val sessionKey = resolveSessionKey(typeModel, map, this)
+        val sessionKey = resolveSessionKey(typeModel, map, this) ?: serviceSessionKey
         val processedMap = decryptAndMapToMap(map, typeModel, sessionKey)
         val serializer = typeModelByName.getValue(klass.noReflectionName).serializer
         @Suppress("UNCHECKED_CAST")
@@ -423,7 +448,7 @@ class API(
                 throw e
             }
         }
-        permissions ?: error("No symmetric key and also no permissions")
+        permissions ?: return null
         val listPermissions =
             loaders.loadPermissions(GeneratedId(permissions))
         val symmetricPermission = listPermissions.find { p ->
