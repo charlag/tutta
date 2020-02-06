@@ -8,10 +8,12 @@ import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.data.toMail
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.User
+import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.files.FileHandler
 import io.ktor.client.features.ClientRequestException
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.lang.Exception
 
 class MailSender(
     private val mailFacade: MailFacade,
@@ -22,27 +24,10 @@ class MailSender(
 ) {
     fun send(user: User, localDraft: LocalDraftEntity) {
         GlobalScope.launch {
-            val localDraftId =
-                if (localDraft.id == 0L) db.mailDao().insertLocalDraft(localDraft)
-                else localDraft.id
-
             val notificationId = notificationManager.showSendingNotification()
+            val localDraftId = saveLocalDraft(localDraft)
             try {
-                val draft = mailFacade.createDraft(
-                    user = user,
-                    subject = localDraft.subject,
-                    body = localDraft.body,
-                    senderAddress = localDraft.senderAddress,
-                    senderName = localDraft.senderName,
-                    toRecipients = localDraft.toRecipients,
-                    ccRecipients = localDraft.ccRecipients,
-                    bccRecipients = localDraft.bccRecipients,
-                    conversationType = localDraft.conversationType,
-                    previousMessageId = localDraft.previousMessageId?.let(::GeneratedId),
-                    confidential = localDraft.confidential,
-                    replyTos = localDraft.replyTos,
-                    files = localDraft.files.map { fileHandler.uploadFile(it) }
-                )
+                val draft = createRemoteDraft(user, localDraft)
                 val recipients =
                     localDraft.toRecipients + localDraft.ccRecipients + localDraft.bccRecipients
                 mailFacade.sendDraft(user, draft, recipients, "en")
@@ -66,6 +51,40 @@ class MailSender(
 
             }
         }
+    }
+
+    fun save(user: User, localDraft: LocalDraftEntity) {
+        GlobalScope.launch {
+            val localDraftId =
+                saveLocalDraft(localDraft)
+            try {
+                createRemoteDraft(user, localDraft)
+            } catch (e: Exception) {
+                notificationManager.showFailedToSendNotification(localDraftId)
+            }
+        }
+    }
+
+    private suspend fun saveLocalDraft(localDraft: LocalDraftEntity) =
+        if (localDraft.id == 0L) db.mailDao().insertLocalDraft(localDraft)
+        else localDraft.id
+
+    private suspend fun createRemoteDraft(user: User, localDraft: LocalDraftEntity): Mail {
+        return mailFacade.createDraft(
+            user = user,
+            subject = localDraft.subject,
+            body = localDraft.body,
+            senderAddress = localDraft.senderAddress,
+            senderName = localDraft.senderName,
+            toRecipients = localDraft.toRecipients,
+            ccRecipients = localDraft.ccRecipients,
+            bccRecipients = localDraft.bccRecipients,
+            conversationType = localDraft.conversationType,
+            previousMessageId = localDraft.previousMessageId?.let(::GeneratedId),
+            confidential = localDraft.confidential,
+            replyTos = localDraft.replyTos,
+            files = localDraft.files.map { fileHandler.uploadFile(it) }
+        )
     }
 
     companion object {

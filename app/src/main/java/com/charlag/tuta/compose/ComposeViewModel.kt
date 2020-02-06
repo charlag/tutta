@@ -28,6 +28,7 @@ class ComposeViewModel : ViewModel() {
     private val contactRepo = DependencyDump.contactRepository
     private val mailSender = DependencyDump.mailSender
     private val db = DependencyDump.db
+    private val userController = DependencyDump.userController
 
     val enabledMailAddresses: LiveData<List<String>>
     val toRecipients = FilledMutableLiveData<List<String>>(listOf())
@@ -65,18 +66,14 @@ class ComposeViewModel : ViewModel() {
         this.enabledMailAddresses = enabledMailAddresses
         viewModelScope.launch {
             try {
-                val user = loginFacade.waitForLogin()
-                val userGroupInfo = api.loadListElementEntity<GroupInfo>(user.userGroup.groupInfo)
-                val mailGroupMembership =
-                    user.memberships.first { it.groupType == GroupType.Mail.value }
-                val mailGroup = api.loadElementEntity<Group>(mailGroupMembership.group)
-                enabledMailAddresses.postValue(
-                    mailFacade.getEnabledMailAddresses(
-                        user,
-                        userGroupInfo,
-                        mailGroup
-                    )
-                )
+                val mailAddresses = userController.getEnabledMailAddresses()
+                val defaultMailAddress = userController.getProps().defaultSender
+
+                val sortedAddresses =
+                    if (defaultMailAddress != null && defaultMailAddress in mailAddresses) {
+                        listOf(defaultMailAddress) + (mailAddresses - defaultMailAddress)
+                    } else mailAddresses
+                enabledMailAddresses.postValue(sortedAddresses)
             } catch (e: Exception) {
                 Log.d("ComposeVM", "Failed to load enabled mail addresses $e")
             }
@@ -87,7 +84,31 @@ class ComposeViewModel : ViewModel() {
         subject: String,
         body: String,
         senderAddress: String
-    ): Boolean {
+    ) {
+        mailSender.send(
+            loginFacade.user!!,
+            prepareLocalDraft(subject, body, senderAddress, resolveRemaining = true)
+        )
+    }
+
+
+    suspend fun saveDraft(
+        subject: String,
+        body: String,
+        senderAddress: String
+    ) {
+        mailSender.save(
+            loginFacade.user!!,
+            prepareLocalDraft(subject, body, senderAddress, resolveRemaining = false)
+        )
+    }
+
+    private suspend fun prepareLocalDraft(
+        subject: String,
+        body: String,
+        senderAddress: String,
+        resolveRemaining: Boolean
+    ): LocalDraftEntity {
         val recipientTypes = this.recipientTypes.value
         val to = toRecipients.value.map {
             RecipientInfo("", it, recipientTypes.getOrDefault(it, RecipientType.UNKNOWN))
@@ -99,12 +120,11 @@ class ComposeViewModel : ViewModel() {
             RecipientInfo("", it, recipientTypes.getOrDefault(it, RecipientType.UNKNOWN))
         }
         val recipients = to + cc + bcc
-        if (recipients.isEmpty()) {
-            return false
-        }
 
-        this.recipientTypes.postValue(resolveRemainingRecipients(recipients, recipientTypes))
-        val localDraft = LocalDraftEntity(
+        if (resolveRemaining) {
+            this.recipientTypes.postValue(resolveRemainingRecipients(recipients, recipientTypes))
+        }
+        return LocalDraftEntity(
             localDraftId,
             loginFacade.user!!._id.asString(),
             subject,
@@ -122,8 +142,6 @@ class ComposeViewModel : ViewModel() {
             files = attachments.value,
             previousMail = previousMail
         )
-        mailSender.send(loginFacade.user!!, localDraft)
-        return true
     }
 
     private suspend fun resolveRemainingRecipients(

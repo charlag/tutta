@@ -116,6 +116,22 @@ class ComposeActivity : AppCompatActivity() {
         }
     }
 
+    override fun onBackPressed() {
+        onBeforeFinish()
+    }
+
+    private fun onBeforeFinish() {
+        lifecycleScope.launch {
+            Toast.makeText(this@ComposeActivity, "Saving draft", Toast.LENGTH_SHORT).show()
+            viewModel.saveDraft(
+                subjectField.text.toString(),
+                contentField.text.toString(),
+                fromSpinner.selectedItem as String
+            )
+            finish()
+        }
+    }
+
     private fun initWithLocalDraft(localDraftId: Long) {
         lifecycleScope.launch {
             val localDraft = viewModel.initWIthLocalDraftId(localDraftId) ?: return@launch
@@ -141,7 +157,6 @@ class ComposeActivity : AppCompatActivity() {
         }
     }
 
-
     private fun expandRecipients() {
         ccTextView.isVisible = true
         ccField.isVisible = true
@@ -153,7 +168,7 @@ class ComposeActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
-            finish()
+            onBeforeFinish()
             return true
         }
         return super.onOptionsItemSelected(item)
@@ -194,16 +209,11 @@ class ComposeActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val didSend = viewModel.send(
+                viewModel.send(
                     subjectField.text.toString(),
                     contentField.text.toString(),
                     fromSpinner.selectedItem as String
                 )
-                if (didSend) {
-                    Toast.makeText(activity, "Sent", Toast.LENGTH_SHORT).show()
-                    finish()
-                }
-
             } catch (e: Exception) {
                 Log.e("Compose", "error", e)
                 Toast.makeText(activity, "Error $e", Toast.LENGTH_SHORT).show()

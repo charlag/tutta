@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.charlag.tuta.compose.MailSender
 import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
+import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.events.EntityEventListener
 import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.network.API
@@ -58,6 +59,7 @@ object DependencyDump {
     private lateinit var eventListener: EntityEventListener
     lateinit var fileHandler: FileHandler
     lateinit var mailSender: MailSender
+    val userController = UserController(api, loginFacade, mailFacade)
 
     private var _hasLoggedin = false
     val hasLoggedIn: Boolean
