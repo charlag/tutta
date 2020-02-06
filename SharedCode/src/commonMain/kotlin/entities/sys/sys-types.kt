@@ -502,7 +502,7 @@ data class UserDataDelete(
 @Serializable
 data class PublicKeyData(
     val mailAddress: String
-): Entity()
+) : Entity()
 
 @Serializable
 data class PublicKeyReturn(
@@ -655,7 +655,7 @@ data class SecondFactorAuthData(
 
     val u2f: U2fResponseData?,
     val session: IdTuple?
-)
+) : Entity()
 
 @Serializable
 data class SecondFactorAuthAllowedReturn(
@@ -1229,12 +1229,12 @@ data class U2fResponseData(
 @Serializable
 data class SecondFactorAuthGetData(
     val accessToken: String
-)
+) : Entity()
 
 @Serializable
 data class SecondFactorAuthGetReturn(
     val secondFactorPending: Boolean
-)
+) : Entity()
 
 @Serializable
 data class OtpChallenge(

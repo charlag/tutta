@@ -1,16 +1,21 @@
 package com.charlag.tuta
 
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.charlag.tuta.entities.GeneratedId
+import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_login.*
 import kotlinx.coroutines.*
 import java.io.IOException
@@ -52,7 +57,42 @@ class LoginActivity : AppCompatActivity() {
                         DependencyDump.loginFacade.createSession(
                             mailAddress,
                             password
-                        )
+                        ) { sessionId ->
+                            loginButton.post {
+                                val field = EditText(this@LoginActivity).apply {
+                                    hint = "TOTP code"
+                                }
+                                val dialog = AlertDialog.Builder(this@LoginActivity)
+                                    .setView(field)
+                                    .setPositiveButton(android.R.string.ok, null)
+                                    .show()
+                                val okButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+                                okButton.setOnClickListener {
+                                    val totpCode = field.text.toString().toLong()
+                                    lifecycleScope.launch {
+                                        try {
+                                            DependencyDump.loginFacade.submitTOTPLogin(
+                                                sessionId,
+                                                totpCode
+                                            )
+                                            dialog.dismiss()
+                                        } catch (e: ClientRequestException) {
+                                            Log.d("Login", "TOTP request failed $e")
+                                            Toast.makeText(
+                                                this@LoginActivity,
+                                                "TOTP didn't match",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                }
+                                field.doAfterTextChanged {
+                                    okButton.isEnabled = field.text.length >= 6 &&
+                                            field.text.toString().toLongOrNull() != null
+                                }
+                            }
+
+                        }
                     }
 
                     withContext(Dispatchers.Main) {

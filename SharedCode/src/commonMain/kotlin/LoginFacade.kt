@@ -6,8 +6,10 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.network.API
 import com.charlag.tuta.network.GroupKeysCache
+import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.CompletableDeferred
+import kotlin.Exception
 
 data class SessionData(
     val user: User,
@@ -38,7 +40,11 @@ class LoginFacade(
         return bytes.toBase64().let(::base64ToBase64Url)
     }
 
-    suspend fun createSession(mailAddress: String, passphrase: String): SessionData {
+    suspend fun createSession(
+        mailAddress: String,
+        passphrase: String,
+        onSecondFactorPending: (sessionId: IdTuple) -> Unit
+    ): SessionData {
         val (salt) = getSalt(mailAddress)
 
         val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
@@ -52,6 +58,27 @@ class LoginFacade(
             "sys", "sessionService", HttpMethod.Post, postData,
             CreateSessionReturn::class
         )
+        if (sessionReturn.challenges.isNotEmpty()) {
+            onSecondFactorPending(getSessionId(sessionReturn.accessToken))
+            for (i in 0..10) {
+                try {
+                    val authGetReturn = api.serviceRequest(
+                        "sys",
+                        "secondfactorauthservice",
+                        HttpMethod.Get,
+                        SecondFactorAuthGetData(accessToken = sessionReturn.accessToken),
+                        SecondFactorAuthGetReturn::class
+                    )
+                    if (authGetReturn.secondFactorPending) {
+                        continue
+                    }
+                } catch (e: Exception) {
+                    if (e is ClientRequestException) {
+                        throw e
+                    }
+                }
+            }
+        }
         api.accessToken = sessionReturn.accessToken
         val user = api.loadElementEntity<User>(sessionReturn.user)
         groupKeysCache.user = user
@@ -60,6 +87,17 @@ class LoginFacade(
         _user = user
         _loggedIn.complete(user)
         return SessionData(user, getSessionId(sessionReturn.accessToken), sessionReturn.accessToken)
+    }
+
+    suspend fun submitTOTPLogin(sessionId: IdTuple, code: Long) {
+        api.serviceRequestVoid(
+            "sys", "secondfactorauthservice", HttpMethod.Post, SecondFactorAuthData(
+                otpCode = code,
+                type = SecondFactorType.TOTP.raw,
+                session = sessionId,
+                u2f = null
+            )
+        )
     }
 
     suspend fun resumeSession(
@@ -107,4 +145,8 @@ class LoginFacade(
         )
     }
 
+    private enum class SecondFactorType(val raw: Long) {
+        U2F(0),
+        TOTP(1)
+    }
 }
