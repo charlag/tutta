@@ -92,15 +92,22 @@ class ComposeViewModel : ViewModel() {
     }
 
 
+    /**
+     * @return true if saving, false if nothing to save
+     */
     suspend fun saveDraft(
         subject: String,
         body: String,
         senderAddress: String
-    ) {
+    ): Boolean {
+        if (subject.isEmpty() && body.isEmpty() && attachments.value.isEmpty()) {
+            return false
+        }
         mailSender.save(
             loginFacade.user!!,
             prepareLocalDraft(subject, body, senderAddress, resolveRemaining = false)
         )
+        return true
     }
 
     private suspend fun prepareLocalDraft(

@@ -122,12 +122,13 @@ class ComposeActivity : AppCompatActivity() {
 
     private fun onBeforeFinish() {
         lifecycleScope.launch {
-            Toast.makeText(this@ComposeActivity, "Saving draft", Toast.LENGTH_SHORT).show()
-            viewModel.saveDraft(
+            if (viewModel.saveDraft(
                 subjectField.text.toString(),
                 contentField.text.toString(),
                 fromSpinner.selectedItem as String
-            )
+            )) {
+                Toast.makeText(this@ComposeActivity, "Saving draft", Toast.LENGTH_SHORT).show()
+            }
             finish()
         }
     }
