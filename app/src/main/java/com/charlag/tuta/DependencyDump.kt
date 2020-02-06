@@ -8,6 +8,10 @@ import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.events.EntityEventListener
 import com.charlag.tuta.files.FileHandler
+import com.charlag.tuta.network.API
+import com.charlag.tuta.network.GroupKeysCache
+import com.charlag.tuta.network.InstanceMapper
+import com.charlag.tuta.network.SessionKeyResolver
 import io.ktor.client.features.logging.LogLevel
 import io.ktor.client.features.logging.Logger
 import io.ktor.client.features.logging.Logging
@@ -15,6 +19,7 @@ import io.ktor.client.features.websocket.WebSockets
 import io.ktor.util.KtorExperimentalAPI
 import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
+import java.security.KeyRep
 
 object DependencyDump {
     var credentials: Credentials? = null
@@ -33,19 +38,21 @@ object DependencyDump {
         install(WebSockets)
     }
     val compressor = Compressor()
+    val instanceMapper = InstanceMapper(cryptor, compressor, typemodelMap)
+    val keyResolver = SessionKeyResolver(cryptor, groupKeysCache)
 
     val api = API(
         httpClient, "https://mail.tutanota.com/rest/",
         cryptor,
-        typemodelMap,
-        compressor,
+        instanceMapper,
         groupKeysCache,
+        keyResolver,
         accessToken = null,
         wsUrl = "wss://mail.tutanota.com/event"
     )
     val loginFacade = LoginFacade(cryptor, api, groupKeysCache)
-    val mailFacade = MailFacade(api, cryptor)
-    val fileFacade = FileFacade(api, cryptor)
+    val mailFacade = MailFacade(api, cryptor, keyResolver)
+    val fileFacade = FileFacade(api, cryptor, keyResolver)
     lateinit var db: AppDatabase
     lateinit var contactRepository: ContactsRepository
     private lateinit var eventListener: EntityEventListener

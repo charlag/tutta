@@ -3,6 +3,8 @@ package com.charlag.tuta
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.*
+import com.charlag.tuta.network.API
+import com.charlag.tuta.network.SessionKeyResolver
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -27,7 +29,10 @@ enum class RecipientType(val raw: Int) {
 @Serializable
 data class RecipientInfo(val name: String, val mailAddress: String, val type: RecipientType)
 
-class MailFacade(val api: API, val cryptor: Cryptor) {
+class MailFacade(
+    private val api: API,
+    private val cryptor: Cryptor,
+    private val keyResolver: SessionKeyResolver) {
 
     suspend fun createDraft(
         user: User,
@@ -119,7 +124,7 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
         // Skipping attachments for now
         val mailTypeModel = typemodelMap.getValue(Mail::class.noReflectionName).typemodel
         // Get the current session key of the email. Should be just _ownerEncSessionKey.
-        val resolvedMailKey = api.resolveSessionKey(
+        val resolvedMailKey = keyResolver.resolveSessionKey(
             mailTypeModel,
             draft._ownerEncSessionKey,
             draft._ownerGroup?.asString(),
@@ -148,7 +153,7 @@ class MailFacade(val api: API, val cryptor: Cryptor) {
 
         val attachmentKeyData = draft.attachments.map { fileId ->
             val file = api.loadListElementEntity<File>(fileId)
-            val fileSessionKey = api.resolveSessionKey(
+            val fileSessionKey = keyResolver.resolveSessionKey(
                 typemodelMap.getValue(File::class.noReflectionName).typemodel,
                 file._ownerEncSessionKey,
                 file._ownerGroup?.asString(),

@@ -3,10 +3,10 @@ package com.charlag.tuta
 import com.charlag.tuta.entities.GENERATED_ID_BYTES_LENGTH
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
-import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.sys.Session
-import com.charlag.tuta.entities.sys.User
-import io.ktor.utils.io.core.toByteArray
+import com.charlag.tuta.entities.sys.*
+import com.charlag.tuta.network.API
+import com.charlag.tuta.network.GroupKeysCache
+import io.ktor.http.HttpMethod
 import kotlinx.coroutines.CompletableDeferred
 
 data class SessionData(
@@ -39,11 +39,19 @@ class LoginFacade(
     }
 
     suspend fun createSession(mailAddress: String, passphrase: String): SessionData {
-        val (salt) = api.getSalt(mailAddress)
+        val (salt) = getSalt(mailAddress)
 
         val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
         val authVerifier = createAuthVerifierAsBase64Url(cryptor, passphraseKey)
-        val sessionReturn = api.createSession(mailAddress, authVerifier)
+        val postData = CreateSessionData(
+            mailAddress = mailAddress,
+            authVerifier = authVerifier,
+            clientIdentifier = "Multiplatform test"
+        )
+        val sessionReturn = api.serviceRequest(
+            "sys", "sessionService", HttpMethod.Post, postData,
+            CreateSessionReturn::class
+        )
         api.accessToken = sessionReturn.accessToken
         val user = api.loadElementEntity<User>(sessionReturn.user)
         groupKeysCache.user = user
@@ -60,7 +68,7 @@ class LoginFacade(
         accessToken: String,
         passphrase: String
     ) {
-        val (salt) = api.getSalt(mailAddress)
+        val (salt) = getSalt(mailAddress)
 
         val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
         api.accessToken = accessToken
@@ -91,4 +99,12 @@ class LoginFacade(
             .let(::GeneratedId)
         return IdTuple(listId, elementId)
     }
+
+    private suspend fun getSalt(mailAddress: String): SaltReturn {
+        return api.serviceRequest(
+            "sys", "saltservice", HttpMethod.Get, SaltData(mailAddress),
+            SaltReturn::class
+        )
+    }
+
 }

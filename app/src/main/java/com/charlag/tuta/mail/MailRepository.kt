@@ -1,6 +1,6 @@
 package com.charlag.tuta.mail
 
-import com.charlag.tuta.API
+import com.charlag.tuta.network.API
 import com.charlag.tuta.data.MailBodyEntity
 import com.charlag.tuta.data.MailDao
 import com.charlag.tuta.entities.Id

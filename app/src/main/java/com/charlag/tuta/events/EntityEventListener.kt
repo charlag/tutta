@@ -2,7 +2,7 @@ package com.charlag.tuta.events
 
 import android.content.Context
 import android.util.Log
-import com.charlag.tuta.API
+import com.charlag.tuta.network.API
 import com.charlag.tuta.GroupType
 import com.charlag.tuta.LoginFacade
 import com.charlag.tuta.contacts.ContactsRepository
@@ -134,16 +134,16 @@ class EntityEventListener(
         }
     }
 
-    private suspend fun downloadAndInsert(
-        typeInfo: TypeInfo<*>,
+    private suspend fun <T : Entity> downloadAndInsert(
+        typeInfo: TypeInfo<T>,
         entityUpdate: EntityUpdate
     ) {
-        @Suppress("UNCHECKED_CAST")
-        val klass = typeInfo.klass as KClass<out Entity>
+        val klass = typeInfo.klass
         val downloaded = try {
             if (typeInfo.typemodel.type == MetamodelType.LIST_ELEMENT_TYPE) {
+                @Suppress("UNCHECKED_CAST")
                 api.loadListElementEntity(
-                    klass,
+                    klass as KClass<out ListElementEntity>,
                     IdTuple(
                         GeneratedId(entityUpdate.instanceListId),
                         GeneratedId(entityUpdate.instanceId)

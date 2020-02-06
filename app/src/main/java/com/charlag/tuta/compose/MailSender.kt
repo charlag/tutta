@@ -1,7 +1,7 @@
 package com.charlag.tuta.compose
 
 import android.util.Log
-import com.charlag.tuta.API
+import com.charlag.tuta.network.API
 import com.charlag.tuta.LocalNotificationManager
 import com.charlag.tuta.MailFacade
 import com.charlag.tuta.data.AppDatabase

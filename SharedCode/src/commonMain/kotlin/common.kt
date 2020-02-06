@@ -1,5 +1,6 @@
 package com.charlag.tuta
 
+import com.charlag.tuta.entities.Entity
 import com.charlag.tuta.entities.TypeInfo
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
@@ -34,7 +35,7 @@ inline fun makeHttpClient(
     additionalConfig()
 }
 
-val typemodelMap: Map<String, TypeInfo<*>> by lazy {
+val typemodelMap: Map<String, TypeInfo<out Entity>> by lazy {
     val typeModelMap = mutableMapOf<String, TypeInfo<*>>()
     // TODO: improve lookup so that names cannot collide
     for (typeInfo in com.charlag.tuta.entities.sys.typeInfos) {
@@ -43,5 +44,6 @@ val typemodelMap: Map<String, TypeInfo<*>> by lazy {
     for (typeInfo in com.charlag.tuta.entities.tutanota.typeInfos) {
         typeModelMap[typeInfo.typemodel.name] = typeInfo
     }
-    typeModelMap
+    @Suppress("UNCHECKED_CAST") // we can remove it when we generate everything as Entity
+    typeModelMap as Map<String, TypeInfo<out Entity>>
 }

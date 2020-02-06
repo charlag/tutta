@@ -1,7 +1,7 @@
 package com.charlag.tuta.contacts
 
 import androidx.paging.DataSource
-import com.charlag.tuta.API
+import com.charlag.tuta.network.API
 import com.charlag.tuta.LoginFacade
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.data.ContactEntity

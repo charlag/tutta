@@ -5,6 +5,8 @@ import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.entities.tutanota.FileDataDataGet
 import com.charlag.tuta.entities.tutanota.FileDataDataPost
 import com.charlag.tuta.entities.tutanota.FileDataReturnPost
+import com.charlag.tuta.network.API
+import com.charlag.tuta.network.SessionKeyResolver
 import io.ktor.http.HttpMethod
 
 data class DataFile(
@@ -15,10 +17,11 @@ data class DataFile(
 
 class FileFacade(
     private val api: API,
-    private val cryptor: Cryptor
+    private val cryptor: Cryptor,
+    private val keyResolver: SessionKeyResolver
 ) {
     suspend fun downloadFile(file: File): DataFile {
-        val sessionKey = api.resolveSessionKey(
+        val sessionKey = keyResolver.resolveSessionKey(
             typemodelMap.getValue(File::class.noReflectionName).typemodel,
             file._ownerEncSessionKey,
             file._ownerGroup?.asString(),
