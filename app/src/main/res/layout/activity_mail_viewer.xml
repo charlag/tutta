@@ -39,7 +39,7 @@
                     android:text="Subject"
                     android:textSize="24sp"
                     app:layout_constraintLeft_toLeftOf="parent"
-                    app:layout_constraintRight_toLeftOf="@id/replyButton"
+                    app:layout_constraintRight_toRightOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
@@ -56,26 +56,25 @@
                     android:id="@+id/senderAddressView"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginLeft="8dp"
                     android:layout_marginRight="16dp"
                     android:alpha="0.8"
-                    app:layout_constraintLeft_toRightOf="@id/senderNameView"
+                    app:layout_constraintLeft_toLeftOf="@id/senderNameView"
                     app:layout_constraintRight_toLeftOf="@id/replyButton"
-                    app:layout_constraintTop_toTopOf="@id/senderNameView"
+                    app:layout_constraintTop_toBottomOf="@id/senderNameView"
                     app:layout_goneMarginLeft="16dp"
                     tools:text="sender@test.com" />
 
             <ImageButton
                     android:id="@+id/replyButton"
                     android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_height="36dp"
                     android:layout_marginLeft="16dp"
                     android:layout_marginRight="16dp"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/ic_reply_black_24dp"
                     android:tint="@color/grey_30"
                     app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toTopOf="@id/subjectView" />
+                    app:layout_constraintTop_toTopOf="@id/senderNameView" />
 
 
             <FrameLayout

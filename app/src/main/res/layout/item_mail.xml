@@ -14,15 +14,15 @@
             android:layout_height="wrap_content"
             android:src="@drawable/shape_unread"
             app:layout_constraintBottom_toBottomOf="@id/sender"
-            app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toLeftOf="@id/sender"
-            app:layout_constraintTop_toTopOf="@id/sender" />
+            app:layout_constraintTop_toTopOf="@id/sender"
+            android:layout_marginRight="4dp"/>
 
     <TextView
             android:id="@+id/sender"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="16dp"
+            android:layout_marginLeft="26dp"
             android:layout_marginRight="4dp"
             android:singleLine="true"
             android:textSize="14dp"
@@ -71,7 +71,7 @@
             android:id="@+id/subject"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="16dp"
+            android:layout_marginLeft="26dp"
             android:layout_marginRight="16dp"
             android:singleLine="true"
             android:textSize="16dp"

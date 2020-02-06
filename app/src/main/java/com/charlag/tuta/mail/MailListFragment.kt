@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.switchMap
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.charlag.tuta.MainActivity
 import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
@@ -83,6 +84,7 @@ class MailListFragment : Fragment() {
         recycler.layoutManager = LinearLayoutManager(activity)
         recycler.adapter = adapter
         recycler.setHasFixedSize(true)
+        (recycler.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
 
         val emptyDrawable = view.context.getDrawable(R.drawable.ic_inbox_black_24dp)!!
         val emptyDrawableSize = (60 * view.context.resources.displayMetrics.density).toInt()
