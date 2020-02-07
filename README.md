@@ -52,28 +52,28 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Contact autocomplete from Tutanota
  - [x] Mail counters
  - [x] Some real-time updates (mail/counter/contact/folder)
- - [] Notifications
- - [] Forwarding mails
- - [] Login experience improvements
- - [] Editing drafts
- - [] Viewing inline images
- - [] Icon and name
- - [] Settings
- - [] Displaying contact details
- - [] Contact autocomplete from system
- - [] Remembering external content exceptions
- - [] Permanently deleting mails
- - [] Mail swipe actions
- - [] Additional mail details (recipients, sender, date)
- - [] Warnings for technical sender
- - [] Updating permissions/mail body session key cache
- - [] Websocket connection follows screen activity
- - [] Dependency injection
- - [] Multi-user support
- - [] Mail threads
- - [] Saving password without biometrics
- - [] Full-text search
- - [] Sharing contacts with system?
+ - [ ] Notifications
+ - [ ] Forwarding mails
+ - [ ] Login experience improvements
+ - [ ] Editing drafts
+ - [ ] Viewing inline images
+ - [ ] Icon and name
+ - [ ] Settings
+ - [ ] Displaying contact details
+ - [ ] Contact autocomplete from system
+ - [ ] Remembering external content exceptions
+ - [ ] Permanently deleting mails
+ - [ ] Mail swipe actions
+ - [ ] Additional mail details (recipients, sender, date)
+ - [ ] Warnings for technical sender
+ - [ ] Updating permissions/mail body session key cache
+ - [ ] Websocket connection follows screen activity
+ - [ ] Dependency injection
+ - [ ] Multi-user support
+ - [ ] Mail threads
+ - [ ] Saving password without biometrics
+ - [ ] Full-text search
+ - [ ] Sharing contacts with system?
 
 ## License
 GPL-3.0-or-later of course
