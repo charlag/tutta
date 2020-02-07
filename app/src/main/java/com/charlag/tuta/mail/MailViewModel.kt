@@ -18,6 +18,7 @@ import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.map
 import io.ktor.client.features.ResponseException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -63,34 +64,46 @@ class MailViewModel : ViewModel() {
         selectedFolderId.value = folderId
     }
 
+    private suspend fun loadMailsFromNetwork(listId: Id, startId: Id): List<MailEntity> {
+        return api.loadRange(
+            Mail::class,
+            listId,
+            startId,
+            MAIL_LOAD_PAGE,
+            true
+        ).map { it.toEntity() }
+    }
+
     fun loadMails(folder: MailFolderEntity): LiveData<PagedList<MailEntity>> {
+        val singleTopHelper = SingleOperationHelper(viewModelScope)
+        val singleBottomHelper = SingleOperationHelper(viewModelScope)
         return mailDao.getMailsLiveData(folder.mails.asString())
             .toLiveData(
                 pageSize = 40,
                 boundaryCallback = object : PagedList.BoundaryCallback<MailEntity>() {
                     override fun onZeroItemsLoaded() {
                         Log.d("MailViewModel", "onZeroItems")
-                        viewModelScope.launch {
+                        singleTopHelper.execute {
                             loginFacade.waitForLogin()
-                            val mails =
-                                api.loadRange(Mail::class, folder.mails, GENERATED_MAX_ID, 40, true)
-                                    .map { it.toEntity() }
+                            val mails = loadMailsFromNetwork(folder.mails, GENERATED_MAX_ID)
                             Log.d("MailViewModel", "onZeroItems fetched")
+                            if (mails.isEmpty()) {
+                                singleTopHelper.setExhausted()
+                            }
                             mailDao.insertMails(mails)
                         }
                     }
 
                     override fun onItemAtEndLoaded(itemAtEnd: MailEntity) {
                         Log.d("MailViewModel", "onItemAtEndLoaded")
-                        viewModelScope.launch {
+                        singleBottomHelper.execute {
                             loginFacade.waitForLogin()
                             val mails =
-                                api.loadRange(
-                                    Mail::class, folder.mails, GeneratedId(itemAtEnd.id),
-                                    40, true
-                                )
-                                    .map { it.toEntity() }
+                                loadMailsFromNetwork(folder.mails, GeneratedId(itemAtEnd.id))
                             Log.d("MailViewModel", "onItemAtEndLoaded fetched")
+                            if (mails.isEmpty()) {
+                                singleBottomHelper.setExhausted()
+                            }
                             mailDao.insertMails(mails)
                         }
                     }
@@ -230,5 +243,33 @@ class MailViewModel : ViewModel() {
                 leftOrder.compareTo(rightOrder)
             }
         })
+    }
+
+    companion object {
+        private const val MAIL_LOAD_PAGE = 40
+    }
+}
+
+private class SingleOperationHelper(
+    private val coroutineScope: CoroutineScope
+) {
+    private var loading = false
+    private var exhausted = false
+
+    fun setExhausted() {
+        exhausted = true
+    }
+
+    inline fun execute(crossinline operation: suspend () -> Unit) {
+        coroutineScope.launch {
+            if (!exhausted && !loading) {
+                loading = true
+                try {
+                    operation()
+                } finally {
+                    loading = false
+                }
+            }
+        }
     }
 }
