@@ -40,11 +40,11 @@ interface MailDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFolder(folder: MailFolderEntity)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFolders(folders: List<MailFolderEntity>)
 
-    @Query("SELECT * FROM MailFolderEntity")
-    fun getFoldersLiveData(): LiveData<List<MailFolderEntity>>
+    @Query("SELECT * FROM MailFolderEntity LEFT OUTER JOIN MailFolderCounterEntity ON MailFolderEntity.mails = MailFolderCounterEntity.mailListId")
+    fun getFoldersLiveData(): LiveData<List<MailFolderWithCounter>>
 
     @Query("DELETE FROM MailFolderEntity WHERE id = :id")
     suspend fun deleteFolder(id: String)
@@ -66,4 +66,7 @@ interface MailDao {
 
     @Delete
     suspend fun deleteLocalDraft(localDraft: LocalDraftEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFolderCounter(folderCounterEntity: MailFolderCounterEntity)
 }

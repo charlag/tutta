@@ -7,6 +7,7 @@ import com.charlag.tuta.GroupType
 import com.charlag.tuta.LoginFacade
 import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
+import com.charlag.tuta.data.MailFolderCounterEntity
 import com.charlag.tuta.data.toEntity
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.sys.*
@@ -48,6 +49,11 @@ class EntityEventListener(
             // Start consuming events right away so that we don't miss any
             val realtimeEvents =
                 api.getEvents(userId = user._id.asString()).consumeAsFlow()
+                    .onEach { update ->
+                        if (update is API.WSEvent.CounterUpdate) {
+                            processCounterUpdate(update)
+                        }
+                    }
                     .filterIsInstance<API.WSEvent.EntityUpdate>()
             try {
                 loadMissedEvents(user)
@@ -78,6 +84,21 @@ class EntityEventListener(
                 delay(TimeUnit.SECONDS.toMillis(90))
             }
             reconnect(user)
+        }
+    }
+
+    private suspend fun processCounterUpdate(update: API.WSEvent.CounterUpdate) {
+        for (counterValue in update.counterData.counterValues) {
+            try {
+                db.mailDao().insertFolderCounter(
+                    MailFolderCounterEntity(
+                        counterValue.mailListId.asString(),
+                        counterValue.count
+                    )
+                )
+            } catch (e: Exception) {
+                Log.d(TAG, "Inserting counter failed $e")
+            }
         }
     }
 

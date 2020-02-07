@@ -46,7 +46,9 @@ fun main(args: Array<String>) {
                     accessToken = null,
                     wsUrl = "wss://mail.tutanota.com/events"
                 )
-                LoginFacade(cryptor, api, groupKeysCache).createSession(email, password)
+                LoginFacade(cryptor, api, groupKeysCache).createSession(email, password) {
+                    TODO()
+                }
             }
 
             withContext(Dispatchers.Main) {

@@ -56,7 +56,7 @@ object DependencyDump {
     val fileFacade = FileFacade(api, cryptor, keyResolver)
     lateinit var db: AppDatabase
     lateinit var contactRepository: ContactsRepository
-    private lateinit var eventListener: EntityEventListener
+    lateinit var eventListener: EntityEventListener
     lateinit var fileHandler: FileHandler
     lateinit var mailSender: MailSender
     val userController = UserController(api, loginFacade, mailFacade)

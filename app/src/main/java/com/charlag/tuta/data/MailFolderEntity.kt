@@ -1,5 +1,6 @@
 package com.charlag.tuta.data
 
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.charlag.tuta.entities.Id
@@ -12,4 +13,10 @@ data class MailFolderEntity(
     val folderType: Long,
     val name: String,
     val mails: Id
+)
+
+data class MailFolderWithCounter(
+    @Embedded
+    val folder: MailFolderEntity,
+    val counter: Long
 )

@@ -8,9 +8,9 @@ import com.charlag.tuta.compose.LocalDraftEntity
 @Database(
     entities = [
         MailEntity::class, MailFolderEntity::class, MailBodyEntity::class,
-        ContactEntity::class, LocalDraftEntity::class
+        ContactEntity::class, LocalDraftEntity::class, MailFolderCounterEntity::class
     ],
-    version = 5
+    version = 6
 )
 @TypeConverters(TutanotaConverters::class, DateConverter::class)
 abstract class AppDatabase : RoomDatabase() {

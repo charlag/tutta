@@ -11,10 +11,12 @@ import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.charlag.tuta.contacts.ContactsActivity
 import com.charlag.tuta.data.MailFolderEntity
+import com.charlag.tuta.data.MailFolderWithCounter
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.mail.MailListFragment
@@ -22,6 +24,7 @@ import com.charlag.tuta.mail.MailViewModel
 import com.charlag.tuta.settings.SettingsActivity
 import com.charlag.tuta.util.withLifecycleContext
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.item_folder.view.*
 import kotlinx.android.synthetic.main.mail_menu.*
 
 class MainActivity : AppCompatActivity() {
@@ -29,8 +32,8 @@ class MainActivity : AppCompatActivity() {
     private val foldersAdapter = MailFoldersAdapter { selectedFolder ->
         viewModel.selectFolder(
             IdTuple(
-                GeneratedId(selectedFolder.listId),
-                GeneratedId(selectedFolder.id)
+                GeneratedId(selectedFolder.folder.listId),
+                GeneratedId(selectedFolder.folder.id)
             )
         )
         drawerLayout.closeDrawer(navigationView)
@@ -79,10 +82,10 @@ class MainActivity : AppCompatActivity() {
 }
 
 class MailFoldersAdapter(
-    private val onFolderSelected: (MailFolderEntity) -> Unit
+    private val onFolderSelected: (MailFolderWithCounter) -> Unit
 ) : RecyclerView.Adapter<MailFoldersAdapter.ViewHolder>() {
 
-    val folders = mutableListOf<MailFolderEntity>()
+    val folders = mutableListOf<MailFolderWithCounter>()
     var selectedFolder: IdTuple? = null
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -107,17 +110,23 @@ class MailFoldersAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val folder = folders[position]
-        val isSelectedFolder = folder.id == selectedFolder?.elementId?.asString()
+        val isSelectedFolder = folder.folder.id == selectedFolder?.elementId?.asString()
         val contentColor = holder.itemView.context.getColor(
             if (isSelectedFolder) R.color.colorAccent else R.color.grey_30
         )
         val bgId = if (isSelectedFolder) R.drawable.selected_mail_bg
         else android.R.color.transparent
-        holder.folderName.text = getFolderName(folder)
-        holder.foldericon.setImageResource(getFolderIcon(folder))
+        holder.folderName.text = getFolderName(folder.folder)
+        holder.foldericon.setImageResource(getFolderIcon(folder.folder))
         holder.folderName.setTextColor(contentColor)
         holder.foldericon.imageTintList = ColorStateList.valueOf(contentColor)
         holder.itemView.setBackgroundResource(bgId)
+        if (folder.counter > 0) {
+            holder.itemView.counterLabel.isVisible = true
+            holder.itemView.counterLabel.text = folder.counter.toString()
+        } else {
+            holder.itemView.counterLabel.isVisible = false
+        }
     }
 }
 

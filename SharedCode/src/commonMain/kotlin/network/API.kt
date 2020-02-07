@@ -252,7 +252,7 @@ class API(
 
     sealed class WSEvent {
         // TODO
-        object CounterUpdate : WSEvent()
+        data class CounterUpdate(val counterData: WebsocketCounterData) : WSEvent()
 
         data class EntityUpdate(val entityData: WebsocketEntityData) : WSEvent()
         data class Unknown(val data: ByteArray) : WSEvent()
@@ -284,7 +284,10 @@ class API(
                                 )
                             }
                             "unreadCounterUpdate" -> {
-                                WSEvent.CounterUpdate
+                                val jsonElement = json.parseJson(value).jsonObject
+                                val data =
+                                    deserializeEntitity(jsonElement, WebsocketCounterData::class)
+                                WSEvent.CounterUpdate(data)
                             }
                             else -> WSEvent.Unknown(
                                 frame.data

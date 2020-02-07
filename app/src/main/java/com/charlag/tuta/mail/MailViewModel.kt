@@ -31,7 +31,7 @@ class MailViewModel : ViewModel() {
     private val fileHandler: FileHandler = DependencyDump.fileHandler
 
     val selectedFolderId = MutableLiveData<IdTuple>()
-    val folders: LiveData<List<MailFolderEntity>>
+    val folders: LiveData<List<MailFolderWithCounter>>
     val selectedFolder: LiveData<MailFolderEntity?>
 
     init {
@@ -45,18 +45,18 @@ class MailViewModel : ViewModel() {
                     }
                 } else if (selectedFolderId.value == null) {
                     val selectedFolder =
-                        dbFolders.find { it.folderType == MailFolderType.INBOX.value }!!
+                        dbFolders.find { it.folder.folderType == MailFolderType.INBOX.value }!!
                     selectFolder(
                         IdTuple(
-                            GeneratedId(selectedFolder.listId),
-                            GeneratedId(selectedFolder.id)
+                            GeneratedId(selectedFolder.folder.listId),
+                            GeneratedId(selectedFolder.folder.id)
                         )
                     )
                 }
                 dbFolders
             }
         selectedFolder = combineLiveData(selectedFolderId, folders) { folderId, folders ->
-            folders.find { it.id == folderId.elementId.asString() }
+            folders.find { it.folder.id == folderId.elementId.asString() }?.folder
         }
     }
 
@@ -144,14 +144,14 @@ class MailViewModel : ViewModel() {
 
     suspend fun trash(ids: List<String>) {
         val folders = folders.value ?: return
-        val trashFolder = folders.find { it.folderType == MailFolderType.TRASH.value }!!
-        moveMails(ids, trashFolder)
+        val trashFolder = folders.find { it.folder.folderType == MailFolderType.TRASH.value }!!
+        moveMails(ids, trashFolder.folder)
     }
 
     suspend fun archive(ids: List<String>) {
         val folders = folders.value ?: return
-        val archiveFolder = folders.find { it.folderType == MailFolderType.ARCHIVE.value }!!
-        moveMails(ids, archiveFolder)
+        val archiveFolder = folders.find { it.folder.folderType == MailFolderType.ARCHIVE.value }!!
+        moveMails(ids, archiveFolder.folder)
     }
 
     suspend fun moveMails(ids: List<String>, targetFolder: MailFolderEntity) {
@@ -205,8 +205,6 @@ class MailViewModel : ViewModel() {
                 .map {
                     it.toEntity()
                 }
-                .let(::sortFolders)
-
         }
     }
 
@@ -233,12 +231,12 @@ class MailViewModel : ViewModel() {
         MailFolderType.CUSTOM.value to 7
     )
 
-    private fun sortFolders(folders: List<MailFolderEntity>): List<MailFolderEntity> {
+    private fun sortFolders(folders: List<MailFolderWithCounter>): List<MailFolderWithCounter> {
         return folders.sortedWith(Comparator { left, right ->
-            val leftOrder = mailFolderOrder.getValue(left.folderType)
-            val rightOrder = mailFolderOrder.getValue(right.folderType)
+            val leftOrder = mailFolderOrder.getValue(left.folder.folderType)
+            val rightOrder = mailFolderOrder.getValue(right.folder.folderType)
             if (leftOrder == rightOrder) {
-                left.name.compareTo(right.name)
+                left.folder.name.compareTo(right.folder.name)
             } else {
                 leftOrder.compareTo(rightOrder)
             }

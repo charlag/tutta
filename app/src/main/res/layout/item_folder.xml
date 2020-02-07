@@ -4,6 +4,7 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="?selectableItemBackground"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         tools:background="@drawable/selected_mail_bg">
 
@@ -11,21 +12,28 @@
             android:id="@+id/folderIcon"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_gravity="center_vertical"
             android:layout_marginLeft="16dp"
             android:src="@drawable/ic_send_black_24dp"
             android:tint="@color/grey_30" />
 
     <TextView
             android:id="@+id/folderName"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
             android:layout_marginLeft="32dp"
             android:layout_marginTop="8dp"
             android:layout_marginRight="16dp"
             android:layout_marginBottom="8dp"
+            android:layout_weight="1"
             android:textColor="@color/grey_30"
             android:textStyle="bold"
             tools:text="Test" />
+
+    <TextView
+            android:id="@+id/counterLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="4dp"
+            android:layout_marginRight="24dp"
+            tools:text="25" />
 </LinearLayout>

@@ -29,7 +29,7 @@ fun LifecycleOwner.trashMails(rootView: View, viewModel: MailViewModel, mails: L
 
 suspend fun LifecycleOwner.moveMails(rootView: View, viewModel: MailViewModel, ids: List<String>) {
     val currentFolder = viewModel.selectedFolderId.value?.elementId?.asString()
-    val folders = viewModel.folders.value?.filter { it.id != currentFolder }
+    val folders = viewModel.folders.value?.filter { it.folder.id != currentFolder }
         ?: return
     val deferred = CompletableDeferred<Unit>()
 
@@ -44,7 +44,7 @@ suspend fun LifecycleOwner.moveMails(rootView: View, viewModel: MailViewModel, i
 
     val adapter = MailFoldersAdapter { folder ->
         lifecycleScope.launch {
-            viewModel.moveMails(ids, folder)
+            viewModel.moveMails(ids, folder.folder)
             dialog.dismiss()
             rootView.showSnackbar("Moved ${ids.size} mail(s)")
             deferred.complete(Unit)
