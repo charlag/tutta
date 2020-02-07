@@ -70,10 +70,12 @@ class MailSender(
         else localDraft.id
 
     private suspend fun createRemoteDraft(user: User, localDraft: LocalDraftEntity): Mail {
+        val additionalContent = localDraft.replyContent?.let { "\n" + it } ?: ""
+        val body = localDraft.body + additionalContent
         return mailFacade.createDraft(
             user = user,
             subject = localDraft.subject,
-            body = localDraft.body,
+            body = body,
             senderAddress = localDraft.senderAddress,
             senderName = localDraft.senderName,
             toRecipients = localDraft.toRecipients,

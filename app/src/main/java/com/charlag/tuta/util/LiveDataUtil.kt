@@ -82,3 +82,12 @@ fun <A, B, R> combineOptionalLiveData(
     }
     return liveData
 }
+
+
+inline fun <T> MutableLiveData<T>.mutate(block: (T?) -> T) {
+    this.value = block(this.value)
+}
+
+inline fun <T> FilledMutableLiveData<T>.mutate(block: (T) -> T) {
+    this.value = block(this.value)
+}

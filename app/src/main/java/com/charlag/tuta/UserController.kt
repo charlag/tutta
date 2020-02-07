@@ -4,36 +4,35 @@ import com.charlag.tuta.entities.sys.Group
 import com.charlag.tuta.entities.sys.GroupInfo
 import com.charlag.tuta.entities.tutanota.TutanotaProperties
 import com.charlag.tuta.network.API
+import com.charlag.tuta.util.AsyncProvider
+import com.charlag.tuta.util.lazyAsync
 
 class UserController(
     private val api: API,
     private val loginFacade: LoginFacade,
     private val mailFacade: MailFacade
 ) {
-    private var props: TutanotaProperties? = null
-    suspend fun getProps(): TutanotaProperties {
-        return props
-            ?: api.loadRoot(
-                TutanotaProperties::class,
-                loginFacade.waitForLogin().userGroup.group
-            ).also {
-                this.props = it
-            }
+    val getUserGroupInfo = lazyAsync {
+        val user = loginFacade.waitForLogin()
+        api.loadListElementEntity<GroupInfo>(user.userGroup.groupInfo)
     }
 
-    private var enabledMailAddresses: List<String>? = null
-    suspend fun getEnabledMailAddresses(): List<String> {
+    val getProps: AsyncProvider<TutanotaProperties> = lazyAsync {
+        api.loadRoot(
+            TutanotaProperties::class,
+            loginFacade.waitForLogin().userGroup.group
+        )
+    }
+
+    val getEnabledMailAddresses: AsyncProvider<List<String>> = lazyAsync {
         val user = loginFacade.waitForLogin()
-        val userGroupInfo = api.loadListElementEntity<GroupInfo>(user.userGroup.groupInfo)
         val mailGroupMembership =
             user.memberships.first { it.groupType == GroupType.Mail.value }
         val mailGroup = api.loadElementEntity<Group>(mailGroupMembership.group)
-        return mailFacade.getEnabledMailAddresses(
+        mailFacade.getEnabledMailAddresses(
             user,
-            userGroupInfo,
+            getUserGroupInfo(),
             mailGroup
-        ).also {
-            this.enabledMailAddresses = it
-        }
+        )
     }
 }

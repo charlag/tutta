@@ -1,7 +1,5 @@
 package com.charlag.tuta.mail
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.Log
@@ -9,11 +7,7 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -21,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.BuildConfig
 import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
+import com.charlag.tuta.compose.ReplyInitData
 import com.charlag.tuta.entities.tutanota.File
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
@@ -31,7 +26,7 @@ class MailViewerFragment : Fragment() {
 
     private lateinit var unreadItem: MenuItem
     private lateinit var readItem: MenuItem
-    val viewModel: MailViewModel by activityViewModels()
+    private val viewModel: MailViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -45,52 +40,27 @@ class MailViewerFragment : Fragment() {
         if (BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
-        var blockingResources = true
-        var detectedExternalContent = false
         webView.settings.setSupportZoom(true)
         webView.settings.builtInZoomControls = true
         webView.settings.displayZoomControls = false
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(
-                view: WebView,
-                request: WebResourceRequest
-            ): WebResourceResponse? {
-                return if (blockingResources && request.url.scheme != "data") {
-                    if (!detectedExternalContent) {
-                        detectedExternalContent = true
-                        externalContentView.post {
-                            externalContentView.visibility = View.VISIBLE
-                        }
-                    }
-                    WebResourceResponse("text/html", "UTF-8", 403, "Blocked", null, null)
-                } else {
-                    null
+        val webViewClient = BlockingWebViewClient(context!!).apply {
+            onExternalContentDetected = {
+                externalContentView.post {
+                    externalContentView.visibility = View.VISIBLE
                 }
-            }
-
-            override fun shouldOverrideUrlLoading(
-                view: WebView,
-                request: WebResourceRequest
-            ): Boolean {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, request.url))
-                } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT)
-                        .show()
-                }
-                return true
             }
         }
+        webView.webViewClient = webViewClient
+
         externalContentView.setOnClickListener {
-            if (blockingResources) {
-                blockingResources = false
+            if (webViewClient.blockingResources) {
+                webViewClient.blockingResources = false
                 webView.reload()
                 loadExternalContentText.text = "Always load from this sender"
             } else {
                 // Second click
                 externalContentView.visibility = View.GONE
             }
-
         }
         toolbar.navigationIcon = view.context.getDrawable(R.drawable.ic_arrow_back_black_24dp)
         toolbar.setNavigationOnClickListener {
@@ -163,9 +133,14 @@ class MailViewerFragment : Fragment() {
         updateUnreadStatus(openedMail.unread)
 
         replyButton.setOnClickListener {
-            startActivity(Intent(activity, ComposeActivity::class.java).apply {
-                putExtra(ComposeActivity.REPLY_MAIL_ID, viewModel.openedMail.value!!.id)
-            })
+            val intent = ComposeActivity.intentForReply(
+                context!!, ReplyInitData(
+                    mailId = viewModel.openedMail.value!!.id,
+                    replyAll = false,
+                    loadExternalContent = !webViewClient.blockingResources
+                )
+            )
+            startActivity(intent)
         }
     }
 

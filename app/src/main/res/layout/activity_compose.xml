@@ -265,12 +265,32 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/subjectField" />
 
+            <View
+                    android:id="@+id/replyWebViewSeparator"
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginTop="4dp"
+                    android:background="@color/grey_30"
+                    android:visibility="gone"
+                    app:layout_constraintTop_toBottomOf="@id/contentField"
+                    tools:visibility="visible" />
+
+            <com.charlag.tuta.util.ZoomNestedWebView
+                    android:id="@+id/replyWebView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:visibility="gone"
+                    app:layout_constraintLeft_toLeftOf="@id/contentField"
+                    app:layout_constraintTop_toBottomOf="@id/replyWebViewSeparator"
+                    tools:visibility="visible" />
+
             <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/attachmentsRecycler"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/contentField" />
+                    app:layout_constraintTop_toBottomOf="@id/replyWebView" />
 
             <androidx.constraintlayout.widget.Barrier
                     android:id="@+id/fieldsBarrier"
@@ -279,7 +299,6 @@
                     app:barrierDirection="right"
                     app:constraint_referenced_ids="fromTextView,toTextView,ccTextView,bccTextView"
                     tools:layout_editor_absoluteX="411dp" />
-
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

@@ -1,8 +1,10 @@
 package com.charlag.tuta.compose
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.os.Parcelable
 import android.provider.OpenableColumns
 import android.util.Log
 import android.view.Menu
@@ -19,12 +21,16 @@ import com.charlag.tuta.DependencyDump
 import com.charlag.tuta.LoginActivity
 import com.charlag.tuta.R
 import com.charlag.tuta.mail.AttachmentAdapter
+import com.charlag.tuta.mail.BlockingWebViewClient
 import com.charlag.tuta.mail.ListedAttachment
+import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.activity_compose.*
 import kotlinx.coroutines.launch
 
 class ComposeActivity : AppCompatActivity() {
     private val viewModel: ComposeViewModel by viewModels()
+    private val webClient by lazy { BlockingWebViewClient(this) }
+
     // Should be Attachment eventually
     private val attachmentAdapter =
         AttachmentAdapter<ListedFileReference>(
@@ -43,13 +49,6 @@ class ComposeActivity : AppCompatActivity() {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
             return
-        }
-        if (intent.hasExtra(LOCAL_DRAFT_EXTRA)) {
-            val localDraftId = intent.getLongExtra(LOCAL_DRAFT_EXTRA, 0)
-            initWithLocalDraft(localDraftId)
-        } else if (intent.hasExtra(REPLY_MAIL_ID)) {
-            val replyMailId = intent.getStringExtra(REPLY_MAIL_ID)
-            initWithReplyId(replyMailId)
         }
 
         setContentView(R.layout.activity_compose)
@@ -101,6 +100,8 @@ class ComposeActivity : AppCompatActivity() {
             expandRecipients()
         }
 
+        replyWebView.webViewClient = webClient
+
         viewModel.willBeSentEncrypted.observe(this) {
             encryptionIndicator.isVisible = it
         }
@@ -114,6 +115,14 @@ class ComposeActivity : AppCompatActivity() {
             attachmentAdapter.items.addAll(it.map(::ListedFileReference))
             attachmentAdapter.notifyDataSetChanged()
         }
+
+        if (intent.hasExtra(LOCAL_DRAFT_EXTRA)) {
+            val localDraftId = intent.getLongExtra(LOCAL_DRAFT_EXTRA, 0)
+            initWithLocalDraft(localDraftId)
+        } else if (intent.hasExtra(REPLY_DATA)) {
+            val replyInitData = intent.getParcelableExtra<ReplyInitData>(REPLY_DATA)
+            initWithReplyData(replyInitData)
+        }
     }
 
     override fun onBackPressed() {
@@ -122,11 +131,12 @@ class ComposeActivity : AppCompatActivity() {
 
     private fun onBeforeFinish() {
         lifecycleScope.launch {
-            if (viewModel.saveDraft(
-                subjectField.text.toString(),
-                contentField.text.toString(),
-                fromSpinner.selectedItem as String
-            )) {
+            if (fromSpinner != null && viewModel.saveDraft(
+                    subjectField.text.toString(),
+                    contentField.text.toString(),
+                    fromSpinner.selectedItem as String?
+                )
+            ) {
                 Toast.makeText(this@ComposeActivity, "Saving draft", Toast.LENGTH_SHORT).show()
             }
             finish()
@@ -135,26 +145,35 @@ class ComposeActivity : AppCompatActivity() {
 
     private fun initWithLocalDraft(localDraftId: Long) {
         lifecycleScope.launch {
-            val localDraft = viewModel.initWIthLocalDraftId(localDraftId) ?: return@launch
-            subjectField.setText(localDraft.subject)
-            contentField.setText(localDraft.body)
-            for (toRecipient in localDraft.toRecipients) {
-                toField.text.append(toRecipient.mailAddress + " ")
-            }
-            for (ccRecipient in localDraft.ccRecipients) {
-                ccField.text.append(ccRecipient.mailAddress + " ")
-            }
-            for (bccRecipient in localDraft.bccRecipients) {
-                bccField.text.append(bccRecipient.mailAddress + " ")
-            }
+            viewModel.initWIthLocalDraftId(localDraftId)?.let { init(it) }
         }
     }
 
-    private fun initWithReplyId(replyMailId: String) {
+    private fun initWithReplyData(replyInitData: ReplyInitData) {
         lifecycleScope.launch {
-            val mail = viewModel.initWithReplyMailId(replyMailId)
-            subjectField.setText("Re: ${mail.subject}")
-            toField.text.append(mail.sender.address + " ")
+            init(viewModel.initWithReplyInitData(replyInitData))
+        }
+    }
+
+    private fun init(initData: InitData) {
+        subjectField.setText(initData.subject)
+        contentField.setText(initData.content)
+        initData.replyContent?.let {
+            replyWebView.isVisible = true
+            replyWebViewSeparator.isVisible = true
+            replyWebView.loadData(it, "text/html", Charsets.UTF_8.name())
+            webClient.blockingResources = !initData.loadExternalContent
+        }
+        // Adding spaces after mail address so that field watchers
+        // understand that it's another address
+        for (toRecipient in initData.toRecipients) {
+            toField.text.append(toRecipient.mailAddress + " ")
+        }
+        for (ccRecipient in initData.ccRecipients) {
+            ccField.text.append(ccRecipient.mailAddress + " ")
+        }
+        for (bccRecipient in initData.bccRecipients) {
+            bccField.text.append(bccRecipient.mailAddress + " ")
         }
     }
 
@@ -215,6 +234,7 @@ class ComposeActivity : AppCompatActivity() {
                     contentField.text.toString(),
                     fromSpinner.selectedItem as String
                 )
+                onBeforeFinish()
             } catch (e: Exception) {
                 Log.e("Compose", "error", e)
                 Toast.makeText(activity, "Error $e", Toast.LENGTH_SHORT).show()
@@ -248,9 +268,22 @@ class ComposeActivity : AppCompatActivity() {
 
     companion object {
         const val LOCAL_DRAFT_EXTRA = "localDraft"
-        const val REPLY_MAIL_ID = "replyMailId"
+        private const val REPLY_DATA = "replyData"
+
+        fun intentForReply(context: Context, replyInitData: ReplyInitData): Intent {
+            return Intent(context, ComposeActivity::class.java).apply {
+                putExtra(REPLY_DATA, replyInitData)
+            }
+        }
     }
 }
+
+@Parcelize
+data class ReplyInitData(
+    val mailId: String,
+    val replyAll: Boolean,
+    val loadExternalContent: Boolean
+) : Parcelable
 
 data class ListedFileReference(val file: FileReference) : ListedAttachment {
     override val name: String

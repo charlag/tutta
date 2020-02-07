@@ -5,14 +5,12 @@ import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.*
 import com.charlag.tuta.*
-import com.charlag.tuta.data.MailEntity
 import com.charlag.tuta.entities.GeneratedId
-import com.charlag.tuta.entities.sys.Group
-import com.charlag.tuta.entities.sys.GroupInfo
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.ConversationEntry
 import com.charlag.tuta.util.FilledMutableLiveData
 import com.charlag.tuta.util.combineLiveData
+import com.charlag.tuta.util.mutate
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
@@ -44,6 +42,8 @@ class ComposeViewModel : ViewModel() {
     private var conversationType: ConversationType = ConversationType.NEW
     private var previousMessageId: String? = null
     private var previousMail: IdTuple? = null
+    private var replyContent: String? = null
+    private var loadExternalContent = false
 
     private val confidentialIsSelected: Boolean
         // For now always assume non-confidential because we don't send "external secure" emails
@@ -98,7 +98,7 @@ class ComposeViewModel : ViewModel() {
     suspend fun saveDraft(
         subject: String,
         body: String,
-        senderAddress: String
+        senderAddress: String?
     ): Boolean {
         if (subject.isEmpty() && body.isEmpty() && attachments.value.isEmpty()) {
             return false
@@ -113,7 +113,7 @@ class ComposeViewModel : ViewModel() {
     private suspend fun prepareLocalDraft(
         subject: String,
         body: String,
-        senderAddress: String,
+        senderAddress: String?,
         resolveRemaining: Boolean
     ): LocalDraftEntity {
         val recipientTypes = this.recipientTypes.value
@@ -131,13 +131,16 @@ class ComposeViewModel : ViewModel() {
         if (resolveRemaining) {
             this.recipientTypes.postValue(resolveRemainingRecipients(recipients, recipientTypes))
         }
+        val sender = senderAddress
+            ?: userController.getProps().defaultSender
+            ?: userController.getEnabledMailAddresses().first()
         return LocalDraftEntity(
             localDraftId,
             loginFacade.user!!._id.asString(),
             subject,
             body,
-            senderAddress,
-            "bed",
+            sender,
+            userController.getUserGroupInfo().name,
             to,
             cc,
             bcc,
@@ -147,7 +150,9 @@ class ComposeViewModel : ViewModel() {
                     || recipients.all { it.type == RecipientType.INTENRAL },
             replyTos = listOf(),
             files = attachments.value,
-            previousMail = previousMail
+            previousMail = previousMail,
+            replyContent = replyContent,
+            loadExternalContent = loadExternalContent
         )
     }
 
@@ -222,30 +227,74 @@ class ComposeViewModel : ViewModel() {
     }
 
     // All init functions should return some structure so that view doesn't have to think about it
-    suspend fun initWIthLocalDraftId(id: Long): LocalDraftEntity? {
-        // TODO: init things like replyto and conversationType with these things
-        this.localDraftId = localDraftId
-        return db.mailDao().getLocalDraft(id)
+    suspend fun initWIthLocalDraftId(id: Long): InitData? {
+        this.localDraftId = id
+        return db.mailDao().getLocalDraft(id).let { draft ->
+            conversationType = draft.conversationType
+            previousMessageId = draft.previousMessageId
+            previousMail = draft.previousMail
+            loadExternalContent = draft.loadExternalContent
+            // TODO: init things like replyTos
+            InitData(
+                subject = draft.subject,
+                content = draft.body,
+                toRecipients = draft.toRecipients,
+                ccRecipients = draft.ccRecipients,
+                bccRecipients = draft.bccRecipients,
+                replyContent = null,
+                loadExternalContent = draft.loadExternalContent
+            )
+        }
     }
 
-    suspend fun initWithReplyMailId(replyMailId: String): MailEntity {
-        val mail = db.mailDao().getMail(replyMailId)
+    suspend fun initWithReplyInitData(replyInitData: ReplyInitData): InitData {
+        val mail = db.mailDao().getMail(replyInitData.mailId)
+
         conversationType = ConversationType.REPLY
         val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
         previousMessageId = conversationEntry.messageId
         previousMail = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
-        return mail
+        loadExternalContent = replyInitData.loadExternalContent
+
+        val body = db.mailDao().getMailBody(mail.body.asString())
+        replyContent = body?.text
+
+        // TODO: handle reply all
+        val toRecipients =
+            listOf(
+                RecipientInfo(mail.sender.name, mail.sender.address, RecipientType.UNKNOWN)
+            )
+        viewModelScope.launch {
+            val oldValue = recipientTypes.value
+            recipientTypes.value =
+                resolveRemainingRecipients(toRecipients, oldValue)
+        }
+        val subject =
+            if (mail.subject.startsWith("Re:", ignoreCase = true)) mail.subject
+            else "Re: " + mail.subject;
+        return InitData(
+            subject = subject,
+            content = "",
+            replyContent = replyContent,
+            toRecipients = toRecipients,
+            ccRecipients = listOf(),
+            bccRecipients = listOf(),
+            loadExternalContent = loadExternalContent
+        )
     }
 }
+
+data class InitData(
+    val subject: String,
+    val content: String,
+    val replyContent: String?,
+    val toRecipients: List<RecipientInfo>,
+    val ccRecipients: List<RecipientInfo>,
+    val bccRecipients: List<RecipientInfo>,
+    val loadExternalContent: Boolean
+)
 
 enum class RecipientField {
     TO, CC, BCC;
 }
 
-inline fun <T> MutableLiveData<T>.mutate(block: (T?) -> T) {
-    this.value = block(this.value)
-}
-
-inline fun <T> FilledMutableLiveData<T>.mutate(block: (T) -> T) {
-    this.value = block(this.value)
-}
