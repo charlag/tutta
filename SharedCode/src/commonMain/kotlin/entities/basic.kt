@@ -23,7 +23,7 @@ abstract class ElementEntity : Entity() {
 
 @Serializable
 abstract class ListElementEntity : Entity() {
-    abstract val _id: IdTuple
+    abstract val _id: IdTuple?
 }
 
 data class Date(val millis: Long)

@@ -200,8 +200,8 @@ class API(
             val loadFrom = result.lastOrNull()?._id?.elementId ?: startId
             val range = loadRange(klass, listId, loadFrom, 1000, false)
             // Each chunk is newer so we append it to the end
-            result += range.dropLastWhile { it._id.elementId > endId }
-            if (range.isEmpty() || range.last()._id.elementId > endId) {
+            result += range.dropLastWhile { it._id!!.elementId > endId }
+            if (range.isEmpty() || range.last()._id!!.elementId > endId) {
                 break
             }
         }
@@ -221,11 +221,48 @@ class API(
         return loadElementEntity(klass, rootInstance.reference)
     }
 
+    /**
+     * Returns generatedId if it's a generatedId instance
+     *
+     * Currently ownerEncSessionKey must be explicitly set if needed but this can be fixed with
+     * better Entity definition.
+     */
+    suspend fun <T : ListElementEntity> createListElementEntity(listId: Id, entity: T): Id? {
+        return createEntity(entity, listId.asString())
+    }
+
+    /**
+     * Returns generatedId if it's a generatedId instance
+     *
+     * Currently ownerEncSessonKey must be explicitly set if needed but this can be fixed with
+     * better Entity definition.
+     */
+    suspend fun <T : ElementEntity> createElementEntity(entity: T): Id? {
+        return createEntity(entity, null)
+    }
+
+    private suspend fun createEntity(entity: Entity, listId: String?): Id? {
+        val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(entity::class)
+
+        val idPart = listId?.let { "/${it}" } ?: ""
+        val address = Url(baseUrl + "${model}/${typeModel.name.toLowerCase()}${idPart}")
+        val serializedEntity = serializeEntity(entity)
+        val response = httpClient.post<JsonObject> {
+            commonHeaders()
+            entityHeaders(typeModel)
+            url(address)
+            body = jsonSerializer.write(serializedEntity)
+        }
+        return response["generatedId"]?.contentOrNull?.let(::GeneratedId)
+    }
+
     suspend fun <T : Entity> updateEntity(entity: T) {
+
         val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(entity::class)
 
         val idPart = if (entity is ListElementEntity) {
-            "${entity._id.listId.asString()}/${entity._id.elementId.asString()}"
+            val id = entity._id ?: throw IllegalArgumentException("Entity id is not set")
+            "${id.listId.asString()}/${id.elementId.asString()}"
         } else {
             (entity as ElementEntity)._id.asString()
         }
@@ -233,6 +270,7 @@ class API(
         val serializedEntity = serializeEntity(entity)
         return httpClient.put {
             commonHeaders()
+            entityHeaders(typeModel)
             url(address)
             body = jsonSerializer.write(serializedEntity)
         }
@@ -245,7 +283,7 @@ class API(
             Url("$baseUrl$model/$typeName/${id.listId.asString()}/${id.elementId.asString()}")
         return httpClient.delete {
             commonHeaders()
-            header("v", typeModel.version)
+            entityHeaders(typeModel)
             url(address)
         }
     }

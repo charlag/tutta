@@ -694,19 +694,19 @@ data class RegistrationConfigReturn(
 
 @Serializable
 data class PushIdentifier(
-    val _area: Long,
-    val _id: IdTuple,
+    val _area: Long = 0,
+    override val _id: IdTuple? = null,
     val _owner: Id,
-    val _ownerEncSessionKey: ByteArray?,
+    val _ownerEncSessionKey: ByteArray? = null,
     val _ownerGroup: Id?,
-    val _permissions: Id,
+    val _permissions: Id? = null,
     val disabled: Boolean,
     val displayName: String,
     val identifier: String,
     val language: String,
     val lastNotificationDate: Date?,
     val pushServiceType: Long
-)
+) : ListElementEntity()
 
 @Serializable
 data class PushIdentifierList(

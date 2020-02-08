@@ -33,8 +33,13 @@ class InstanceMapper(
                         )
                     )
                 } else if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
-                    @Suppress("UNCHECKED_CAST")
-                    (JsonArray((map[fieldName] as List<String>).map(::JsonPrimitive)))
+                    val idFieldValue = map[fieldName]
+                    if (idFieldValue != null) {
+                        @Suppress("UNCHECKED_CAST")
+                        (JsonArray((map[fieldName] as List<String>).map(::JsonPrimitive)))
+                    } else {
+                        JsonNull
+                    }
                 } else {
                     // If we update entity, we must get the same final fields. So we useIVs for
                     // that.

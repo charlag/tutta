@@ -210,11 +210,7 @@ class LoginActivity : AppCompatActivity() {
                 }
 
                 override fun onAuthenticationFailed() {
-                    Toast.makeText(
-                        applicationContext, "Authentication failed",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    deferred.complete(null)
+                    Log.d("Login", "Authentication failed")
                 }
             })
 

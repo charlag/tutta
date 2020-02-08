@@ -6,13 +6,16 @@ import androidx.room.Room
 import com.charlag.tuta.compose.MailSender
 import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
-import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.events.EntityEventListener
 import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.network.API
 import com.charlag.tuta.network.GroupKeysCache
 import com.charlag.tuta.network.InstanceMapper
 import com.charlag.tuta.network.SessionKeyResolver
+import com.charlag.tuta.notifications.AndroidKeyStoreFacade
+import com.charlag.tuta.notifications.PushNotificationsManager
+import com.charlag.tuta.notifications.data.NotificationDatabase
+import com.charlag.tuta.notifications.push.SseStorage
 import io.ktor.client.features.logging.LogLevel
 import io.ktor.client.features.logging.Logger
 import io.ktor.client.features.logging.Logging
@@ -20,9 +23,10 @@ import io.ktor.client.features.websocket.WebSockets
 import io.ktor.util.KtorExperimentalAPI
 import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
-import java.security.KeyRep
 
 object DependencyDump {
+    const val BASE_URL = "https://mail.tutanota.com/"
+
     var credentials: Credentials? = null
     val cryptor = Cryptor()
     val groupKeysCache = GroupKeysCache(cryptor)
@@ -43,7 +47,7 @@ object DependencyDump {
     val keyResolver = SessionKeyResolver(cryptor, groupKeysCache)
 
     val api = API(
-        httpClient, "https://mail.tutanota.com/rest/",
+        httpClient, "${BASE_URL}rest/",
         cryptor,
         instanceMapper,
         groupKeysCache,
@@ -59,6 +63,7 @@ object DependencyDump {
     lateinit var eventListener: EntityEventListener
     lateinit var fileHandler: FileHandler
     lateinit var mailSender: MailSender
+    lateinit var pushNotificationsManager: PushNotificationsManager
     val userController = UserController(api, loginFacade, mailFacade)
 
     private var _hasLoggedin = false
@@ -66,6 +71,17 @@ object DependencyDump {
         get() = _hasLoggedin
 
     fun ignite(dbPassword: String, applicationContext: Context) {
+        val sseStorage = SseStorage(
+            NotificationDatabase.getDatabase(applicationContext, false),
+            AndroidKeyStoreFacade(applicationContext)
+        )
+        pushNotificationsManager = PushNotificationsManager(
+            sseStorage,
+            applicationContext,
+            api,
+            cryptor
+        )
+
         val factory = SupportFactory(SQLiteDatabase.getBytes(dbPassword.toCharArray()))
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "tuta-db")
             .openHelperFactory(factory)
@@ -78,5 +94,7 @@ object DependencyDump {
         val notificationManager = LocalNotificationManager(applicationContext)
         mailSender = MailSender(mailFacade, fileHandler, notificationManager, db, api)
         _hasLoggedin = true
+
+        pushNotificationsManager.register()
     }
 }

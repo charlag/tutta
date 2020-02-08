@@ -85,8 +85,12 @@ class SessionKeyResolver(
         instance: Map<String, Any?>,
         loader: SessionKeyLoader
     ): ByteArray? {
-        val sessionKeyBytes =
-            instance["_ownerEncSessionKey"].stringOrJsonContent()?.let(::base64ToBytes)
+        val ownerEncSessionKey = instance["_ownerEncSessionKey"]
+        val sessionKeyBytes = if (ownerEncSessionKey != null && ownerEncSessionKey is ByteArray) {
+            ownerEncSessionKey
+        } else {
+            ownerEncSessionKey.stringOrJsonContent()?.let(::base64ToBytes)
+        }
         try {
             return this.resolveSessionKey(
                 typeModel,
