@@ -30,13 +30,17 @@ actual class Cryptor {
             val params = IvParameterSpec(iv)
             val subKeys = getSubKeys(bytesToKey(key))
             cipher.init(Cipher.ENCRYPT_MODE, subKeys.cKey, params)
-            val tempOut = ByteArrayOutputStream()
             val data = iv + cipher.doFinal(value)
-            tempOut.write(1) // marker that hmac is included
-            val macBytes = hmac256(subKeys.mKey, data)
-            tempOut.write(data)
-            tempOut.write(macBytes)
-            return tempOut.toByteArray()
+            return if (useMac) {
+                val tempOut = ByteArrayOutputStream()
+                tempOut.write(1) // marker that hmac is included
+                val macBytes = hmac256(subKeys.mKey, data)
+                tempOut.write(data)
+                tempOut.write(macBytes)
+                tempOut.toByteArray()
+            } else {
+                data
+            }
         } catch (e: InvalidKeyException) {
             throw Error(e)
         } catch (e: NoSuchPaddingException) {
