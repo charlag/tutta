@@ -163,7 +163,9 @@ class LoginActivity : AppCompatActivity() {
                         )
                     } catch (e: IOException) {
                         val msg = "Failed to log in because of IO $e"
-                        statusLabel.text = msg
+                        withContext(Dispatchers.Main) {
+                            statusLabel.text = msg
+                        }
                         Log.w("Main", msg)
                     }
                 }
