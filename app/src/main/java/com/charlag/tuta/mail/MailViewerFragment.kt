@@ -8,6 +8,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import android.widget.PopupMenu
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -15,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.BuildConfig
 import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
+import com.charlag.tuta.compose.ForwardInitData
 import com.charlag.tuta.compose.ReplyInitData
 import com.charlag.tuta.entities.tutanota.File
 import io.ktor.client.features.ClientRequestException
@@ -75,8 +77,6 @@ class MailViewerFragment : Fragment() {
         }
         subjectView.text = openedMail.subject
         senderNameView.text = openedMail.sender.name
-        senderNameView.visibility =
-            if (openedMail.sender.name.isBlank()) View.GONE else View.VISIBLE
         senderAddressView.text = openedMail.sender.address
         tryAgainButton.setOnClickListener {
             loadMailBody()
@@ -141,6 +141,22 @@ class MailViewerFragment : Fragment() {
                 )
             )
             startActivity(intent)
+        }
+
+        moreButton.setOnClickListener {
+            PopupMenu(moreButton.context, moreButton).apply {
+                menu.add("Forward").setOnMenuItemClickListener {
+                    val intent = ComposeActivity.intentForForward(
+                        context!!, ForwardInitData(
+                            mailId = viewModel.openedMail.value!!.id,
+                            loadExternalContent = !webViewClient.blockingResources
+                        )
+                    )
+                    startActivity(intent)
+                    true
+                }
+                show()
+            }
         }
     }
 

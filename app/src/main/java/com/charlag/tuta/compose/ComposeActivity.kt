@@ -122,6 +122,9 @@ class ComposeActivity : AppCompatActivity() {
         } else if (intent.hasExtra(REPLY_DATA)) {
             val replyInitData = intent.getParcelableExtra<ReplyInitData>(REPLY_DATA)
             initWithReplyData(replyInitData)
+        } else if (intent.hasExtra(FORWARD_DATA)) {
+            val forwardInitData = intent.getParcelableExtra<ForwardInitData>(FORWARD_DATA)
+            initWithForwardData(forwardInitData)
         }
     }
 
@@ -152,6 +155,12 @@ class ComposeActivity : AppCompatActivity() {
     private fun initWithReplyData(replyInitData: ReplyInitData) {
         lifecycleScope.launch {
             init(viewModel.initWithReplyInitData(replyInitData))
+        }
+    }
+
+    private fun initWithForwardData(forwardInitData: ForwardInitData) {
+        lifecycleScope.launch {
+            init(viewModel.initWithForwardData(forwardInitData))
         }
     }
 
@@ -269,10 +278,17 @@ class ComposeActivity : AppCompatActivity() {
     companion object {
         const val LOCAL_DRAFT_EXTRA = "localDraft"
         private const val REPLY_DATA = "replyData"
+        private const val FORWARD_DATA = "forwardData"
 
         fun intentForReply(context: Context, replyInitData: ReplyInitData): Intent {
             return Intent(context, ComposeActivity::class.java).apply {
                 putExtra(REPLY_DATA, replyInitData)
+            }
+        }
+
+        fun intentForForward(context: Context, forwardInitData: ForwardInitData): Intent {
+            return Intent(context, ComposeActivity::class.java).apply {
+                putExtra(FORWARD_DATA, forwardInitData)
             }
         }
     }
@@ -282,6 +298,13 @@ class ComposeActivity : AppCompatActivity() {
 data class ReplyInitData(
     val mailId: String,
     val replyAll: Boolean,
+    val loadExternalContent: Boolean
+) : Parcelable
+
+
+@Parcelize
+data class ForwardInitData(
+    val mailId: String,
     val loadExternalContent: Boolean
 ) : Parcelable
 

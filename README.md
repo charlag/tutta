@@ -52,8 +52,8 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Contact autocomplete from Tutanota
  - [x] Mail counters
  - [x] Some real-time updates (mail/counter/contact/folder)
+ - [x] Forwarding mails
  - [ ] Notifications
- - [ ] Forwarding mails
  - [ ] Login experience improvements
  - [ ] Editing drafts
  - [ ] Viewing inline images

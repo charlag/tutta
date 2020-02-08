@@ -282,6 +282,30 @@ class ComposeViewModel : ViewModel() {
             loadExternalContent = loadExternalContent
         )
     }
+
+    suspend fun initWithForwardData(forwardInitData: ForwardInitData): InitData {
+        val mail = db.mailDao().getMail(forwardInitData.mailId)
+
+        conversationType = ConversationType.FORWARD
+        val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
+        previousMessageId = conversationEntry.messageId
+        previousMail = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
+        loadExternalContent = forwardInitData.loadExternalContent
+
+        val body = db.mailDao().getMailBody(mail.body.asString())
+        replyContent = body?.text
+
+        val subject = "FWD ${mail.subject}"
+        return InitData(
+            subject = subject,
+            content = "",
+            replyContent = replyContent,
+            toRecipients = listOf(),
+            ccRecipients = listOf(),
+            bccRecipients = listOf(),
+            loadExternalContent = loadExternalContent
+        )
+    }
 }
 
 data class InitData(
