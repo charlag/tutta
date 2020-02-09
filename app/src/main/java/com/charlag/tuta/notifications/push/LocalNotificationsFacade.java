@@ -166,7 +166,7 @@ public final class LocalNotificationsFacade {
 
         Notification notification = builder.setContentTitle(title)
                 .setContentText(notificationContent(notificationInfo.getAddress()))
-//                .setSmallIcon(R.drawable.ic_status)
+                .setSmallIcon(R.drawable.ic_inbox_black_24dp)
                 .setGroup(NOTIFICATION_EMAIL_GROUP)
                 .setGroupSummary(true)
                 .setColor(context.getResources().getColor(R.color.colorPrimary))
