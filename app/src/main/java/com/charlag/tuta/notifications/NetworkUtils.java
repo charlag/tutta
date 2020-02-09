@@ -10,6 +10,7 @@ public class NetworkUtils {
 
 	public static void addCommonHeaders(HttpURLConnection urlConnection) {
 		urlConnection.setRequestProperty("v", Integer.toString(SYS_MODEL_VERSION));
-		urlConnection.setRequestProperty("cv", BuildConfig.VERSION_NAME);
+		// Not send it for now because our version doesn't match anyway
+//		urlConnection.setRequestProperty("cv", BuildConfig.VERSION_NAME);
 	}
 }
