@@ -1,29 +1,30 @@
-apply plugin: 'com.android.application'
-
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
-apply plugin: 'kotlin-kapt'
-apply plugin: 'kotlinx-serialization'
+plugins {
+    id('com.android.application')
+    id('kotlin-android')
+    id('kotlin-android-extensions')
+    id('kotlin-kapt')
+    id('kotlinx-serialization')
+}
 
 android {
-    compileSdkVersion android_compileSdkVersion
+    compileSdkVersion(android_compileSdkVersion)
     defaultConfig {
-        applicationId "com.charlag.tuta"
-        minSdkVersion android_minSdkVersion
-        targetSdkVersion android_targetSdkVersion
-        versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        applicationId("com.charlag.tuta")
+        minSdkVersion(android_minSdkVersion)
+        targetSdkVersion(android_targetSdkVersion)
+        versionCode(1)
+        versionName('1.0')
+        testInstrumentationRunner('androidx.test.runner.AndroidJUnitRunner')
 
         kapt {
             arguments {
-                arg("room.incremental", "true")
+                arg('room.incremental', 'true')
             }
         }
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled(false)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

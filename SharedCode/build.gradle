@@ -1,15 +1,14 @@
 plugins {
-    id("kotlin-multiplatform")
+    id('kotlin-multiplatform')
+    id('com.android.library')
+    id('kotlinx-serialization')
 }
 
-apply plugin: 'com.android.library'
-apply plugin: 'kotlinx-serialization'
-
 android {
-    compileSdkVersion android_compileSdkVersion
+    compileSdkVersion(android_compileSdkVersion)
     defaultConfig {
-        minSdkVersion android_minSdkVersion
-        targetSdkVersion android_targetSdkVersion
+        minSdkVersion(android_minSdkVersion)
+        targetSdkVersion(android_targetSdkVersion)
     }
     compileOptions {
         sourceCompatibility = 1.8
