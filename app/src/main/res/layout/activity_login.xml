@@ -1,68 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical"
         tools:context=".LoginActivity">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+
+    <TextView
+            android:id="@+id/appNameLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="24dp">
+            android:layout_gravity="top"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:text="@string/app_name"
+            android:textSize="26sp"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <EditText
-                android:id="@+id/emailField"
+    <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+        <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="e-mail"
-                android:inputType="textEmailAddress"
-                app:layout_constraintBottom_toTopOf="@id/passwordField"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_chainStyle="packed" />
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-        <EditText
-                android:id="@+id/passwordField"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:hint="password"
-                android:inputType="textPassword"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/emailField" />
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:padding="24dp">
 
-        <Button
-                android:id="@+id/loginButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Login"
-                app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/passwordField" />
+                <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/emailFieldLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Email"
+                        app:layout_constraintBottom_toTopOf="@id/passwordFieldLayout"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed">
 
-        <TextView
-                android:id="@+id/statusLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/loginButton" />
+                    <EditText
+                            android:id="@+id/emailField"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textEmailAddress" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-        <ImageButton
-                android:id="@+id/biometricButton"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_marginTop="16dp"
-                android:background="?selectableItemBackground"
-                android:src="@drawable/ic_fingerprint_black_24dp"
-                android:tint="@color/colorAccent"
-                android:visibility="gone"
-                app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/loginButton"
-                tools:visibility="visible" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</androidx.core.widget.NestedScrollView>
+                <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/passwordFieldLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintBottom_toTopOf="@id/loginButton"
+                        app:layout_constraintTop_toBottomOf="@id/emailFieldLayout">
+
+                    <EditText
+                            android:id="@+id/passwordField"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:hint="Password"
+                            android:inputType="textPassword" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <Button
+                        android:id="@+id/loginButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:height="60dp"
+                        android:text="Log in"
+                        android:textSize="18sp"
+                        app:layout_constraintBottom_toTopOf="@id/statusLabel"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/passwordFieldLayout" />
+
+                <TextView
+                        android:id="@+id/statusLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        app:layout_constraintBottom_toTopOf="@id/biometricButton"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/loginButton" />
+
+                <ImageButton
+                        android:id="@+id/biometricButton"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:layout_marginTop="16dp"
+                        android:background="?selectableItemBackground"
+                        android:src="@drawable/ic_fingerprint_black_24dp"
+                        android:tint="@color/colorAccent"
+                        android:visibility="gone"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/loginButton"
+                        tools:visibility="visible" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>
+
