@@ -53,11 +53,11 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Mail counters
  - [x] Some real-time updates (mail/counter/contact/folder)
  - [x] Forwarding mails
- - [ ] Notifications
- - [ ] Login experience improvements
+ - [x] Notifications
+ - [x] Login experience improvements
+ - [x] Icon and name
  - [ ] Editing drafts
  - [ ] Viewing inline images
- - [ ] Icon and name
  - [ ] Settings
  - [ ] Displaying contact details
  - [ ] Contact autocomplete from system
