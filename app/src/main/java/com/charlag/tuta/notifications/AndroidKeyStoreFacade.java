@@ -10,7 +10,6 @@ import android.util.Log;
 import androidx.annotation.RequiresApi;
 
 import com.charlag.tuta.CryptoException;
-import com.charlag.tuta.Cryptor;
 
 import java.io.IOException;
 import java.math.BigInteger;

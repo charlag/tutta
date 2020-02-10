@@ -3,6 +3,13 @@
 buildscript {
     ext.kotlin_version = '1.3.61'
     ext.ktor_version = '1.3.0'
+    ext.coroutines_version = '1.3.3'
+    ext.serialization_version = '0.14.0'
+
+
+    ext.android_compileSdkVersion = 28
+    ext.android_minSdkVersion = 24
+    ext.android_targetSdkVersion = 28
     repositories {
         google()
         jcenter()

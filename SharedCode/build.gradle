@@ -2,13 +2,24 @@ plugins {
     id("kotlin-multiplatform")
 }
 
+apply plugin: 'com.android.library'
 apply plugin: 'kotlinx-serialization'
 
-def serialization_version = '0.14.0'
+android {
+    compileSdkVersion android_compileSdkVersion
+    defaultConfig {
+        minSdkVersion android_minSdkVersion
+        targetSdkVersion android_targetSdkVersion
+    }
+    compileOptions {
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
+    }
+}
 
 kotlin {
     targets {
-        jvm("android")
+        fromPreset(presets.android, 'android')
         fromPreset(presets.js, "js") {
             compileKotlinJs {
                 kotlinOptions {

@@ -1,5 +1,6 @@
 package com.charlag.tuta
 
+import android.util.Base64
 import com.charlag.tuta.entities.sys.typeInfos
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
@@ -18,14 +19,14 @@ actual fun platformName(): String {
 }
 
 actual fun platformEngine(): HttpClientEngine {
-    return OkHttp.create {  }
+    return OkHttp.create { }
 }
 
 actual fun base64ToBytes(base64: String): ByteArray =
-    Base64.getDecoder().decode(base64)
+    Base64.decode(base64, 0)
 
 actual fun ByteArray.toBase64(): String =
-    Base64.getEncoder().encodeToString(this)
+    Base64.encodeToString(this, Base64.NO_WRAP)
 
 @UnstableDefault
 actual fun platformJsonSerializer(): JsonSerializer {
