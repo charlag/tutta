@@ -24,14 +24,15 @@ actual class Cryptor {
         usePadding: Boolean,
         useMac: Boolean
     ): ByteArray {
-        // TODO: encrypt without MAC too
         try {
             val cipher = getCipher(usePadding)
             val params = IvParameterSpec(iv)
-            val subKeys = getSubKeys(bytesToKey(key))
-            cipher.init(Cipher.ENCRYPT_MODE, subKeys.cKey, params)
-            val data = iv + cipher.doFinal(value)
+
+            val javaKey = bytesToKey(key)
             return if (useMac) {
+                val subKeys = getSubKeys(javaKey)
+                cipher.init(Cipher.ENCRYPT_MODE, subKeys.cKey, params)
+                val data = iv + cipher.doFinal(value)
                 val tempOut = ByteArrayOutputStream()
                 tempOut.write(1) // marker that hmac is included
                 val macBytes = hmac256(subKeys.mKey, data)
@@ -39,7 +40,8 @@ actual class Cryptor {
                 tempOut.write(macBytes)
                 tempOut.toByteArray()
             } else {
-                data
+                cipher.init(Cipher.ENCRYPT_MODE, javaKey, params)
+                return iv + cipher.doFinal(value)
             }
         } catch (e: InvalidKeyException) {
             throw Error(e)
