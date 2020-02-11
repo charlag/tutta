@@ -117,7 +117,7 @@ class MailViewerFragment : Fragment() {
         readItem = toolbar.menu.add("Mark as read").setIcon(R.drawable.ic_email_black_24dp)
             .setOnMenuItemClickListener {
                 markAsRead(toolbar, viewModel, listOf(openedMail.id), false)
-                updateUnreadStatus(true)
+                updateUnreadStatus(nowUnread = false)
                 true
             }
             .setIconTintListCompat(tint)
@@ -125,13 +125,13 @@ class MailViewerFragment : Fragment() {
         unreadItem = toolbar.menu.add("Mark as unread").setIcon(R.drawable.ic_email_black_24dp)
             .setOnMenuItemClickListener {
                 markAsRead(toolbar, viewModel, listOf(openedMail.id), true)
-                updateUnreadStatus(false)
+                updateUnreadStatus(nowUnread = true)
                 true
             }
             .setIconTintListCompat(tint)
             .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
 
-        updateUnreadStatus(openedMail.unread)
+        updateUnreadStatus(nowUnread = openedMail.unread)
 
         replyButton.setOnClickListener {
             val openedMail = viewModel.openedMail.value!!
@@ -165,10 +165,10 @@ class MailViewerFragment : Fragment() {
         }
     }
 
-    private fun updateUnreadStatus(unread: Boolean) {
+    private fun updateUnreadStatus(nowUnread: Boolean) {
         // This is not pretty (should be reactive) but will do for now
-        unreadItem.isVisible = unread
-        readItem.isVisible = !unread
+        unreadItem.isVisible = !nowUnread
+        readItem.isVisible = nowUnread
     }
 
     private fun loadMailBody() {
