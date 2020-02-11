@@ -34,7 +34,7 @@ object DependencyDump {
     @UseExperimental(KtorExperimentalAPI::class)
     val httpClient = makeHttpClient {
         install(Logging) {
-            level = LogLevel.INFO
+            level = LogLevel.BODY
             logger = object : Logger {
                 override fun log(message: String) {
                     Log.d("HTTP", message)
@@ -94,7 +94,7 @@ object DependencyDump {
             EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
         fileHandler = FileHandler(fileFacade, loginFacade, applicationContext)
         val notificationManager = LocalNotificationManager(applicationContext)
-        mailRepository = MailRepository(api, db)
+        mailRepository = MailRepository(api, db, mailFacade)
         mailSender = MailSender(mailFacade, fileHandler, notificationManager, mailRepository, api)
         _hasLoggedin = true
 

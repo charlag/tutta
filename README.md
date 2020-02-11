@@ -57,7 +57,7 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Login experience improvements
  - [x] Icon and name
  - [x] Editing drafts
- - [ ] Permanently deleting mails
+ - [x] Permanently deleting mails
  - [ ] Remembering external content exceptions
  - [ ] Mail swipe actions
  - [ ] Displaying contact details

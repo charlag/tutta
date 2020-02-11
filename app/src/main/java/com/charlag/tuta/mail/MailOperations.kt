@@ -6,6 +6,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.charlag.tuta.MailFolderType
 import com.charlag.tuta.MailFoldersAdapter
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CompletableDeferred
@@ -20,11 +21,33 @@ fun LifecycleOwner.archiveMails(rootView: View, viewModel: MailViewModel, mails:
 }
 
 fun LifecycleOwner.trashMails(rootView: View, viewModel: MailViewModel, mails: List<String>) {
-    lifecycleScope.launch {
-        viewModel.trash(mails)
-        rootView.showSnackbar("Trashed ${mails.size} mail(s)")
+    val folderType = viewModel.selectedFolder.value?.folderType ?: return
+    if (folderType == MailFolderType.TRASH.value) {
+        deleteMails(rootView, viewModel, mails)
+    } else {
+        lifecycleScope.launch {
+            viewModel.trash(mails)
+            rootView.showSnackbar("Trashed ${mails.size} mail(s)")
+        }
     }
+}
 
+private fun LifecycleOwner.deleteMails(
+    rootView: View,
+    viewModel: MailViewModel,
+    mails: List<String>
+) {
+    AlertDialog.Builder(rootView.context)
+        .setTitle("Dp you want to permanently delete ${mails.size} mails?")
+        .setNegativeButton(android.R.string.no) { dialog, _ ->
+            dialog.dismiss()
+        }
+        .setPositiveButton(android.R.string.yes) { _, _ ->
+            lifecycleScope.launch {
+                viewModel.trash(mails)
+                rootView.showSnackbar("Permanently deleted ${mails.size} mail(s)")
+            }
+        }.show()
 }
 
 suspend fun LifecycleOwner.moveMails(rootView: View, viewModel: MailViewModel, ids: List<String>) {

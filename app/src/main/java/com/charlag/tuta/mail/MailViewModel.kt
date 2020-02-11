@@ -7,7 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagedList
 import androidx.paging.toLiveData
-import com.charlag.tuta.*
+import com.charlag.tuta.DependencyDump
+import com.charlag.tuta.GroupType
+import com.charlag.tuta.MailFolderType
 import com.charlag.tuta.data.*
 import com.charlag.tuta.entities.GENERATED_MAX_ID
 import com.charlag.tuta.entities.GeneratedId
@@ -149,10 +151,26 @@ class MailViewModel : ViewModel() {
         }
     }
 
+    suspend fun delete(ids: List<String>) {
+        // Assumes that all mails come from the same list for now
+        val trashFolder = getTrashFolder() ?: return
+        val selectedFolder = selectedFolder.value ?: return
+        if (selectedFolder.id == trashFolder.id) {
+            val folderId = IdTuple.fromRawValues(selectedFolder.listId, selectedFolder.id)
+            mailRepository.deleteMails(
+                folderId,
+                ids.map { IdTuple(selectedFolder.mails, GeneratedId(it)) })
+        } else {
+            Log.w(TAG, "Trying to permanently delete mails in non-trash folder $selectedFolder")
+        }
+    }
+
     suspend fun trash(ids: List<String>) {
-        val folders = folders.value ?: return
-        val trashFolder = folders.find { it.folder.folderType == MailFolderType.TRASH.value }!!
-        moveMails(ids, trashFolder.folder)
+        moveMails(ids, getTrashFolder() ?: return)
+    }
+
+    private fun getTrashFolder(): MailFolderEntity? {
+        return folders.value?.find { it.folder.folderType == MailFolderType.TRASH.value }?.folder
     }
 
     suspend fun archive(ids: List<String>) {
@@ -183,7 +201,7 @@ class MailViewModel : ViewModel() {
     }
 
     fun search(query: String): LiveData<PagedList<MailEntity>> {
-        Log.d("Mails", "search $query")
+        Log.d(TAG, "search $query")
         return mailDao.search(query).toLiveData(40)
     }
 
@@ -252,6 +270,7 @@ class MailViewModel : ViewModel() {
 
     companion object {
         private const val MAIL_LOAD_PAGE = 40
+        private const val TAG = "Mails"
     }
 }
 

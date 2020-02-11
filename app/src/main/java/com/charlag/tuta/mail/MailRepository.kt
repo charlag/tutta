@@ -1,10 +1,13 @@
 package com.charlag.tuta.mail
 
+import com.charlag.tuta.MailFacade
 import com.charlag.tuta.compose.LocalDraftEntity
 import com.charlag.tuta.data.*
+import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.network.API
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.tutanota.DeleteMailData
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailBody
 import com.charlag.tuta.entities.tutanota.MoveMailData
@@ -12,7 +15,8 @@ import io.ktor.http.HttpMethod
 
 class MailRepository(
     private val api: API,
-    private val db: AppDatabase
+    private val db: AppDatabase,
+    private val mailFacade: MailFacade
 ) {
     // Should this be on the mailFacade?
     suspend fun moveMails(ids: List<IdTuple>, targetFolder: IdTuple) {
@@ -61,5 +65,15 @@ class MailRepository(
         val entity = MailBodyEntity(id.asString(), mailBody.compressedText ?: mailBody.text!!)
         db.mailDao().insertMailBody(entity)
         return entity
+    }
+
+    suspend fun deleteMails(folderId: IdTuple, mails: List<IdTuple>) {
+        api.serviceRequestVoid(
+            "tutanota", "mailservice", HttpMethod.Delete, DeleteMailData(
+                _format = 0,
+                folder = folderId,
+                mails = mails
+            )
+        )
     }
 }
