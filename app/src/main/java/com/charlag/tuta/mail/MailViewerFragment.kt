@@ -14,6 +14,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.BuildConfig
+import com.charlag.tuta.DependencyDump
 import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.compose.ForwardInitData
@@ -30,6 +31,7 @@ class MailViewerFragment : Fragment() {
     private lateinit var unreadItem: MenuItem
     private lateinit var readItem: MenuItem
     private val viewModel: MailViewModel by activityViewModels()
+    private val preferenceFacade = DependencyDump.preferenceFacade
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -40,6 +42,14 @@ class MailViewerFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val openedMail = viewModel.openedMail.value
+        if (openedMail == null) {
+            parentFragmentManager.popBackStack()
+            return
+        }
+
         if (BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
@@ -52,6 +62,8 @@ class MailViewerFragment : Fragment() {
                     externalContentView.visibility = View.VISIBLE
                 }
             }
+            blockingResources =
+                !preferenceFacade.allowedToLoadExternalContent(openedMail.sender.address)
         }
         webView.webViewClient = webViewClient
 
@@ -63,6 +75,7 @@ class MailViewerFragment : Fragment() {
             } else {
                 // Second click
                 externalContentView.visibility = View.GONE
+                preferenceFacade.setAllowedToLoadExternalContent(openedMail.sender.address, true)
             }
         }
         toolbar.navigationIcon = view.context.getDrawable(R.drawable.ic_arrow_back_black_24dp)
@@ -71,11 +84,6 @@ class MailViewerFragment : Fragment() {
             goBack()
         }
 
-        val openedMail = viewModel.openedMail.value
-        if (openedMail == null) {
-            parentFragmentManager.popBackStack()
-            return
-        }
         subjectView.text = openedMail.subject
         senderNameView.text = openedMail.sender.name
         senderAddressView.text = openedMail.sender.address

@@ -66,6 +66,7 @@ object DependencyDump {
     lateinit var mailSender: MailSender
     lateinit var pushNotificationsManager: PushNotificationsManager
     lateinit var mailRepository: MailRepository
+    lateinit var preferenceFacade: PreferenceFacade
     val userController = UserController(api, loginFacade, mailFacade)
 
     private var _hasLoggedin = false
@@ -96,6 +97,8 @@ object DependencyDump {
         val notificationManager = LocalNotificationManager(applicationContext)
         mailRepository = MailRepository(api, db, mailFacade)
         mailSender = MailSender(mailFacade, fileHandler, notificationManager, mailRepository, api)
+        preferenceFacade = PreferenceFacade(applicationContext)
+
         _hasLoggedin = true
 
         pushNotificationsManager.register()

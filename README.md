@@ -58,7 +58,7 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Icon and name
  - [x] Editing drafts
  - [x] Permanently deleting mails
- - [ ] Remembering external content exceptions
+ - [x] Remembering external content exceptions
  - [ ] Mail swipe actions
  - [ ] Displaying contact details
  - [ ] Warnings for technical sender
