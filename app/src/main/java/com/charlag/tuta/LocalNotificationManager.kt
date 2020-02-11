@@ -9,6 +9,7 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import com.charlag.tuta.compose.ComposeActivity
+import com.charlag.tuta.notifications.isAtLeastOreo
 import kotlin.random.Random
 
 class LocalNotificationManager(
@@ -21,12 +22,14 @@ class LocalNotificationManager(
     }
 
     private fun createNotificationChannels() {
-        val miscChannel = NotificationChannel(
-            MISC_NOTIFICATION_CHANNEL_ID,
-            "Misc",
-            NotificationManager.IMPORTANCE_LOW
-        )
-        notificationManager.createNotificationChannel(miscChannel)
+        if (isAtLeastOreo()) {
+            val miscChannel = NotificationChannel(
+                MISC_NOTIFICATION_CHANNEL_ID,
+                "Misc",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            notificationManager.createNotificationChannel(miscChannel)
+        }
     }
 
     /**

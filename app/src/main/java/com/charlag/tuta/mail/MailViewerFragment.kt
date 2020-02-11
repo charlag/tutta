@@ -19,6 +19,7 @@ import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.compose.ForwardInitData
 import com.charlag.tuta.compose.ReplyInitData
 import com.charlag.tuta.entities.tutanota.File
+import com.charlag.tuta.util.setIconTintListCompat
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
@@ -93,7 +94,7 @@ class MailViewerFragment : Fragment() {
                 goBack()
                 true
             }
-            .setIconTintList(tint)
+            .setIconTintListCompat(tint)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         toolbar.menu.add("Trash").setIcon(R.drawable.ic_delete_black_24dp)
             .setOnMenuItemClickListener {
@@ -101,7 +102,7 @@ class MailViewerFragment : Fragment() {
                 goBack()
                 true
             }
-            .setIconTintList(tint)
+            .setIconTintListCompat(tint)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         toolbar.menu.add("Move to").setIcon(R.drawable.ic_folder_black_24dp)
             .setOnMenuItemClickListener {
@@ -111,7 +112,7 @@ class MailViewerFragment : Fragment() {
                 }
                 true
             }
-            .setIconTintList(tint)
+            .setIconTintListCompat(tint)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         readItem = toolbar.menu.add("Mark as read").setIcon(R.drawable.ic_email_black_24dp)
             .setOnMenuItemClickListener {
@@ -119,7 +120,7 @@ class MailViewerFragment : Fragment() {
                 updateUnreadStatus(true)
                 true
             }
-            .setIconTintList(tint)
+            .setIconTintListCompat(tint)
             .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
         unreadItem = toolbar.menu.add("Mark as unread").setIcon(R.drawable.ic_email_black_24dp)
             .setOnMenuItemClickListener {
@@ -127,7 +128,7 @@ class MailViewerFragment : Fragment() {
                 updateUnreadStatus(false)
                 true
             }
-            .setIconTintList(tint)
+            .setIconTintListCompat(tint)
             .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
 
         updateUnreadStatus(openedMail.unread)

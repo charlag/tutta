@@ -2,7 +2,6 @@ package com.charlag.tuta.events
 
 import android.content.Context
 import android.util.Log
-import com.charlag.tuta.network.API
 import com.charlag.tuta.GroupType
 import com.charlag.tuta.LoginFacade
 import com.charlag.tuta.contacts.ContactsRepository
@@ -14,13 +13,13 @@ import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.Contact
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
+import com.charlag.tuta.network.API
 import com.charlag.tuta.typemodelMap
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.io.IOException
-import java.lang.Exception
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
@@ -79,7 +78,7 @@ class EntityEventListener(
             } catch (e: IOException) {
                 Log.d(TAG, "Exception during event processing", e)
                 delay(TimeUnit.SECONDS.toMillis(30))
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.w(TAG, "Unexpected exeption $e")
                 delay(TimeUnit.SECONDS.toMillis(90))
             }
@@ -96,7 +95,7 @@ class EntityEventListener(
                         counterValue.count
                     )
                 )
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.d(TAG, "Inserting counter failed $e")
             }
         }
@@ -117,7 +116,7 @@ class EntityEventListener(
 
                 for (batch in eventBatches) {
                     val batchId = batch._id.elementId.asString()
-                    if (lastPref < batchId) {
+                    if (lastPref != null && lastPref < batchId) {
                         emit(WebsocketEntityData(GeneratedId(batchId), groupId, batch.events))
                     }
                 }
