@@ -23,6 +23,7 @@ import com.charlag.tuta.R
 import com.charlag.tuta.mail.AttachmentAdapter
 import com.charlag.tuta.mail.BlockingWebViewClient
 import com.charlag.tuta.mail.ListedAttachment
+import com.charlag.tuta.util.setIconTintListCompat
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.activity_compose.*
 import kotlinx.coroutines.launch
@@ -227,7 +228,7 @@ class ComposeActivity : AppCompatActivity() {
         viewModel.anyRecipients.observe(this) {
             send.isEnabled = it
             val color = getColor(if (it) R.color.grey_30 else R.color.grey_10)
-            send.iconTintList = ColorStateList.valueOf(color)
+            send.setIconTintListCompat(ColorStateList.valueOf(color))
         }
         return super.onCreateOptionsMenu(menu)
     }

@@ -18,6 +18,7 @@ import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.getFolderName
 import com.charlag.tuta.util.map
+import com.charlag.tuta.util.setIconTintListCompat
 import com.charlag.tuta.util.withLifecycleContext
 import kotlinx.android.synthetic.main.fragment_mail_list.*
 import kotlinx.coroutines.launch
@@ -63,7 +64,7 @@ class MailListFragment : Fragment() {
         val searchId = View.generateViewId()
         toolbar.menu.add(0, searchId, 0, "Search")
             .setIcon(R.drawable.ic_search_black_24dp)
-            .setIconTintList(tint)
+            .setIconTintListCompat(tint)
             .setOnMenuItemClickListener {
                 val menuView = toolbar.findViewById<View>(searchId)
                 val viewLocation = IntArray(2)
@@ -135,7 +136,7 @@ class MailListFragment : Fragment() {
                 val view = view!!
                 menu.add("Delete")
                     .setIcon(R.drawable.ic_delete_black_24dp)
-                    .setIconTintList(tint)
+                    .setIconTintListCompat(tint)
                     .setOnMenuItemClickListener {
                         trashMails(view, viewModel, selectedIds())
                         actionmode?.finish()
@@ -143,7 +144,7 @@ class MailListFragment : Fragment() {
                     }
                 menu.add("Archive")
                     .setIcon(R.drawable.ic_archive_black_24dp)
-                    .setIconTintList(tint)
+                    .setIconTintListCompat(tint)
                     .setOnMenuItemClickListener {
                         archiveMails(view, viewModel, selectedIds())
                         actionmode?.finish()
@@ -151,7 +152,7 @@ class MailListFragment : Fragment() {
                     }
                 menu.add("Mark as read")
                     .setIcon(R.drawable.ic_drafts_black_24dp)
-                    .setIconTintList(tint)
+                    .setIconTintListCompat(tint)
                     .setOnMenuItemClickListener {
                         markAsRead(view, viewModel, selectedIds(), false)
                         actionmode?.finish()
@@ -159,7 +160,7 @@ class MailListFragment : Fragment() {
                     }
                 menu.add("Mark as unread")
                     .setIcon(R.drawable.ic_email_black_24dp)
-                    .setIconTintList(tint)
+                    .setIconTintListCompat(tint)
                     .setOnMenuItemClickListener {
                         markAsRead(view, viewModel, selectedIds(), true)
                         actionmode?.finish()
