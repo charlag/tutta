@@ -56,24 +56,26 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Notifications
  - [x] Login experience improvements
  - [x] Icon and name
- - [ ] Editing drafts
- - [ ] Viewing inline images
- - [ ] Settings
- - [ ] Displaying contact details
- - [ ] Contact autocomplete from system
- - [ ] Remembering external content exceptions
+ - [x] Editing drafts
  - [ ] Permanently deleting mails
+ - [ ] Remembering external content exceptions
  - [ ] Mail swipe actions
- - [ ] Additional mail details (recipients, sender, date)
+ - [ ] Displaying contact details
  - [ ] Warnings for technical sender
+ - [ ] Additional mail details (recipients, sender, date)
  - [ ] Updating permissions/mail body session key cache
  - [ ] Websocket connection follows screen activity
  - [ ] Dependency injection
  - [ ] Multi-user support
- - [ ] Mail threads
+ - [ ] Contact autocomplete from system
  - [ ] Saving password without biometrics
+ - [ ] Prevent loading unnecessary events on initial sync
+ - [ ] Viewing inline images
+ - [ ] Mail threads
+ - [ ] Settings
  - [ ] Full-text search
  - [ ] Sharing contacts with system?
+ - [ ] UI can be reused with different backends?
 
 ## License
 GPL-3.0-or-later of course
