@@ -76,7 +76,6 @@ operator fun Id.compareTo(id: Id): Int = asString().compareTo(id.asString())
 
 @Serializable(with = IdSerilizer::class)
 data class GeneratedId(val stringData: String) : Id() {
-    // TODO
     override fun asString(): String = stringData
 }
 

@@ -40,6 +40,10 @@ data class IdTuple(val listId: Id, val elementId: Id) {
             listDecoder.endStructure(descriptor)
             return idTuple
         }
+
+        fun fromRawValues(listId: String, elementId: String): IdTuple {
+            return IdTuple(GeneratedId(listId), GeneratedId(elementId))
+        }
     }
 }
 

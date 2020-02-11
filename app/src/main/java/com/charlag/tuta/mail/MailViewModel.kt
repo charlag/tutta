@@ -29,6 +29,7 @@ class MailViewModel : ViewModel() {
     private val mailDao = DependencyDump.db.mailDao()
     private val mailRepository = MailRepository(api, mailDao)
     private val fileHandler: FileHandler = DependencyDump.fileHandler
+    private val userController = DependencyDump.userController
 
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders: LiveData<List<MailFolderWithCounter>>
@@ -57,6 +58,11 @@ class MailViewModel : ViewModel() {
             }
         selectedFolder = combineLiveData(selectedFolderId, folders) { folderId, folders ->
             folders.find { it.folder.id == folderId.elementId.asString() }?.folder
+        }
+
+        viewModelScope.launch {
+            val mailAddress = userController.getUserGroupInfo().mailAddress
+            disaplayedMailAddress.postValue(mailAddress)
         }
     }
 

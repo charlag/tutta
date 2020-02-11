@@ -73,6 +73,10 @@ class MainActivity : AppCompatActivity() {
                 foldersAdapter.folders.addAll(it)
                 foldersAdapter.notifyDataSetChanged()
             }
+
+            viewModel.disaplayedMailAddress.observe {
+                mailAddressLabel.text = it
+            }
         }
     }
 

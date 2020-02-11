@@ -32,7 +32,8 @@ data class RecipientInfo(val name: String, val mailAddress: String, val type: Re
 class MailFacade(
     private val api: API,
     private val cryptor: Cryptor,
-    private val keyResolver: SessionKeyResolver) {
+    private val keyResolver: SessionKeyResolver
+) {
 
     suspend fun createDraft(
         user: User,
@@ -97,6 +98,54 @@ class MailFacade(
         return api.loadListElementEntity(draftCreateReturn.draft)
     }
 
+    suspend fun updateDraft(
+        user: User,
+        subject: String,
+        body: String,
+        senderAddress: String,
+        senderName: String,
+        toRecipients: List<RecipientInfo>,
+        ccRecipients: List<RecipientInfo>,
+        bccRecipients: List<RecipientInfo>,
+        uploadedFiles: List<UploadedFile>,
+        remoteFiles: List<IdTuple>,
+        confidential: Boolean,
+        draft: Mail // do we really need Mail instance here?
+    ): Mail {
+        val mailGroupId = getMailGroupIdForMailAddress(user, senderAddress)
+        val mailGroupKey =
+            api.groupKeysCache.getGroupKey(mailGroupId.asString())
+                ?: error("Could not get mail group key")
+        val sessionKey = cryptor.decryptKey(draft._ownerEncSessionKey!!, mailGroupKey)
+
+        val requestData = DraftUpdateData(
+            _format = 0,
+            draftData = DraftData(
+                bodyText = body,
+                confidential = confidential,
+                senderMailAddress = senderAddress,
+                senderName = senderName,
+                subject = subject,
+                addedAttachments = prepareAttachments(uploadedFiles, mailGroupKey),
+                removedAttachments = getRemovedAttachments(remoteFiles, draft.attachments),
+                toRecipients = recipientInfoToDraftRecipient(toRecipients),
+                ccRecipients = recipientInfoToDraftRecipient(ccRecipients),
+                bccRecipients = recipientInfoToDraftRecipient(bccRecipients),
+                replyTos = draft.replyTos
+            ),
+            draft = draft._id
+        )
+        api.serviceRequestVoid(
+            "tutanota",
+            "draftservice",
+            HttpMethod.Put,
+            requestData,
+            null,
+            sessionKey
+        )
+        return api.loadListElementEntity(draft._id)
+    }
+
     private suspend fun prepareAttachments(
         files: List<UploadedFile>,
         mailGroupKey: ByteArray
@@ -114,6 +163,13 @@ class MailFacade(
                 existingFile = null
             )
         }
+    }
+
+    private fun getRemovedAttachments(
+        files: List<IdTuple>,
+        existingFileIds: List<IdTuple>
+    ): List<IdTuple> {
+        return existingFileIds - files
     }
 
     suspend fun sendDraft(

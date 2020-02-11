@@ -12,7 +12,7 @@ expect class Cryptor() {
         useMac: Boolean // this should default to true too
     ): ByteArray
 
-    suspend fun decrypt(value: ByteArray, key: ByteArray, usePadding: Boolean = true): DecryptResult
+    suspend fun decrypt(value: ByteArray, key: ByteArray, usePadding: Boolean): DecryptResult
     suspend fun decryptRsaKey(value: ByteArray, key: ByteArray): PrivateKey
     suspend fun rsaEncrypt(value: ByteArray, publicKey: PublicKey): ByteArray
     suspend fun rsaDecrypt(value: ByteArray, privateKey: PrivateKey): ByteArray
