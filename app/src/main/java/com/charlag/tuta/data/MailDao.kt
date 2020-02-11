@@ -14,7 +14,7 @@ interface MailDao {
     suspend fun insertMails(mailEntity: List<MailEntity>)
 
     @Query("SELECT * FROM MailEntity WHERE id = :id LIMIT 1")
-    suspend fun getMail(id: String): MailEntity
+    suspend fun getMail(id: String): MailEntity?
 
     @Query("SELECT * FROM MailEntity WHERE id IN (:ids)")
     suspend fun getMails(ids: List<String>): MailEntity
@@ -59,7 +59,7 @@ interface MailDao {
     fun search(query: String): DataSource.Factory<Int, MailEntity>
 
     @Query("SELECT * FROM LocalDraftEntity WHERE id = :id LIMIT 1")
-    suspend fun getLocalDraft(id: Long): LocalDraftEntity
+    suspend fun getLocalDraft(id: Long): LocalDraftEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLocalDraft(localDraft: LocalDraftEntity): Long

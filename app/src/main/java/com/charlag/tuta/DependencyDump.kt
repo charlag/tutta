@@ -8,6 +8,7 @@ import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.events.EntityEventListener
 import com.charlag.tuta.files.FileHandler
+import com.charlag.tuta.mail.MailRepository
 import com.charlag.tuta.network.API
 import com.charlag.tuta.network.GroupKeysCache
 import com.charlag.tuta.network.InstanceMapper
@@ -64,6 +65,7 @@ object DependencyDump {
     lateinit var fileHandler: FileHandler
     lateinit var mailSender: MailSender
     lateinit var pushNotificationsManager: PushNotificationsManager
+    lateinit var mailRepository: MailRepository
     val userController = UserController(api, loginFacade, mailFacade)
 
     private var _hasLoggedin = false
@@ -92,7 +94,8 @@ object DependencyDump {
             EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
         fileHandler = FileHandler(fileFacade, loginFacade, applicationContext)
         val notificationManager = LocalNotificationManager(applicationContext)
-        mailSender = MailSender(mailFacade, fileHandler, notificationManager, db, api)
+        mailRepository = MailRepository(api, db)
+        mailSender = MailSender(mailFacade, fileHandler, notificationManager, mailRepository, api)
         _hasLoggedin = true
 
         pushNotificationsManager.register()

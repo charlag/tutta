@@ -50,12 +50,14 @@ class TutanotaConverters {
 
     // Doing IdTuple manually as automatic conversion fails somehow
     @TypeConverter
-    fun idTupleToString(idTuple: IdTuple): String {
+    fun idTupleToString(idTuple: IdTuple?): String? {
+        idTuple ?: return null
         return "[\"${idTuple.listId.asString()}\", \"${idTuple.elementId.asString()}\"]"
     }
 
     @TypeConverter
-    fun stringToIdTuple(string: String): IdTuple {
+    fun stringToIdTuple(string: String?): IdTuple? {
+        string ?: return null
         val array = json.parseJson(string).jsonArray
         return IdTuple(
             GeneratedId(array[0].primitive.content),
@@ -68,9 +70,8 @@ class TutanotaConverters {
         return idTuples.joinToString(
             prefix = "[",
             separator = ",",
-            postfix = "]",
-            transform = this::idTupleToString
-        )
+            postfix = "]"
+        ) { this.idTupleToString(it)!! }
     }
 
     @TypeConverter

@@ -133,9 +133,11 @@ class MailViewerFragment : Fragment() {
         updateUnreadStatus(openedMail.unread)
 
         replyButton.setOnClickListener {
+            val openedMail = viewModel.openedMail.value!!
             val intent = ComposeActivity.intentForReply(
                 context!!, ReplyInitData(
-                    mailId = viewModel.openedMail.value!!.id,
+                    mailId = openedMail.id,
+                    listId = openedMail.listId,
                     replyAll = false,
                     loadExternalContent = !webViewClient.blockingResources
                 )
@@ -146,9 +148,11 @@ class MailViewerFragment : Fragment() {
         moreButton.setOnClickListener {
             PopupMenu(moreButton.context, moreButton).apply {
                 menu.add("Forward").setOnMenuItemClickListener {
+                    val openedMail = viewModel.openedMail.value!!
                     val intent = ComposeActivity.intentForForward(
                         context!!, ForwardInitData(
-                            mailId = viewModel.openedMail.value!!.id,
+                            mailId = openedMail.id,
+                            listId = openedMail.listId,
                             loadExternalContent = !webViewClient.blockingResources
                         )
                     )

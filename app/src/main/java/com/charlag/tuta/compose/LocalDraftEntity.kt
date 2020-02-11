@@ -25,10 +25,12 @@ data class LocalDraftEntity(
     val confidential: Boolean,
     val replyTos: List<RecipientInfo>,
     val files: List<FileReference>,
+    val remoteFiles: List<IdTuple>,
     @Embedded(prefix = "prev_mail")
     val previousMail: IdTuple?,
     val replyContent: String?,
-    val loadExternalContent: Boolean
+    val loadExternalContent: Boolean,
+    val remoteDraftId: IdTuple?
 )
 
 class LocalDraftConverters {

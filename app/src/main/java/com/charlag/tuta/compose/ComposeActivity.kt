@@ -117,15 +117,30 @@ class ComposeActivity : AppCompatActivity() {
             attachmentAdapter.notifyDataSetChanged()
         }
 
-        if (intent.hasExtra(LOCAL_DRAFT_EXTRA)) {
-            val localDraftId = intent.getLongExtra(LOCAL_DRAFT_EXTRA, 0)
-            initWithLocalDraft(localDraftId)
-        } else if (intent.hasExtra(REPLY_DATA)) {
-            val replyInitData = intent.getParcelableExtra<ReplyInitData>(REPLY_DATA)
-            initWithReplyData(replyInitData)
-        } else if (intent.hasExtra(FORWARD_DATA)) {
-            val forwardInitData = intent.getParcelableExtra<ForwardInitData>(FORWARD_DATA)
-            initWithForwardData(forwardInitData)
+
+        initViewModel()
+    }
+
+    private fun initViewModel() {
+        lifecycleScope.launch {
+            when {
+                intent.hasExtra(LOCAL_DRAFT_EXTRA) -> {
+                    val localDraftId = intent.getLongExtra(LOCAL_DRAFT_EXTRA, 0)
+                    viewModel.initWIthLocalDraftId(localDraftId)?.let(::init)
+                }
+                intent.hasExtra(REPLY_DATA) -> {
+                    val replyInitData = intent.getParcelableExtra<ReplyInitData>(REPLY_DATA)
+                    init(viewModel.initWithReplyInitData(replyInitData))
+                }
+                intent.hasExtra(FORWARD_DATA) -> {
+                    val forwardInitData = intent.getParcelableExtra<ForwardInitData>(FORWARD_DATA)
+                    init(viewModel.initWithForwardData(forwardInitData))
+                }
+                intent.hasExtra(DRAFT_DATA) -> {
+                    val draftInitData = intent.getParcelableExtra<DraftInitData>(DRAFT_DATA)
+                    init(viewModel.initWithDraftData(draftInitData))
+                }
+            }
         }
     }
 
@@ -137,31 +152,13 @@ class ComposeActivity : AppCompatActivity() {
         lifecycleScope.launch {
             if (fromSpinner != null && viewModel.saveDraft(
                     subjectField.text.toString(),
-                    contentField.text.toString(),
+                    contentField.text,
                     fromSpinner.selectedItem as String?
                 )
             ) {
                 Toast.makeText(this@ComposeActivity, "Saving draft", Toast.LENGTH_SHORT).show()
             }
             finish()
-        }
-    }
-
-    private fun initWithLocalDraft(localDraftId: Long) {
-        lifecycleScope.launch {
-            viewModel.initWIthLocalDraftId(localDraftId)?.let { init(it) }
-        }
-    }
-
-    private fun initWithReplyData(replyInitData: ReplyInitData) {
-        lifecycleScope.launch {
-            init(viewModel.initWithReplyInitData(replyInitData))
-        }
-    }
-
-    private fun initWithForwardData(forwardInitData: ForwardInitData) {
-        lifecycleScope.launch {
-            init(viewModel.initWithForwardData(forwardInitData))
         }
     }
 
@@ -241,7 +238,7 @@ class ComposeActivity : AppCompatActivity() {
             try {
                 viewModel.send(
                     subjectField.text.toString(),
-                    contentField.text.toString(),
+                    contentField.text,
                     fromSpinner.selectedItem as String
                 )
                 onBeforeFinish()
@@ -262,7 +259,7 @@ class ComposeActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         Log.d("Compose", "pick result $data")
-        val uri = data!!.data!!
+        val uri = data?.data ?: return
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (!cursor.moveToFirst()) return@use
 
@@ -280,16 +277,26 @@ class ComposeActivity : AppCompatActivity() {
         const val LOCAL_DRAFT_EXTRA = "localDraft"
         private const val REPLY_DATA = "replyData"
         private const val FORWARD_DATA = "forwardData"
+        private const val DRAFT_DATA = "draftData"
+
+        private inline fun newIntent(context: Context, builder: Intent.() -> Unit) =
+            Intent(context, ComposeActivity::class.java).apply(builder)
 
         fun intentForReply(context: Context, replyInitData: ReplyInitData): Intent {
-            return Intent(context, ComposeActivity::class.java).apply {
+            return newIntent(context) {
                 putExtra(REPLY_DATA, replyInitData)
             }
         }
 
         fun intentForForward(context: Context, forwardInitData: ForwardInitData): Intent {
-            return Intent(context, ComposeActivity::class.java).apply {
+            return newIntent(context) {
                 putExtra(FORWARD_DATA, forwardInitData)
+            }
+        }
+
+        fun intentEditDraft(context: Context, draftInitData: DraftInitData): Intent {
+            return newIntent(context) {
+                putExtra(DRAFT_DATA, draftInitData)
             }
         }
     }
@@ -298,6 +305,7 @@ class ComposeActivity : AppCompatActivity() {
 @Parcelize
 data class ReplyInitData(
     val mailId: String,
+    val listId: String,
     val replyAll: Boolean,
     val loadExternalContent: Boolean
 ) : Parcelable
@@ -306,10 +314,17 @@ data class ReplyInitData(
 @Parcelize
 data class ForwardInitData(
     val mailId: String,
+    val listId: String,
     val loadExternalContent: Boolean
 ) : Parcelable
 
-data class ListedFileReference(val file: FileReference) : ListedAttachment {
+@Parcelize
+data class DraftInitData(
+    val draftId: String,
+    val listId: String
+) : Parcelable
+
+data class ListedFileReference(val file: DraftFile) : ListedAttachment {
     override val name: String
         get() = file.name
     override val size: Long

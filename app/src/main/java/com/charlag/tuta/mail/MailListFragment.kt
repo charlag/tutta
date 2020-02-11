@@ -13,9 +13,11 @@ import androidx.lifecycle.switchMap
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.charlag.tuta.MailFolderType
 import com.charlag.tuta.MainActivity
 import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
+import com.charlag.tuta.compose.DraftInitData
 import com.charlag.tuta.getFolderName
 import com.charlag.tuta.util.map
 import com.charlag.tuta.util.setIconTintListCompat
@@ -43,15 +45,24 @@ class MailListFragment : Fragment() {
     }
 
     private val adapter = MailsAdapter { mail ->
-        viewModel.setOpenedMail(mail)
-        parentFragmentManager.beginTransaction()
-            .replace(
-                R.id.fragemntFrame,
-                MailViewerFragment()
+        val selectedFolder = viewModel.selectedFolder.value!!
+        if (selectedFolder.folderType == MailFolderType.DRAFT.value) {
+            val draftInitData = DraftInitData(
+                draftId = mail.id,
+                listId = mail.listId
             )
-            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-            .addToBackStack(null)
-            .commit()
+            startActivity(ComposeActivity.intentEditDraft(context!!, draftInitData))
+        } else {
+            viewModel.setOpenedMail(mail)
+            parentFragmentManager.beginTransaction()
+                .replace(
+                    R.id.fragemntFrame,
+                    MailViewerFragment()
+                )
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .addToBackStack(null)
+                .commit()
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

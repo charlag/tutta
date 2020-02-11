@@ -27,13 +27,14 @@ class MailViewModel : ViewModel() {
     private val loginFacade = DependencyDump.loginFacade
     private val api = DependencyDump.api
     private val mailDao = DependencyDump.db.mailDao()
-    private val mailRepository = MailRepository(api, mailDao)
+    private val mailRepository: MailRepository = DependencyDump.mailRepository
     private val fileHandler: FileHandler = DependencyDump.fileHandler
     private val userController = DependencyDump.userController
 
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders: LiveData<List<MailFolderWithCounter>>
     val selectedFolder: LiveData<MailFolderEntity?>
+    val disaplayedMailAddress = MutableLiveData<String>()
 
     init {
         folders = mailDao.getFoldersLiveData()
@@ -137,7 +138,7 @@ class MailViewModel : ViewModel() {
 
     private suspend fun markReadUnread(ids: List<String>, unread: Boolean) {
         for (id in ids) {
-            val mail = mailDao.getMail(id)
+            val mail = (mailDao.getMail(id) ?: continue)
                 .copy(unread = unread)
                 .toMail()
             try {

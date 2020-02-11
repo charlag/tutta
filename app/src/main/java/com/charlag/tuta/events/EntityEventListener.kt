@@ -110,13 +110,14 @@ class EntityEventListener(
                 val eventBatches = api.loadRangeInBetween(
                     EntityEventBatch::class,
                     groupId,
+                    // TODO: don't use MIN_ID here, we download a lot of crap
                     lastPref?.let(::GeneratedId) ?: GENERATED_MIN_ID,
                     GENERATED_MAX_ID
                 )
 
                 for (batch in eventBatches) {
                     val batchId = batch._id.elementId.asString()
-                    if (lastPref == null || lastPref < batchId) {
+                    if (lastPref < batchId) {
                         emit(WebsocketEntityData(GeneratedId(batchId), groupId, batch.events))
                     }
                 }

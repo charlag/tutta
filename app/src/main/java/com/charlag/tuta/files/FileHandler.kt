@@ -67,6 +67,16 @@ class FileHandler(
         return systemFile
     }
 
+    suspend fun copyFilesToTempDir(fileRef: FileReference): FileReference {
+        return withContext(Dispatchers.IO) {
+            val file = java.io.File.createTempFile(fileRef.name, "upload", context.cacheDir)
+            context.contentResolver.openInputStream(fileRef.reference.toUri())
+                ?.copyTo(file.outputStream())
+                ?: error("Failed to read file")
+            fileRef.copy(reference = file.toUri().toString())
+        }
+    }
+
     suspend fun uploadFile(file: FileReference): UploadedFile {
         Log.d("FileHandler", "Upload file $file")
         val fileData = context.contentResolver.openInputStream(file.reference.toUri())?.readBytes()

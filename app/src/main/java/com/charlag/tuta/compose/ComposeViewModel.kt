@@ -1,23 +1,46 @@
 package com.charlag.tuta.compose
 
+import android.text.Html
+import android.text.SpannableString
+import android.text.Spanned
 import android.util.Log
 import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.*
 import com.charlag.tuta.*
+import com.charlag.tuta.data.MailAddressEntity
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.ConversationEntry
+import com.charlag.tuta.entities.tutanota.File
+import com.charlag.tuta.mail.MailRepository
 import com.charlag.tuta.util.FilledMutableLiveData
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.mutate
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import java.io.FileNotFoundException
+import java.io.IOException
+
+
+sealed class DraftFile {
+    abstract val name: String
+    abstract val size: Long
+}
 
 @Serializable
-data class FileReference(val name: String, val size: Long, val reference: String)
+data class FileReference(
+    override val name: String,
+    override val size: Long,
+    val reference: String
+) : DraftFile()
 
-typealias Attachment = FileReference
+data class RemoteFile(
+    override val name: String,
+    override val size: Long,
+    val fileId: IdTuple
+) :
+    DraftFile()
 
 class ComposeViewModel : ViewModel() {
     private val api = DependencyDump.api
@@ -25,25 +48,28 @@ class ComposeViewModel : ViewModel() {
     private val loginFacade = DependencyDump.loginFacade
     private val contactRepo = DependencyDump.contactRepository
     private val mailSender = DependencyDump.mailSender
-    private val db = DependencyDump.db
     private val userController = DependencyDump.userController
+    private val mailRepository: MailRepository = DependencyDump.mailRepository
+    private val fileHandler = DependencyDump.fileHandler
 
     val enabledMailAddresses: LiveData<List<String>>
     val toRecipients = FilledMutableLiveData<List<String>>(listOf())
     val ccRecipients = FilledMutableLiveData<List<String>>(listOf())
     val bccRecipients = FilledMutableLiveData<List<String>>(listOf())
-    val attachments = FilledMutableLiveData<List<Attachment>>(listOf())
+    private val pickedFiles = FilledMutableLiveData<List<FileReference>>(listOf())
+    private val remoteFiles = FilledMutableLiveData<List<RemoteFile>>(listOf())
+    val attachments = combineLiveData(pickedFiles, remoteFiles) { picked, remote ->
+        picked + remote
+    }
+    val recipientTypes = FilledMutableLiveData<Map<String, RecipientType>>(mapOf())
 
-    val recipientTypes =
-        FilledMutableLiveData<Map<String, RecipientType>>(
-            mapOf()
-        )
     private var localDraftId: Long = 0
     private var conversationType: ConversationType = ConversationType.NEW
     private var previousMessageId: String? = null
     private var previousMail: IdTuple? = null
     private var replyContent: String? = null
     private var loadExternalContent = false
+    private var draftId: IdTuple? = null
 
     private val confidentialIsSelected: Boolean
         // For now always assume non-confidential because we don't send "external secure" emails
@@ -82,12 +108,13 @@ class ComposeViewModel : ViewModel() {
 
     suspend fun send(
         subject: String,
-        body: String,
+        body: Spanned,
         senderAddress: String
     ) {
+        val text = Html.toHtml(body, 0)
         mailSender.send(
             loginFacade.user!!,
-            prepareLocalDraft(subject, body, senderAddress, resolveRemaining = true)
+            prepareLocalDraft(subject, text, senderAddress, resolveRemaining = true)
         )
     }
 
@@ -97,15 +124,17 @@ class ComposeViewModel : ViewModel() {
      */
     suspend fun saveDraft(
         subject: String,
-        body: String,
+        body: Spanned,
         senderAddress: String?
     ): Boolean {
-        if (subject.isEmpty() && body.isEmpty() && attachments.value.isEmpty()) {
+        // Should check if they are changed
+        if (subject.isEmpty() && body.isEmpty() && attachments.value!!.isEmpty()) {
             return false
         }
+        val text = Html.toHtml(body, 0)
         mailSender.save(
             loginFacade.user!!,
-            prepareLocalDraft(subject, body, senderAddress, resolveRemaining = false)
+            prepareLocalDraft(subject, text, senderAddress, resolveRemaining = false)
         )
         return true
     }
@@ -129,7 +158,7 @@ class ComposeViewModel : ViewModel() {
         val recipients = to + cc + bcc
 
         if (resolveRemaining) {
-            this.recipientTypes.postValue(resolveRemainingRecipients(recipients, recipientTypes))
+            this.recipientTypes.postValue(resolveRecipients(recipients, recipientTypes))
         }
         val sender = senderAddress
             ?: userController.getProps().defaultSender
@@ -149,14 +178,16 @@ class ComposeViewModel : ViewModel() {
             confidential = confidentialIsSelected
                     || recipients.all { it.type == RecipientType.INTENRAL },
             replyTos = listOf(),
-            files = attachments.value,
+            files = pickedFiles.value,
             previousMail = previousMail,
             replyContent = replyContent,
-            loadExternalContent = loadExternalContent
+            loadExternalContent = loadExternalContent,
+            remoteDraftId = draftId,
+            remoteFiles = remoteFiles.value.map { it.fileId }
         )
     }
 
-    private suspend fun resolveRemainingRecipients(
+    private suspend fun resolveRecipients(
         recipients: List<RecipientInfo>,
         recipientTypes: Map<String, RecipientType>
     ): Map<String, RecipientType> {
@@ -168,6 +199,16 @@ class ComposeViewModel : ViewModel() {
             }
         }
         return mutableRecipientTypes
+    }
+
+    private fun resolveRecipientsAsync(recipients: List<RecipientInfo>) {
+        viewModelScope.launch {
+            val resolved = resolveRecipients(
+                recipients,
+                recipientTypes.value
+            )
+            recipientTypes.mutate { it + resolved }
+        }
     }
 
     @MainThread
@@ -219,17 +260,23 @@ class ComposeViewModel : ViewModel() {
 
     @MainThread
     fun addAttachment(fileReference: FileReference) {
-        attachments.mutate { it + fileReference }
+        viewModelScope.launch {
+            val copied = fileHandler.copyFilesToTempDir(fileReference)
+            pickedFiles.mutate { it + copied }
+        }
     }
 
-    fun removeAttachment(file: FileReference) {
-        attachments.mutate { it - file }
+    fun removeAttachment(file: DraftFile) {
+        when (file) {
+            is FileReference -> pickedFiles.mutate { it - file }
+            is RemoteFile -> remoteFiles.mutate { it - file }
+        }
     }
 
     // All init functions should return some structure so that view doesn't have to think about it
     suspend fun initWIthLocalDraftId(id: Long): InitData? {
         this.localDraftId = id
-        return db.mailDao().getLocalDraft(id).let { draft ->
+        return mailRepository.getLocalDraft(id)?.let { draft ->
             conversationType = draft.conversationType
             previousMessageId = draft.previousMessageId
             previousMail = draft.previousMail
@@ -237,7 +284,7 @@ class ComposeViewModel : ViewModel() {
             // TODO: init things like replyTos
             InitData(
                 subject = draft.subject,
-                content = draft.body,
+                content = SpannableString(draft.body),
                 toRecipients = draft.toRecipients,
                 ccRecipients = draft.ccRecipients,
                 bccRecipients = draft.bccRecipients,
@@ -248,7 +295,12 @@ class ComposeViewModel : ViewModel() {
     }
 
     suspend fun initWithReplyInitData(replyInitData: ReplyInitData): InitData {
-        val mail = db.mailDao().getMail(replyInitData.mailId)
+        val mail = mailRepository.getMail(
+            IdTuple.fromRawValues(
+                replyInitData.listId,
+                replyInitData.mailId
+            )
+        )
 
         conversationType = ConversationType.REPLY
         val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
@@ -256,8 +308,8 @@ class ComposeViewModel : ViewModel() {
         previousMail = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
         loadExternalContent = replyInitData.loadExternalContent
 
-        val body = db.mailDao().getMailBody(mail.body.asString())
-        replyContent = body?.text
+        val body = mailRepository.getMailBody(mail.body)
+        replyContent = body.text
 
         // TODO: handle reply all
         val toRecipients =
@@ -267,14 +319,14 @@ class ComposeViewModel : ViewModel() {
         viewModelScope.launch {
             val oldValue = recipientTypes.value
             recipientTypes.value =
-                resolveRemainingRecipients(toRecipients, oldValue)
+                resolveRecipients(toRecipients, oldValue)
         }
         val subject =
             if (mail.subject.startsWith("Re:", ignoreCase = true)) mail.subject
-            else "Re: " + mail.subject;
+            else "Re: " + mail.subject
         return InitData(
             subject = subject,
-            content = "",
+            content = SpannableString(""),
             replyContent = replyContent,
             toRecipients = toRecipients,
             ccRecipients = listOf(),
@@ -284,7 +336,12 @@ class ComposeViewModel : ViewModel() {
     }
 
     suspend fun initWithForwardData(forwardInitData: ForwardInitData): InitData {
-        val mail = db.mailDao().getMail(forwardInitData.mailId)
+        val mail = mailRepository.getMail(
+            IdTuple.fromRawValues(
+                forwardInitData.listId,
+                forwardInitData.mailId
+            )
+        )
 
         conversationType = ConversationType.FORWARD
         val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
@@ -292,13 +349,13 @@ class ComposeViewModel : ViewModel() {
         previousMail = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
         loadExternalContent = forwardInitData.loadExternalContent
 
-        val body = db.mailDao().getMailBody(mail.body.asString())
-        replyContent = body?.text
+        val body = mailRepository.getMailBody(mail.body)
+        replyContent = body.text
 
         val subject = "FWD ${mail.subject}"
         return InitData(
             subject = subject,
-            content = "",
+            content = SpannableString(""),
             replyContent = replyContent,
             toRecipients = listOf(),
             ccRecipients = listOf(),
@@ -306,11 +363,65 @@ class ComposeViewModel : ViewModel() {
             loadExternalContent = loadExternalContent
         )
     }
+
+    suspend fun initWithDraftData(draftInitData: DraftInitData): InitData {
+        val mail = mailRepository.getMail(
+            IdTuple.fromRawValues(
+                draftInitData.listId,
+                draftInitData.draftId
+            )
+        )
+        this.draftId = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
+        viewModelScope.launch {
+            val loaded = mail.attachments.mapNotNull {
+                try {
+                    val file = api.loadListElementEntity<File>(it)
+                    RemoteFile(file.name, file.size, file._id)
+                } catch (e: FileNotFoundException) {
+                    null
+                } catch (e: IOException) {
+                    null
+                }
+            }
+            remoteFiles.postValue(loaded)
+        }
+
+
+        val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
+        conversationType = ConversationType.fromRaw(conversationEntry.conversationType)
+
+        conversationEntry.previous?.let { previous ->
+            val previousConversationEntry =
+                api.loadListElementEntity<ConversationEntry>(previous)
+            previousMessageId = previousConversationEntry.messageId
+            previousMail = previousConversationEntry.mail
+        }
+
+        val body = mailRepository.getMailBody(mail.body)
+
+        return InitData(
+            subject = mail.subject,
+            content = Html.fromHtml(body.text, 0),
+            replyContent = replyContent,
+            toRecipients = mail.toRecipients.map { it.toRecipientInfo() },
+            ccRecipients = mail.ccRecipients.map { it.toRecipientInfo() },
+            bccRecipients = mail.bccRecipients.map { it.toRecipientInfo() },
+            loadExternalContent = false // for now
+        ).also {
+            resolveRecipientsAsync(it.toRecipients + it.ccRecipients + it.bccRecipients)
+        }
+    }
+
+    private fun MailAddressEntity.toRecipientInfo() = RecipientInfo(
+        name = name,
+        mailAddress = address,
+        type = RecipientType.UNKNOWN
+    )
 }
 
 data class InitData(
     val subject: String,
-    val content: String,
+    val content: Spanned,
     val replyContent: String?,
     val toRecipients: List<RecipientInfo>,
     val ccRecipients: List<RecipientInfo>,
