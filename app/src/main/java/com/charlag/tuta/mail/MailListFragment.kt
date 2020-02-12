@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.switchMap
 import androidx.recyclerview.selection.SelectionTracker
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.charlag.tuta.MailFolderType
@@ -26,10 +27,8 @@ import kotlinx.android.synthetic.main.fragment_mail_list.*
 import kotlinx.coroutines.launch
 
 class MailListFragment : Fragment() {
-
     private var actionmode: ActionMode? = null
     val viewModel: MailViewModel by activityViewModels()
-
 
     private val tint by lazy(LazyThreadSafetyMode.NONE) {
         val tintColor = toolbar.context.getColor(R.color.grey_30)
@@ -97,6 +96,16 @@ class MailListFragment : Fragment() {
         recycler.adapter = adapter
         recycler.setHasFixedSize(true)
         (recycler.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
+
+        val swipeCallback = MailSwipeCallback(context!!) { direction, position ->
+            val mailId = adapter.currentList?.get(position)?.id ?: return@MailSwipeCallback
+            if (direction == ItemTouchHelper.RIGHT) {
+                trashMails(view, viewModel, listOf(mailId))
+            } else {
+                archiveMails(view, viewModel, listOf(mailId))
+            }
+        }
+        ItemTouchHelper(swipeCallback).attachToRecyclerView(recycler)
 
         val emptyDrawable = view.context.getDrawable(R.drawable.ic_inbox_black_24dp)!!
         val emptyDrawableSize = (60 * view.context.resources.displayMetrics.density).toInt()

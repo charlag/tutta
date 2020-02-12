@@ -4,7 +4,7 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="?selectableItemBackground"
+        android:foreground="?selectableItemBackground"
         android:paddingTop="12dp"
         android:paddingBottom="12dp">
 
@@ -12,11 +12,11 @@
             android:id="@+id/unreadIndicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginRight="4dp"
             android:src="@drawable/shape_unread"
             app:layout_constraintBottom_toBottomOf="@id/sender"
             app:layout_constraintRight_toLeftOf="@id/sender"
-            app:layout_constraintTop_toTopOf="@id/sender"
-            android:layout_marginRight="4dp"/>
+            app:layout_constraintTop_toTopOf="@id/sender" />
 
     <TextView
             android:id="@+id/sender"
