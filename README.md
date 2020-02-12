@@ -61,8 +61,8 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Remembering external content exceptions
  - [x] Mail swipe actions
  - [x] Displaying contact details
+ - [x] Additional mail details (recipients, sender, date)
  - [ ] Warnings for technical sender
- - [ ] Additional mail details (recipients, sender, date)
  - [ ] Updating permissions/mail body session key cache
  - [ ] Websocket connection follows screen activity
  - [ ] Dependency injection

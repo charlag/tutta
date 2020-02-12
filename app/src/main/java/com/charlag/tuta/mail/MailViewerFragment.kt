@@ -1,6 +1,8 @@
 package com.charlag.tuta.mail
 
+import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
+import android.graphics.drawable.RotateDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,6 +11,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.PopupMenu
+import android.widget.TextView
+import androidx.core.view.isGone
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -19,12 +23,14 @@ import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.compose.ForwardInitData
 import com.charlag.tuta.compose.ReplyInitData
+import com.charlag.tuta.data.MailAddressEntity
 import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.util.setIconTintListCompat
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
 import java.io.IOException
+import java.text.SimpleDateFormat
 
 class MailViewerFragment : Fragment() {
 
@@ -142,7 +148,6 @@ class MailViewerFragment : Fragment() {
         updateUnreadStatus(nowUnread = openedMail.unread)
 
         replyButton.setOnClickListener {
-            val openedMail = viewModel.openedMail.value!!
             val intent = ComposeActivity.intentForReply(
                 context!!, ReplyInitData(
                     mailId = openedMail.id,
@@ -157,7 +162,6 @@ class MailViewerFragment : Fragment() {
         moreButton.setOnClickListener {
             PopupMenu(moreButton.context, moreButton).apply {
                 menu.add("Forward").setOnMenuItemClickListener {
-                    val openedMail = viewModel.openedMail.value!!
                     val intent = ComposeActivity.intentForForward(
                         context!!, ForwardInitData(
                             mailId = openedMail.id,
@@ -171,6 +175,37 @@ class MailViewerFragment : Fragment() {
                 show()
             }
         }
+
+        var showingMailDetails = false
+        emailDetailsButton.setOnClickListener {
+            showingMailDetails = !showingMailDetails
+            mailDetailsView.isGone = !showingMailDetails
+            val buttonDrawable = (emailDetailsButton.drawable as RotateDrawable)
+            if (showingMailDetails) {
+                ObjectAnimator.ofInt(buttonDrawable, "level", 0, 5000).start()
+            } else {
+                ObjectAnimator.ofInt(buttonDrawable, "level", 5000, 0).start()
+            }
+        }
+
+        setupDetailsField(toLabel, toAddressLabel, openedMail.toRecipients)
+        setupDetailsField(ccLabel, ccAddressLabel, openedMail.ccRecipients)
+        setupDetailsField(bccLabel, bccAddressLabel, openedMail.bccRecipients)
+        setupDetailsField(replyToLabel, replyToAddressLabel, openedMail.replyTos)
+        sentValueLabel.text = SimpleDateFormat.getDateInstance().format(openedMail.sentDate)
+    }
+
+    private fun setupDetailsField(
+        label: TextView,
+        addressLabel: TextView,
+        recipients: List<MailAddressEntity>
+    ) {
+        addressLabel.text = recipients.joinToString(", ") {
+            if (it.name.isEmpty()) it.address
+            else "${it.name} • ${it.address}"
+        }
+        addressLabel.isGone = recipients.isEmpty()
+        label.isGone = recipients.isEmpty()
     }
 
     private fun updateUnreadStatus(nowUnread: Boolean) {
