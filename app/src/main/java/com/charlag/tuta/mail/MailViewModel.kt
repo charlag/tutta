@@ -218,16 +218,12 @@ class MailViewModel : ViewModel() {
             val mailbox = api.loadElementEntity<MailBox>(groupRoot.mailbox)
             api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
                 .flatMap { folder ->
-                    val folderWithSubfolders = mutableListOf(folder)
-                    if (folder.folderType == MailFolderType.ARCHIVE.value) {
-                        folderWithSubfolders.addAll(
-                            api.loadAll(
-                                MailFolder::class,
-                                folder.subFolders
-                            )
-                        )
-                    }
-                    folderWithSubfolders
+                    // Theoretically subfolders are only allowed for one of the system folders
+                    // but practically they still could be anywhere
+                    api.loadAll(
+                        MailFolder::class,
+                        folder.subFolders
+                    ) + folder
                 }
                 .map {
                     it.toEntity()
