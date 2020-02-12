@@ -54,13 +54,15 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, ContactsActivity::class.java))
         }
 
-        supportFragmentManager
-            .beginTransaction()
-            .replace(
-                R.id.fragemntFrame,
-                MailListFragment()
-            )
-            .commit()
+        if (savedInstanceState == null) {
+            supportFragmentManager
+                .beginTransaction()
+                .replace(
+                    R.id.fragemntFrame,
+                    MailListFragment()
+                )
+                .commit()
+        }
 
         withLifecycleContext {
             viewModel.selectedFolderId.observe {

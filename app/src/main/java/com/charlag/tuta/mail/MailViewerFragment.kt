@@ -24,8 +24,13 @@ import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.compose.ForwardInitData
 import com.charlag.tuta.compose.ReplyInitData
 import com.charlag.tuta.data.MailAddressEntity
+import com.charlag.tuta.data.MailEntity
+import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.File
+import com.charlag.tuta.util.IdTupleWrapper
 import com.charlag.tuta.util.setIconTintListCompat
+import com.charlag.tuta.util.toWrapper
+import com.charlag.tuta.util.unwrap
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
@@ -50,149 +55,155 @@ class MailViewerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val openedMail = viewModel.openedMail.value
-        if (openedMail == null) {
-            parentFragmentManager.popBackStack()
-            return
-        }
+        val mailId = arguments?.getParcelable<IdTupleWrapper>(MAIL_ID_ARG)
+        lifecycleScope.launch {
+            val openedMail = mailId?.let { viewModel.getMail(it.unwrap()) }
+            if (openedMail == null) {
+                parentFragmentManager.popBackStack()
+                return@launch
+            }
 
-        if (BuildConfig.DEBUG) {
-            WebView.setWebContentsDebuggingEnabled(true)
-        }
-        webView.settings.setSupportZoom(true)
-        webView.settings.builtInZoomControls = true
-        webView.settings.displayZoomControls = false
-        val webViewClient = BlockingWebViewClient(context!!).apply {
-            onExternalContentDetected = {
-                externalContentView.post {
-                    externalContentView.visibility = View.VISIBLE
+            if (BuildConfig.DEBUG) {
+                WebView.setWebContentsDebuggingEnabled(true)
+            }
+            webView.settings.setSupportZoom(true)
+            webView.settings.builtInZoomControls = true
+            webView.settings.displayZoomControls = false
+            val webViewClient = BlockingWebViewClient(context!!).apply {
+                onExternalContentDetected = {
+                    externalContentView.post {
+                        externalContentView.visibility = View.VISIBLE
+                    }
                 }
+                blockingResources =
+                    !preferenceFacade.allowedToLoadExternalContent(openedMail.sender.address)
             }
-            blockingResources =
-                !preferenceFacade.allowedToLoadExternalContent(openedMail.sender.address)
-        }
-        webView.webViewClient = webViewClient
+            webView.webViewClient = webViewClient
 
-        externalContentView.setOnClickListener {
-            if (webViewClient.blockingResources) {
-                webViewClient.blockingResources = false
-                webView.reload()
-                loadExternalContentText.text = "Always load from this sender"
-            } else {
-                // Second click
-                externalContentView.visibility = View.GONE
-                preferenceFacade.setAllowedToLoadExternalContent(openedMail.sender.address, true)
-            }
-        }
-        toolbar.navigationIcon = view.context.getDrawable(R.drawable.ic_arrow_back_black_24dp)
-        toolbar.setNavigationOnClickListener {
-            parentFragmentManager.popBackStack()
-            goBack()
-        }
-
-        subjectView.text = openedMail.subject
-        senderNameView.text = openedMail.sender.name
-        senderAddressView.text = openedMail.sender.address
-        tryAgainButton.setOnClickListener {
-            loadMailBody()
-        }
-        loadMailBody()
-        loadAttachments()
-
-
-        val iconColor = view.context.getColor(R.color.grey_30)
-        val tint = ColorStateList.valueOf(iconColor)
-        toolbar.menu.add("Archive").setIcon(R.drawable.ic_archive_black_24dp)
-            .setOnMenuItemClickListener {
-                archiveMails(toolbar, viewModel, listOf(openedMail.id))
-                goBack()
-                true
-            }
-            .setIconTintListCompat(tint)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-        toolbar.menu.add("Trash").setIcon(R.drawable.ic_delete_black_24dp)
-            .setOnMenuItemClickListener {
-                trashMails(toolbar, viewModel, listOf(openedMail.id))
-                goBack()
-                true
-            }
-            .setIconTintListCompat(tint)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-        toolbar.menu.add("Move to").setIcon(R.drawable.ic_folder_black_24dp)
-            .setOnMenuItemClickListener {
-                lifecycleScope.launch {
-                    moveMails(toolbar, viewModel, listOf(openedMail.id))
-                    goBack()
-                }
-                true
-            }
-            .setIconTintListCompat(tint)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-        readItem = toolbar.menu.add("Mark as read").setIcon(R.drawable.ic_email_black_24dp)
-            .setOnMenuItemClickListener {
-                markAsRead(toolbar, viewModel, listOf(openedMail.id), false)
-                updateUnreadStatus(nowUnread = false)
-                true
-            }
-            .setIconTintListCompat(tint)
-            .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
-        unreadItem = toolbar.menu.add("Mark as unread").setIcon(R.drawable.ic_email_black_24dp)
-            .setOnMenuItemClickListener {
-                markAsRead(toolbar, viewModel, listOf(openedMail.id), true)
-                updateUnreadStatus(nowUnread = true)
-                true
-            }
-            .setIconTintListCompat(tint)
-            .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
-
-        updateUnreadStatus(nowUnread = openedMail.unread)
-
-        replyButton.setOnClickListener {
-            val intent = ComposeActivity.intentForReply(
-                context!!, ReplyInitData(
-                    mailId = openedMail.id,
-                    listId = openedMail.listId,
-                    replyAll = false,
-                    loadExternalContent = !webViewClient.blockingResources
-                )
-            )
-            startActivity(intent)
-        }
-
-        moreButton.setOnClickListener {
-            PopupMenu(moreButton.context, moreButton).apply {
-                menu.add("Forward").setOnMenuItemClickListener {
-                    val intent = ComposeActivity.intentForForward(
-                        context!!, ForwardInitData(
-                            mailId = openedMail.id,
-                            listId = openedMail.listId,
-                            loadExternalContent = !webViewClient.blockingResources
-                        )
+            externalContentView.setOnClickListener {
+                if (webViewClient.blockingResources) {
+                    webViewClient.blockingResources = false
+                    webView.reload()
+                    loadExternalContentText.text = "Always load from this sender"
+                } else {
+                    // Second click
+                    externalContentView.visibility = View.GONE
+                    preferenceFacade.setAllowedToLoadExternalContent(
+                        openedMail.sender.address,
+                        true
                     )
-                    startActivity(intent)
+                }
+            }
+            toolbar.navigationIcon = view.context.getDrawable(R.drawable.ic_arrow_back_black_24dp)
+            toolbar.setNavigationOnClickListener {
+                parentFragmentManager.popBackStack()
+                goBack()
+            }
+
+            subjectView.text = openedMail.subject
+            senderNameView.text = openedMail.sender.name
+            senderAddressView.text = openedMail.sender.address
+            tryAgainButton.setOnClickListener {
+                loadMailBody(openedMail)
+            }
+            loadMailBody(openedMail)
+            loadAttachments(openedMail)
+
+
+            val iconColor = view.context.getColor(R.color.grey_30)
+            val tint = ColorStateList.valueOf(iconColor)
+            toolbar.menu.add("Archive").setIcon(R.drawable.ic_archive_black_24dp)
+                .setOnMenuItemClickListener {
+                    archiveMails(toolbar, viewModel, listOf(openedMail.id))
+                    goBack()
                     true
                 }
-                show()
-            }
-        }
+                .setIconTintListCompat(tint)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+            toolbar.menu.add("Trash").setIcon(R.drawable.ic_delete_black_24dp)
+                .setOnMenuItemClickListener {
+                    trashMails(toolbar, viewModel, listOf(openedMail.id))
+                    goBack()
+                    true
+                }
+                .setIconTintListCompat(tint)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+            toolbar.menu.add("Move to").setIcon(R.drawable.ic_folder_black_24dp)
+                .setOnMenuItemClickListener {
+                    lifecycleScope.launch {
+                        moveMails(toolbar, viewModel, listOf(openedMail.id))
+                        goBack()
+                    }
+                    true
+                }
+                .setIconTintListCompat(tint)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+            readItem = toolbar.menu.add("Mark as read").setIcon(R.drawable.ic_email_black_24dp)
+                .setOnMenuItemClickListener {
+                    markAsRead(toolbar, viewModel, listOf(openedMail.id), false)
+                    updateUnreadStatus(nowUnread = false)
+                    true
+                }
+                .setIconTintListCompat(tint)
+                .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
+            unreadItem = toolbar.menu.add("Mark as unread").setIcon(R.drawable.ic_email_black_24dp)
+                .setOnMenuItemClickListener {
+                    markAsRead(toolbar, viewModel, listOf(openedMail.id), true)
+                    updateUnreadStatus(nowUnread = true)
+                    true
+                }
+                .setIconTintListCompat(tint)
+                .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM) }
 
-        var showingMailDetails = false
-        emailDetailsButton.setOnClickListener {
-            showingMailDetails = !showingMailDetails
-            mailDetailsView.isGone = !showingMailDetails
-            val buttonDrawable = (emailDetailsButton.drawable as RotateDrawable)
-            if (showingMailDetails) {
-                ObjectAnimator.ofInt(buttonDrawable, "level", 0, 5000).start()
-            } else {
-                ObjectAnimator.ofInt(buttonDrawable, "level", 5000, 0).start()
-            }
-        }
+            updateUnreadStatus(nowUnread = openedMail.unread)
 
-        setupDetailsField(toLabel, toAddressLabel, openedMail.toRecipients)
-        setupDetailsField(ccLabel, ccAddressLabel, openedMail.ccRecipients)
-        setupDetailsField(bccLabel, bccAddressLabel, openedMail.bccRecipients)
-        setupDetailsField(replyToLabel, replyToAddressLabel, openedMail.replyTos)
-        sentValueLabel.text = SimpleDateFormat.getDateInstance().format(openedMail.sentDate)
+            replyButton.setOnClickListener {
+                val intent = ComposeActivity.intentForReply(
+                    context!!, ReplyInitData(
+                        mailId = openedMail.id,
+                        listId = openedMail.listId,
+                        replyAll = false,
+                        loadExternalContent = !webViewClient.blockingResources
+                    )
+                )
+                startActivity(intent)
+            }
+
+            moreButton.setOnClickListener {
+                PopupMenu(moreButton.context, moreButton).apply {
+                    menu.add("Forward").setOnMenuItemClickListener {
+                        val intent = ComposeActivity.intentForForward(
+                            context!!, ForwardInitData(
+                                mailId = openedMail.id,
+                                listId = openedMail.listId,
+                                loadExternalContent = !webViewClient.blockingResources
+                            )
+                        )
+                        startActivity(intent)
+                        true
+                    }
+                    show()
+                }
+            }
+
+            var showingMailDetails = false
+            emailDetailsButton.setOnClickListener {
+                showingMailDetails = !showingMailDetails
+                mailDetailsView.isGone = !showingMailDetails
+                val buttonDrawable = (emailDetailsButton.drawable as RotateDrawable)
+                if (showingMailDetails) {
+                    ObjectAnimator.ofInt(buttonDrawable, "level", 0, 5000).start()
+                } else {
+                    ObjectAnimator.ofInt(buttonDrawable, "level", 5000, 0).start()
+                }
+            }
+
+            setupDetailsField(toLabel, toAddressLabel, openedMail.toRecipients)
+            setupDetailsField(ccLabel, ccAddressLabel, openedMail.ccRecipients)
+            setupDetailsField(bccLabel, bccAddressLabel, openedMail.bccRecipients)
+            setupDetailsField(replyToLabel, replyToAddressLabel, openedMail.replyTos)
+            sentValueLabel.text = SimpleDateFormat.getDateInstance().format(openedMail.sentDate)
+        }
     }
 
     private fun setupDetailsField(
@@ -214,12 +225,11 @@ class MailViewerFragment : Fragment() {
         readItem.isVisible = nowUnread
     }
 
-    private fun loadMailBody() {
-        val openedMail = viewModel.openedMail.value!!
+    private fun loadMailBody(mail: MailEntity) {
         lifecycleScope.launch {
             tryAgainButton.visibility = View.GONE
             try {
-                val body = viewModel.loadMailBody(openedMail.body)
+                val body = viewModel.loadMailBody(mail.body)
                 webView.loadData(body.text, "text/html", "UTF-8")
             } catch (e: IOException) {
                 tryAgainButton.visibility = View.VISIBLE
@@ -231,9 +241,9 @@ class MailViewerFragment : Fragment() {
         }
     }
 
-    private fun loadAttachments() {
+    private fun loadAttachments(mail: MailEntity) {
         lifecycleScope.launch {
-            val files = viewModel.loadAttachments(viewModel.openedMail.value!!)
+            val files = viewModel.loadAttachments(mail)
                 .map(::ListedAttachmentFile)
             val adapter = AttachmentAdapter<ListedAttachmentFile>(
                 iconRes = R.drawable.ic_file_download_black_24dp,
@@ -253,9 +263,18 @@ class MailViewerFragment : Fragment() {
     private fun goBack() {
         parentFragmentManager.popBackStack()
     }
+
+    companion object {
+        private const val MAIL_ID_ARG = "mailId"
+        fun withMailId(id: IdTuple) = MailViewerFragment().apply {
+            arguments = Bundle().apply {
+                putParcelable(MAIL_ID_ARG, id.toWrapper())
+            }
+        }
+    }
 }
 
-data class ListedAttachmentFile(val file: File) : ListedAttachment {
+internal data class ListedAttachmentFile(val file: File) : ListedAttachment {
     override val name: String
         get() = file.name
     override val size: Long

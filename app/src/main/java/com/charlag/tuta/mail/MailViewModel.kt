@@ -121,16 +121,7 @@ class MailViewModel : ViewModel() {
                 })
     }
 
-    val openedMail = MutableLiveData<MailEntity?>()
-
-    fun setOpenedMail(mail: MailEntity?) {
-        openedMail.value = mail
-        if (mail != null && mail.unread) {
-            viewModelScope.launch {
-                markAsRead(listOf(mail.id))
-            }
-        }
-    }
+    suspend fun getMail(id: IdTuple): MailEntity? = mailRepository.getMail(id)
 
     suspend fun markAsRead(ids: List<String>) {
         markReadUnread(ids, false)

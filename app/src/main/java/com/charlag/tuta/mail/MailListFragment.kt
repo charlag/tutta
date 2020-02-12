@@ -19,6 +19,7 @@ import com.charlag.tuta.MainActivity
 import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.compose.DraftInitData
+import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.getFolderName
 import com.charlag.tuta.util.map
 import com.charlag.tuta.util.setIconTintListCompat
@@ -52,11 +53,10 @@ class MailListFragment : Fragment() {
             )
             startActivity(ComposeActivity.intentEditDraft(context!!, draftInitData))
         } else {
-            viewModel.setOpenedMail(mail)
             parentFragmentManager.beginTransaction()
                 .replace(
                     R.id.fragemntFrame,
-                    MailViewerFragment()
+                    MailViewerFragment.withMailId(IdTuple.fromRawValues(mail.listId, mail.id))
                 )
                 .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                 .addToBackStack(null)
