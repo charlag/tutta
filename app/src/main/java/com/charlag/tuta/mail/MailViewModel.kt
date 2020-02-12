@@ -74,13 +74,15 @@ class MailViewModel : ViewModel() {
     }
 
     private suspend fun loadMailsFromNetwork(listId: Id, startId: Id): List<MailEntity> {
-        return api.loadRange(
-            Mail::class,
-            listId,
-            startId,
-            MAIL_LOAD_PAGE,
-            true
-        ).map { it.toEntity() }
+        return withContext(Dispatchers.Default) {
+            api.loadRange(
+                Mail::class,
+                listId,
+                startId,
+                MAIL_LOAD_PAGE,
+                true
+            ).map { it.toEntity() }
+        }
     }
 
     fun loadMails(folder: MailFolderEntity): LiveData<PagedList<MailEntity>> {

@@ -30,6 +30,7 @@ class MailsAdapter(
         Locale.getDefault()
     )
     lateinit var selectionTracker: SelectionTracker<String>
+    private val cal = Calendar.getInstance()
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         selectionTracker = makeSelectionTracker(recyclerView)
@@ -62,7 +63,7 @@ class MailsAdapter(
     }
 
     private fun fromThisYear(mail: MailEntity): Boolean {
-        val cal = Calendar.getInstance()
+        cal.timeInMillis = System.currentTimeMillis()
         val yearNow = cal.get(Calendar.YEAR)
         cal.timeInMillis = mail.receivedDate.time
         return yearNow == cal.get(Calendar.YEAR)

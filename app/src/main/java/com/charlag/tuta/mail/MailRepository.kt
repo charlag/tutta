@@ -12,6 +12,8 @@ import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailBody
 import com.charlag.tuta.entities.tutanota.MoveMailData
 import io.ktor.http.HttpMethod
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MailRepository(
     private val api: API,
@@ -36,12 +38,14 @@ class MailRepository(
     }
 
     suspend fun getMail(id: IdTuple): MailEntity {
-        return db.mailDao().getMail(id.elementId.asString())
-            ?: api.loadListElementEntity<Mail>(id).let {
-                val entity = it.toEntity()
-                db.mailDao().insertMail(entity)
-                return entity
-            }
+        return withContext(Dispatchers.Default) {
+            db.mailDao().getMail(id.elementId.asString())
+                ?: api.loadListElementEntity<Mail>(id).let {
+                    val entity = it.toEntity()
+                    db.mailDao().insertMail(entity)
+                    entity
+                }
+        }
     }
 
     suspend fun getMailBody(id: Id): MailBodyEntity {
