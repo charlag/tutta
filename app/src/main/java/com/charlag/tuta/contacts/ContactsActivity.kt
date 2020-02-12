@@ -32,7 +32,9 @@ class ContactsActivity : AppCompatActivity(R.layout.activity_contacts) {
             setHomeButtonEnabled(true)
         }
 
-        val adapter = ContactsAdapter()
+        val adapter = ContactsAdapter { contact ->
+            startActivity(ContactViewerActivity.newIntent(this, contact.id))
+        }
         recycler.adapter = adapter
         recycler.layoutManager = LinearLayoutManager(this)
 
@@ -52,7 +54,9 @@ class ContactsActivity : AppCompatActivity(R.layout.activity_contacts) {
 }
 
 
-class ContactsAdapter : PagedListAdapter<ContactEntity, ContactsAdapter.ViewHolder>(DIFF_CALLBACK) {
+class ContactsAdapter(
+    private val onSelected: (ContactEntity) -> Unit
+) : PagedListAdapter<ContactEntity, ContactsAdapter.ViewHolder>(DIFF_CALLBACK) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_contact, parent, false)
@@ -63,12 +67,12 @@ class ContactsAdapter : PagedListAdapter<ContactEntity, ContactsAdapter.ViewHold
         holder.bind(getItem(position) ?: return)
     }
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val nameLabel = itemView.findViewById<TextView>(R.id.nameLabel)
+    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val nameLabel = itemView.findViewById<TextView>(R.id.nameLabel)
 
         init {
             itemView.setOnClickListener {
-                Snackbar.make(itemView, "This is not implemented yet", Snackbar.LENGTH_SHORT).show()
+                currentList?.get(adapterPosition)?.let { onSelected(it) }
             }
         }
 

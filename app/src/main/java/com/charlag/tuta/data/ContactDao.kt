@@ -14,8 +14,8 @@ interface ContactDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertContacts(contacts: List<ContactEntity>)
 
-    @Query("SELECT * FROM ContactEntity WHERE id = :id")
-    suspend fun getContact(id: String): ContactEntity
+    @Query("SELECT * FROM ContactEntity WHERE id = :id LIMIT 1")
+    suspend fun getContact(id: String): ContactEntity?
 
     @Query("SELECT * FROM ContactEntity WHERE mailAddresses LIKE '%' || :query || '%' OR firstName LIKE '%' || :query || '%' or lastName LIKE '%' || :query || '%' LIMIT 20")
     fun findContacts(query: String): List<ContactEntity>

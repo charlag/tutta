@@ -60,7 +60,7 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Permanently deleting mails
  - [x] Remembering external content exceptions
  - [x] Mail swipe actions
- - [ ] Displaying contact details
+ - [x] Displaying contact details
  - [ ] Warnings for technical sender
  - [ ] Additional mail details (recipients, sender, date)
  - [ ] Updating permissions/mail body session key cache
