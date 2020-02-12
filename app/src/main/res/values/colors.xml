@@ -7,5 +7,6 @@
     <color name="lightgray">#D5D5D5</color>
     <color name="grey_30">#707070</color>
     <color name="grey_10">#B1B1B1</color>
+    <color name="red_50">#f00</color>
     <color name="colorSelected">#30840010</color>
 </resources>

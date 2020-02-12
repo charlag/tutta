@@ -56,14 +56,30 @@
                     android:id="@+id/senderAddressView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginRight="16dp"
+                    android:layout_marginRight="4dp"
                     android:alpha="0.8"
                     app:layout_constraintHorizontal_bias="0"
+                    app:layout_constraintHorizontal_chainStyle="packed"
                     app:layout_constraintLeft_toLeftOf="@id/senderNameView"
-                    app:layout_constraintRight_toLeftOf="@id/replyButton"
+                    app:layout_constraintRight_toLeftOf="@id/warningIcon"
                     app:layout_constraintTop_toBottomOf="@id/senderNameView"
                     app:layout_goneMarginLeft="16dp"
                     tools:text="sender@test.com" />
+
+            <ImageView
+                    android:id="@+id/warningIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginLeft="4dp"
+                    android:layout_marginRight="4dp"
+                    android:src="@drawable/ic_warning_black_24dp"
+                    android:tint="@color/grey_30"
+                    android:visibility="gone"
+                    app:layout_constraintHorizontal_bias="0"
+                    app:layout_constraintLeft_toRightOf="@id/senderAddressView"
+                    app:layout_constraintRight_toLeftOf="@id/emailDetailsButton"
+                    app:layout_constraintTop_toTopOf="@id/senderAddressView"
+                    tools:visibility="visible" />
 
             <ImageButton
                     android:id="@+id/emailDetailsButton"
@@ -75,9 +91,10 @@
                     android:src="@drawable/expand_more_rotate"
                     android:tint="@color/grey_30"
                     app:layout_constraintHorizontal_bias="0"
-                    app:layout_constraintLeft_toRightOf="@id/senderAddressView"
+                    app:layout_constraintLeft_toRightOf="@id/warningIcon"
                     app:layout_constraintRight_toLeftOf="@id/replyButton"
-                    app:layout_constraintTop_toTopOf="@id/senderAddressView" />
+                    app:layout_constraintTop_toTopOf="@id/senderAddressView"
+                    app:layout_goneMarginLeft="4dp" />
 
             <ImageButton
                     android:id="@+id/replyButton"
@@ -115,12 +132,36 @@
                         android:padding="8dp">
 
                     <TextView
+                            android:id="@+id/realSenderLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Sender"
+                            android:visibility="gone"
+                            app:layout_constraintLeft_toLeftOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            tools:visibility="visible"
+                            android:textColor="@color/red_50"/>
+
+                    <TextView
+                            android:id="@+id/realSenderAddressLabel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="8dp"
+                            android:visibility="gone"
+                            app:layout_constraintLeft_toRightOf="@id/fieldsBarrier"
+                            app:layout_constraintRight_toRightOf="parent"
+                            app:layout_constraintTop_toTopOf="@id/realSenderLabel"
+                            tools:text="realsender@example.com"
+                            tools:visibility="visible" />
+
+                    <TextView
                             android:id="@+id/toLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
                             android:text="To"
                             app:layout_constraintLeft_toLeftOf="parent"
-                            app:layout_constraintTop_toTopOf="parent" />
+                            app:layout_constraintTop_toBottomOf="@id/realSenderAddressLabel" />
 
                     <TextView
                             android:id="@+id/toAddressLabel"
@@ -213,7 +254,7 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
                             app:barrierDirection="right"
-                            app:constraint_referenced_ids="toLabel,ccLabel,bccLabel,replyToLabel,sentLabel" />
+                            app:constraint_referenced_ids="realSenderLabel,ccLabel,bccLabel,replyToLabel,sentLabel" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </androidx.cardview.widget.CardView>
 

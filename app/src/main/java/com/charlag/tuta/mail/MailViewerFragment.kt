@@ -13,6 +13,7 @@ import android.webkit.WebView
 import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -203,6 +204,13 @@ class MailViewerFragment : Fragment() {
             setupDetailsField(bccLabel, bccAddressLabel, openedMail.bccRecipients)
             setupDetailsField(replyToLabel, replyToAddressLabel, openedMail.replyTos)
             sentValueLabel.text = SimpleDateFormat.getDateInstance().format(openedMail.sentDate)
+
+            if (openedMail.differentEnvelopeSender != null) {
+                warningIcon.isVisible = true
+                realSenderLabel.isVisible = true
+                realSenderAddressLabel.isVisible = true
+                realSenderAddressLabel.text = openedMail.differentEnvelopeSender
+            }
         }
     }
 
