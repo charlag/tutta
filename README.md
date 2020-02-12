@@ -31,7 +31,7 @@ backend rewrite comes it's not feasible to touch it.
 
 Current state proves that with limited feature set it is feasible to build a native client.
 
-## TODO
+## TODO for Android
  - [x] Login
  - [x] Login with TOTP
  - [x] Saving password with biometrics
@@ -71,8 +71,10 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [ ] Saving password without biometrics
  - [ ] Prevent loading unnecessary events on initial sync
  - [ ] Viewing inline images
- - [ ] Mail threads
+ - [ ] Replying inline
+ - [ ] Mail intent handling
  - [ ] Settings
+ - [ ] Mail threads
  - [ ] Full-text search
  - [ ] Sharing contacts with system?
  - [ ] UI can be reused with different backends?
