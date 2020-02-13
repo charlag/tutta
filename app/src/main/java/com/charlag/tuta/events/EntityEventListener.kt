@@ -2,6 +2,10 @@ package com.charlag.tuta.events
 
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.charlag.tuta.GroupType
 import com.charlag.tuta.LoginFacade
 import com.charlag.tuta.contacts.ContactsRepository
@@ -29,9 +33,10 @@ class EntityEventListener(
     private val db: AppDatabase,
     private val contactsRepository: ContactsRepository,
     appContext: Context
-) {
+) : LifecycleObserver {
     private val lastProcessedPrefs =
         appContext.getSharedPreferences(LAST_ENTITY_UPDATE_PREF_KEY, Context.MODE_PRIVATE)
+    private var connectionJob: Job? = null
 
     init {
         GlobalScope.launch {
@@ -39,12 +44,31 @@ class EntityEventListener(
             // Wait for contact list to load
             contactsRepository.ignite()
             reconnect(user)
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this@EntityEventListener)
         }
     }
 
-    private fun reconnect(user: User) {
-        // Launching each time so that we don't run into recursive executing problems.
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    fun onResume() {
+        Log.d(TAG, "onResume")
         GlobalScope.launch {
+            if (connectionJob == null) {
+                reconnect(loginFacade.waitForLogin())
+            }
+        }
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+    fun onPause() {
+        Log.d(TAG, "onPause, had connection: ${connectionJob != null}")
+        connectionJob?.cancel("cancelling webSocket for background")
+        connectionJob = null
+    }
+
+    private fun reconnect(user: User) {
+        Log.d(TAG, "reconnect")
+        // Launching each time so that we don't run into recursive executing problems.
+        connectionJob = GlobalScope.launch {
             // Start consuming events right away so that we don't miss any
             val realtimeEvents =
                 api.getEvents(userId = user._id.asString()).consumeAsFlow()
@@ -78,6 +102,9 @@ class EntityEventListener(
             } catch (e: IOException) {
                 Log.d(TAG, "Exception during event processing", e)
                 delay(TimeUnit.SECONDS.toMillis(30))
+            } catch (e: CancellationException) {
+                Log.d(TAG, "Connection cancelled")
+                throw e
             } catch (e: Throwable) {
                 Log.w(TAG, "Unexpected exeption $e")
                 delay(TimeUnit.SECONDS.toMillis(90))
