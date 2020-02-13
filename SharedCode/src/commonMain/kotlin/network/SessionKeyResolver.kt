@@ -3,6 +3,8 @@ package com.charlag.tuta.network
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.TypeModel
+import com.charlag.tuta.entities.sys.BucketPermission
+import com.charlag.tuta.entities.sys.Permission
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.contentOrNull
 
@@ -70,14 +72,40 @@ class SessionKeyResolver(
             val privKey = cryptor.decryptRsaKey(keypair.symEncPrivKey, bucketPermissionGroupKey)
             val bucketKey = cryptor.rsaDecrypt(bucketPermission.pubEncBucketKey, privKey)
             val sessionKey = cryptor.decryptKey(publicPermission.bucketEncSessionKey, bucketKey)
-            return sessionKey
             // TODO: _updateWithSymPermissionKey
-//            val bucketPermissionOwnerGroupKey =
-//                groupKeysCache.getGroupKey(bucketPermission._ownerGroup!!.asString())
-//            val buckePermissionGroupKey =
-//                groupKeysCache.getGroupKey(bucketPermission.group.asString())
-
+            val bucketPermissionOwnerGroupKey =
+                groupKeysCache.getGroupKey(bucketPermission._ownerGroup!!.asString())
+                    ?: error(
+                        "Could not get bucketPermissionOwnerGroupKey for group " +
+                                bucketPermission._ownerGroup
+                    )
+            updateWithSymPermissionKey(
+                publicPermission,
+                bucketPermission,
+                bucketPermissionOwnerGroupKey,
+                bucketPermissionGroupKey,
+                sessionKey,
+                loader
+            )
+            return sessionKey
         }
+    }
+
+    private suspend fun updateWithSymPermissionKey(
+        publicPermission: Permission,
+        bucketPermission: BucketPermission,
+        bucketPermissionOwnerGroupKey: ByteArray,
+        bucketPermissionGroupKey: ByteArray,
+        sessionKey: ByteArray,
+        loader: SessionKeyLoader
+    ) {
+        // Let's try to always update with the service
+        loader.updatePermission(
+            publicPermission._id,
+            bucketPermission._id,
+            cryptor.encryptKey(sessionKey, bucketPermissionOwnerGroupKey),
+            cryptor.encryptKey(sessionKey, bucketPermissionGroupKey)
+        )
     }
 
     suspend fun resolveSessionKey(

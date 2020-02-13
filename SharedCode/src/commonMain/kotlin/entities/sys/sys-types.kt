@@ -565,7 +565,7 @@ data class UpdatePermissionKeyData(
 
     val bucketPermission: IdTuple,
     val permission: IdTuple
-)
+) : Entity()
 
 @Serializable
 data class Authentication(

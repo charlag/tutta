@@ -63,7 +63,7 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Displaying contact details
  - [x] Additional mail details (recipients, sender, date)
  - [x] Warnings for technical sender
- - [ ] Updating permissions/mail body session key cache
+ - [x] Updating permissions
  - [ ] Websocket connection follows screen activity
  - [ ] Dependency injection
  - [ ] Multi-user support

@@ -354,6 +354,21 @@ class API(
         return loadElementEntity(Group::class, groupId)
     }
 
+    override suspend fun updatePermission(
+        permissionId: IdTuple,
+        bucketPermissionId: IdTuple,
+        bucketPermissionOwnerEncSessionKey: ByteArray,
+        bucketPermissionEncSessionKey: ByteArray
+    ) {
+        val updateData = UpdatePermissionKeyData(
+            permission = permissionId,
+            bucketPermission = bucketPermissionId,
+            ownerEncSessionKey = bucketPermissionOwnerEncSessionKey,
+            symEncSessionKey = bucketPermissionEncSessionKey // legacy
+        )
+        serviceRequestVoid("sys", "updatepermissionkeyservice", HttpMethod.Post, updateData)
+    }
+
     private fun HttpRequestBuilder.commonHeaders() {
         header("cv", "3.59.16")
         accessToken?.let {
