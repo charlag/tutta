@@ -65,6 +65,11 @@ class MailViewerFragment : DaggerFragment() {
                 parentFragmentManager.popBackStack()
                 return@launch
             }
+            if (openedMail.unread) {
+                launch {
+                    viewModel.markAsRead(listOf(openedMail.id))
+                }
+            }
 
             if (BuildConfig.DEBUG) {
                 WebView.setWebContentsDebuggingEnabled(true)
