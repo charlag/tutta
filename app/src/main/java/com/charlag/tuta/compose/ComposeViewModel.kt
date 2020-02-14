@@ -92,7 +92,7 @@ class ComposeViewModel : ViewModel() {
         this.enabledMailAddresses = enabledMailAddresses
         viewModelScope.launch {
             try {
-                val mailAddresses = userController.getEnabledMailAddresses()
+                val mailAddresses = mailRepository.getEnabledMailAddresses()
                 val defaultMailAddress = userController.getProps().defaultSender
 
                 val sortedAddresses =
@@ -162,7 +162,7 @@ class ComposeViewModel : ViewModel() {
         }
         val sender = senderAddress
             ?: userController.getProps().defaultSender
-            ?: userController.getEnabledMailAddresses().first()
+            ?: mailRepository.getEnabledMailAddresses().first()
         return LocalDraftEntity(
             localDraftId,
             loginFacade.user!!._id.asString(),
@@ -300,7 +300,7 @@ class ComposeViewModel : ViewModel() {
                 replyInitData.listId,
                 replyInitData.mailId
             )
-        )
+        ) ?: error("Could not load mail for reply $replyInitData")
 
         conversationType = ConversationType.REPLY
         val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
@@ -341,7 +341,7 @@ class ComposeViewModel : ViewModel() {
                 forwardInitData.listId,
                 forwardInitData.mailId
             )
-        )
+        ) ?: error("Could not load mail for forward $forwardInitData")
 
         conversationType = ConversationType.FORWARD
         val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
@@ -370,7 +370,7 @@ class ComposeViewModel : ViewModel() {
                 draftInitData.listId,
                 draftInitData.draftId
             )
-        )
+        ) ?: error("Could not load mail for draft $draftInitData")
         this.draftId = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
         viewModelScope.launch {
             val loaded = mail.attachments.mapNotNull {

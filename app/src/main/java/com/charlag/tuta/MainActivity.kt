@@ -10,25 +10,29 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.charlag.tuta.contacts.ContactsActivity
 import com.charlag.tuta.data.MailFolderEntity
 import com.charlag.tuta.data.MailFolderWithCounter
+import com.charlag.tuta.di.ViewModelFactory
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.mail.MailListFragment
 import com.charlag.tuta.mail.MailViewModel
 import com.charlag.tuta.settings.SettingsActivity
 import com.charlag.tuta.util.withLifecycleContext
+import dagger.android.support.DaggerAppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.item_folder.view.*
 import kotlinx.android.synthetic.main.mail_menu.*
+import javax.inject.Inject
 
-class MainActivity : AppCompatActivity() {
-    private val viewModel: MailViewModel by viewModels()
+class MainActivity : DaggerAppCompatActivity() {
+    @Inject
+    lateinit var viewModelFactory: ViewModelFactory
+    private val viewModel: MailViewModel by viewModels { viewModelFactory }
     private val foldersAdapter = MailFoldersAdapter { selectedFolder ->
         viewModel.selectFolder(
             IdTuple(
@@ -76,7 +80,7 @@ class MainActivity : AppCompatActivity() {
                 foldersAdapter.notifyDataSetChanged()
             }
 
-            viewModel.disaplayedMailAddress.observe {
+            viewModel.displayedMailAddress.observe {
                 mailAddressLabel.text = it
             }
         }

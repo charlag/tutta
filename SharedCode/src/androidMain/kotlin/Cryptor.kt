@@ -65,6 +65,9 @@ actual class Cryptor {
         usePadding: Boolean
     ): DecryptResult {
         try {
+            if (key.size != AES_KEY_LENGTH_BYTES) {
+                throw CryptoException("Key size invalid: ${key.size}")
+            }
             var cKey = key
             val macIncluded = value.size % 2 == 1
 

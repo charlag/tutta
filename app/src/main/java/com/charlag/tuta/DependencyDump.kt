@@ -6,12 +6,12 @@ import androidx.room.Room
 import com.charlag.tuta.compose.MailSender
 import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
+import com.charlag.tuta.di.AppModule
 import com.charlag.tuta.events.EntityEventListener
 import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.mail.MailRepository
 import com.charlag.tuta.network.API
 import com.charlag.tuta.network.GroupKeysCache
-import com.charlag.tuta.network.InstanceMapper
 import com.charlag.tuta.network.SessionKeyResolver
 import com.charlag.tuta.notifications.AndroidKeyStoreFacade
 import com.charlag.tuta.notifications.PushNotificationsManager
@@ -43,9 +43,9 @@ object DependencyDump {
         }
         install(WebSockets)
     }
-    val compressor = Compressor()
-    val instanceMapper = InstanceMapper(cryptor, compressor, typemodelMap)
-    val keyResolver = SessionKeyResolver(cryptor, groupKeysCache)
+    private val compressor = AppModule.compressor()
+    private val instanceMapper = AppModule.instanceMapper(cryptor, compressor)
+    private val keyResolver = SessionKeyResolver(cryptor, groupKeysCache)
 
     val api = API(
         httpClient, "${BASE_URL}rest/",
@@ -66,8 +66,7 @@ object DependencyDump {
     lateinit var mailSender: MailSender
     lateinit var pushNotificationsManager: PushNotificationsManager
     lateinit var mailRepository: MailRepository
-    lateinit var preferenceFacade: PreferenceFacade
-    val userController = UserController(api, loginFacade, mailFacade)
+    val userController = UserController(api, loginFacade)
 
     private var _hasLoggedin = false
     val hasLoggedIn: Boolean
@@ -95,9 +94,8 @@ object DependencyDump {
             EntityEventListener(loginFacade, api, db, contactRepository, applicationContext)
         fileHandler = FileHandler(fileFacade, loginFacade, applicationContext)
         val notificationManager = LocalNotificationManager(applicationContext)
-        mailRepository = MailRepository(api, db, mailFacade)
+        mailRepository = MailRepository(api, db, userController)
         mailSender = MailSender(mailFacade, fileHandler, notificationManager, mailRepository, api)
-        preferenceFacade = PreferenceFacade(applicationContext)
 
         _hasLoggedin = true
 

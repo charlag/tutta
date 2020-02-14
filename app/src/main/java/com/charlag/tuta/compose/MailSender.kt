@@ -40,9 +40,12 @@ class MailSender(
             if (localDraft.previousMail != null) {
                 try {
                     val previousMail = mailRepository.getMail(localDraft.previousMail)
-                    val replyType =
-                        (previousMail.replyType + localDraft.conversationType.value).coerceAtMost(3)
-                    api.updateEntity(previousMail.copy(replyType = replyType).toMail())
+                    if (previousMail != null) {
+                        val replyType = (previousMail.replyType + localDraft.conversationType.value)
+                            .coerceAtMost(3)
+                        api.updateEntity(previousMail.copy(replyType = replyType).toMail())
+                    }
+
                 } catch (e: ClientRequestException) {
                     Log.w(TAG, "Failed to update previious mail $e")
                 }

@@ -8,46 +8,42 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagedList
 import androidx.paging.toLiveData
 import com.charlag.tuta.DependencyDump
-import com.charlag.tuta.GroupType
 import com.charlag.tuta.MailFolderType
-import com.charlag.tuta.data.*
+import com.charlag.tuta.UserController
+import com.charlag.tuta.data.MailBodyEntity
+import com.charlag.tuta.data.MailEntity
+import com.charlag.tuta.data.MailFolderEntity
+import com.charlag.tuta.data.MailFolderWithCounter
 import com.charlag.tuta.entities.GENERATED_MAX_ID
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
-import com.charlag.tuta.entities.tutanota.*
+import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.map
-import io.ktor.client.features.ResponseException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class MailViewModel : ViewModel() {
-    private val loginFacade = DependencyDump.loginFacade
-    private val api = DependencyDump.api
-    private val mailDao = DependencyDump.db.mailDao()
-    private val mailRepository: MailRepository = DependencyDump.mailRepository
-    private val fileHandler: FileHandler = DependencyDump.fileHandler
-    private val userController = DependencyDump.userController
+class MailViewModel
+@Inject constructor(
+    private val mailRepository: MailRepository,
+    private val fileHandler: FileHandler
+) : ViewModel() {
+    private val userController: UserController = DependencyDump.userController
+
 
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders: LiveData<List<MailFolderWithCounter>>
     val selectedFolder: LiveData<MailFolderEntity?>
-    val disaplayedMailAddress = MutableLiveData<String>()
+    val displayedMailAddress = MutableLiveData<String>()
 
     init {
-        folders = mailDao.getFoldersLiveData()
+        folders = mailRepository.observeFolders()
             .map(this::sortFolders)
             .map { dbFolders ->
-                if (dbFolders.isEmpty()) {
-                    viewModelScope.launch {
-                        val folders = loadFolders()
-                        mailDao.insertFolders(folders)
-                    }
-                } else if (selectedFolderId.value == null) {
+                if (selectedFolderId.value == null) {
                     val selectedFolder =
                         dbFolders.find { it.folder.folderType == MailFolderType.INBOX.value }!!
                     selectFolder(
@@ -65,7 +61,7 @@ class MailViewModel : ViewModel() {
 
         viewModelScope.launch {
             val mailAddress = userController.getUserGroupInfo().mailAddress
-            disaplayedMailAddress.postValue(mailAddress)
+            displayedMailAddress.postValue(mailAddress)
         }
     }
 
@@ -73,49 +69,35 @@ class MailViewModel : ViewModel() {
         selectedFolderId.value = folderId
     }
 
-    private suspend fun loadMailsFromNetwork(listId: Id, startId: Id): List<MailEntity> {
-        return withContext(Dispatchers.Default) {
-            api.loadRange(
-                Mail::class,
-                listId,
-                startId,
-                MAIL_LOAD_PAGE,
-                true
-            ).map { it.toEntity() }
-        }
-    }
-
     fun loadMails(folder: MailFolderEntity): LiveData<PagedList<MailEntity>> {
         val singleTopHelper = SingleOperationHelper(viewModelScope)
         val singleBottomHelper = SingleOperationHelper(viewModelScope)
-        return mailDao.getMailsLiveData(folder.mails.asString())
+        return mailRepository.observeMails(folder.mails)
             .toLiveData(
                 pageSize = 40,
                 boundaryCallback = object : PagedList.BoundaryCallback<MailEntity>() {
                     override fun onZeroItemsLoaded() {
                         Log.d("MailViewModel", "onZeroItems")
                         singleTopHelper.execute {
-                            loginFacade.waitForLogin()
-                            val mails = loadMailsFromNetwork(folder.mails, GENERATED_MAX_ID)
                             Log.d("MailViewModel", "onZeroItems fetched")
-                            if (mails.isEmpty()) {
+                            if (mailRepository.addMailsFrom(folder.mails, GENERATED_MAX_ID)) {
                                 singleTopHelper.setExhausted()
                             }
-                            mailDao.insertMails(mails)
                         }
                     }
 
                     override fun onItemAtEndLoaded(itemAtEnd: MailEntity) {
                         Log.d("MailViewModel", "onItemAtEndLoaded")
                         singleBottomHelper.execute {
-                            loginFacade.waitForLogin()
-                            val mails =
-                                loadMailsFromNetwork(folder.mails, GeneratedId(itemAtEnd.id))
-                            Log.d("MailViewModel", "onItemAtEndLoaded fetched")
-                            if (mails.isEmpty()) {
+                            userController.waitForLogin()
+                            val exhausted = mailRepository.addMailsFrom(
+                                folder.mails,
+                                GeneratedId(itemAtEnd.id)
+                            )
+                            Log.d("MailViewModel", "onItemAtEndLoaded fetched $exhausted")
+                            if (exhausted) {
                                 singleBottomHelper.setExhausted()
                             }
-                            mailDao.insertMails(mails)
                         }
                     }
                 })
@@ -132,15 +114,9 @@ class MailViewModel : ViewModel() {
     }
 
     private suspend fun markReadUnread(ids: List<String>, unread: Boolean) {
+        val folder = selectedFolder.value ?: return
         for (id in ids) {
-            val mail = (mailDao.getMail(id) ?: continue)
-                .copy(unread = unread)
-                .toMail()
-            try {
-                api.updateEntity(mail)
-            } catch (e: ResponseException) {
-                Log.e("Mail", "Failed to mark as unread", e)
-            }
+            mailRepository.markReadUnrad(IdTuple(folder.mails, GeneratedId(id)), unread)
         }
     }
 
@@ -189,38 +165,14 @@ class MailViewModel : ViewModel() {
 
     suspend fun loadAttachments(mail: MailEntity): List<File> {
         return mail.attachments.map {
-            api.loadListElementEntity<File>(it)
+            mailRepository.loadAttachment(it)
         }
     }
 
     fun search(query: String): LiveData<PagedList<MailEntity>> {
-        Log.d(TAG, "search $query")
-        return mailDao.search(query).toLiveData(40)
+        return mailRepository.search(query).toLiveData(40)
     }
 
-    private suspend fun loadFolders(): List<MailFolderEntity> {
-        return withContext(Dispatchers.IO) {
-            loginFacade.waitForLogin()
-            val mailMembership = DependencyDump.loginFacade.user!!.memberships
-                .find { it.groupType == GroupType.Mail.value }!!
-            val api = DependencyDump.api
-            val groupRoot = api
-                .loadElementEntity<MailboxGroupRoot>(mailMembership.group)
-            val mailbox = api.loadElementEntity<MailBox>(groupRoot.mailbox)
-            api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
-                .flatMap { folder ->
-                    // Theoretically subfolders are only allowed for one of the system folders
-                    // but practically they still could be anywhere
-                    api.loadAll(
-                        MailFolder::class,
-                        folder.subFolders
-                    ) + folder
-                }
-                .map {
-                    it.toEntity()
-                }
-        }
-    }
 
     fun openFile(file: File) {
         viewModelScope.launch {
@@ -258,7 +210,6 @@ class MailViewModel : ViewModel() {
     }
 
     companion object {
-        private const val MAIL_LOAD_PAGE = 40
         private const val TAG = "Mails"
     }
 }
@@ -279,6 +230,8 @@ private class SingleOperationHelper(
                 loading = true
                 try {
                     operation()
+                } catch (e: Exception) {
+                    Log.e("Operation", "Failed to execute", e)
                 } finally {
                     loading = false
                 }

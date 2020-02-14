@@ -14,12 +14,11 @@ import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.charlag.tuta.BuildConfig
-import com.charlag.tuta.DependencyDump
+import com.charlag.tuta.PreferenceFacade
 import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.compose.ForwardInitData
@@ -32,18 +31,21 @@ import com.charlag.tuta.util.IdTupleWrapper
 import com.charlag.tuta.util.setIconTintListCompat
 import com.charlag.tuta.util.toWrapper
 import com.charlag.tuta.util.unwrap
+import dagger.android.support.DaggerFragment
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.text.SimpleDateFormat
+import javax.inject.Inject
 
-class MailViewerFragment : Fragment() {
+class MailViewerFragment : DaggerFragment() {
 
     private lateinit var unreadItem: MenuItem
     private lateinit var readItem: MenuItem
     private val viewModel: MailViewModel by activityViewModels()
-    private val preferenceFacade = DependencyDump.preferenceFacade
+    @Inject
+    lateinit var preferenceFacade: PreferenceFacade
 
     override fun onCreateView(
         inflater: LayoutInflater,
