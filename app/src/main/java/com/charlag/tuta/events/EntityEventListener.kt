@@ -7,7 +7,7 @@ import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.charlag.tuta.GroupType
-import com.charlag.tuta.LoginFacade
+import com.charlag.tuta.UserController
 import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.data.MailFolderCounterEntity
@@ -28,10 +28,10 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
 class EntityEventListener(
-    private val loginFacade: LoginFacade,
     private val api: API,
     private val db: AppDatabase,
     private val contactsRepository: ContactsRepository,
+    private val userController: UserController,
     appContext: Context
 ) : LifecycleObserver {
     private val lastProcessedPrefs =
@@ -40,7 +40,7 @@ class EntityEventListener(
 
     init {
         GlobalScope.launch {
-            val user = loginFacade.waitForLogin()
+            val user = userController.waitForLogin()
             // Wait for contact list to load
             contactsRepository.ignite()
             reconnect(user)
@@ -53,7 +53,7 @@ class EntityEventListener(
         Log.d(TAG, "onResume")
         GlobalScope.launch {
             if (connectionJob == null) {
-                reconnect(loginFacade.waitForLogin())
+                reconnect(userController.waitForLogin())
             }
         }
     }

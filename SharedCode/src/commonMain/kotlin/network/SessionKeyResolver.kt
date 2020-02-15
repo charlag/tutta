@@ -72,7 +72,6 @@ class SessionKeyResolver(
             val privKey = cryptor.decryptRsaKey(keypair.symEncPrivKey, bucketPermissionGroupKey)
             val bucketKey = cryptor.rsaDecrypt(bucketPermission.pubEncBucketKey, privKey)
             val sessionKey = cryptor.decryptKey(publicPermission.bucketEncSessionKey, bucketKey)
-            // TODO: _updateWithSymPermissionKey
             val bucketPermissionOwnerGroupKey =
                 groupKeysCache.getGroupKey(bucketPermission._ownerGroup!!.asString())
                     ?: error(

@@ -19,7 +19,7 @@ typealias SystemFile = java.io.File
 
 class FileHandler(
     private val fileFacade: FileFacade,
-    private val loginFacade: LoginFacade,
+    private val userController: UserController,
     private val context: Context
 ) {
     suspend fun downloadFile(file: File): Uri {
@@ -85,7 +85,7 @@ class FileHandler(
         val mimeType =
             context.contentResolver.getType(file.reference.toUri()) ?: FileFacade.DEFAULT_MIME
         val mailGroupId =
-            loginFacade.waitForLogin().memberships
+            userController.waitForLogin().memberships
                 .find { it.groupType == GroupType.Mail.value }!!
                 .group
         val dataFile = DataFile(name = file.name, data = fileData, mimeType = mimeType)

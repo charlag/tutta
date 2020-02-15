@@ -29,7 +29,7 @@ import kotlinx.android.synthetic.main.item_folder.view.*
 import kotlinx.android.synthetic.main.mail_menu.*
 import javax.inject.Inject
 
-class MainActivity : DaggerAppCompatActivity() {
+class MainActivity : AuthenticatedActivity(R.layout.activity_main) {
     @Inject
     lateinit var viewModelFactory: ViewModelFactory
     private val viewModel: MailViewModel by viewModels { viewModelFactory }
@@ -45,7 +45,6 @@ class MainActivity : DaggerAppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
         foldersRecycler.layoutManager = LinearLayoutManager(this)
         foldersRecycler.adapter = foldersAdapter

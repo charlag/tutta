@@ -17,6 +17,8 @@ import java.security.UnrecoverableEntryException;
 import java.util.Date;
 import java.util.List;
 
+import javax.inject.Inject;
+
 public class SseStorage {
     private static final String TAG = SseStorage.class.getSimpleName();
     private static final String LAST_PROCESSED_NOTIFICATION_ID = "lastProcessedNotificationId";
@@ -28,6 +30,7 @@ public class SseStorage {
     private final NotificationDatabase db;
     private final AndroidKeyStoreFacade keyStoreFacade;
 
+    @Inject
     public SseStorage(NotificationDatabase db, AndroidKeyStoreFacade keyStoreFacade) {
         this.db = db;
         this.keyStoreFacade = keyStoreFacade;

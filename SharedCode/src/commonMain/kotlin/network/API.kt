@@ -27,7 +27,6 @@ class API(
     val instanceMapper: InstanceMapper,
     val groupKeysCache: GroupKeysCache,
     val keyResolver: SessionKeyResolver,
-    var accessToken: String?,
     val wsUrl: String
 ) : SessionKeyLoader {
     private val json = Json(JsonConfiguration.Stable)
@@ -304,7 +303,9 @@ class API(
                     url.parameters["modelVersions"] = "49.36"
                     url.parameters["clientVersion"] = "3.59.7"
                     url.parameters["userId"] = userId
-                    accessToken?.let { token -> url.parameters["accessToken"] = token }
+                    groupKeysCache.accessToken?.let { token ->
+                        url.parameters["accessToken"] = token
+                    }
                 }) {
 
                     for (frame in incoming) {
@@ -371,7 +372,7 @@ class API(
 
     private fun HttpRequestBuilder.commonHeaders() {
         header("cv", "3.59.16")
-        accessToken?.let {
+        groupKeysCache.accessToken?.let {
             header("accessToken", it)
         }
     }

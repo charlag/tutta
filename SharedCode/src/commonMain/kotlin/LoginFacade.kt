@@ -5,30 +5,28 @@ import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.network.API
-import com.charlag.tuta.network.GroupKeysCache
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpMethod
-import kotlinx.coroutines.CompletableDeferred
 import kotlin.Exception
 
-data class SessionData(
+class SessionData(
     val user: User,
-    val sessionId: IdTuple,
+    val accessToken: String,
+    val userGroupKey: ByteArray
+)
+
+data class CreateSessionResult(
+    val userId: Id,
+    val passphraseKey: ByteArray,
     val accessToken: String
 )
 
+typealias SecondFactorCallback = (sessionId: IdTuple) -> Unit
+
 class LoginFacade(
     private val cryptor: Cryptor,
-    private val api: API,
-    val groupKeysCache: GroupKeysCache
+    private val api: API
 ) {
-    private var _user: User? = null
-    private val _loggedIn = CompletableDeferred<User>()
-
-    val user: User? get() = _user
-
-    suspend fun waitForLogin(): User = _loggedIn.await()
-
     private suspend fun createAuthVerifier(cryptor: Cryptor, passwordKey: ByteArray): ByteArray =
         cryptor.hash(passwordKey)
 
@@ -43,8 +41,8 @@ class LoginFacade(
     suspend fun createSession(
         mailAddress: String,
         passphrase: String,
-        onSecondFactorPending: (sessionId: IdTuple) -> Unit
-    ): SessionData {
+        onSecondFactorPending: SecondFactorCallback
+    ): CreateSessionResult {
         val (salt) = getSalt(mailAddress)
 
         val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
@@ -79,14 +77,7 @@ class LoginFacade(
                 }
             }
         }
-        api.accessToken = sessionReturn.accessToken
-        val user = api.loadElementEntity<User>(sessionReturn.user)
-        groupKeysCache.user = user
-        groupKeysCache.cachedKeys[user.userGroup.group.asString()] =
-            cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
-        _user = user
-        _loggedIn.complete(user)
-        return SessionData(user, getSessionId(sessionReturn.accessToken), sessionReturn.accessToken)
+        return CreateSessionResult(sessionReturn.user, passphraseKey, sessionReturn.accessToken)
     }
 
     suspend fun submitTOTPLogin(sessionId: IdTuple, code: Long) {
@@ -102,20 +93,14 @@ class LoginFacade(
 
     suspend fun resumeSession(
         mailAddress: String,
-        userId: Id,
-        accessToken: String,
         passphrase: String
-    ) {
+    ): ByteArray {
         val (salt) = getSalt(mailAddress)
+        return cryptor.generateKeyFromPassphrase(passphrase, salt)
+    }
 
-        val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
-        api.accessToken = accessToken
-        val user = api.loadElementEntity<User>(userId)
-        groupKeysCache.user = user
-        groupKeysCache.cachedKeys[user.userGroup.group.asString()] =
-            cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
-        _user = user
-        _loggedIn.complete(user)
+    suspend fun getUserGroupKey(user: User, passphraseKey: ByteArray): ByteArray {
+        return cryptor.decryptKey(user.userGroup.symEncGKey, passphraseKey)
     }
 
     suspend fun deleteSession(accessToken: String) {

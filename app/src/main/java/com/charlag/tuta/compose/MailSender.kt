@@ -4,6 +4,8 @@ import android.util.Log
 import com.charlag.tuta.LocalNotificationManager
 import com.charlag.tuta.MailFacade
 import com.charlag.tuta.data.toMail
+import com.charlag.tuta.di.UserBound
+import com.charlag.tuta.di.UserScoped
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.entities.tutanota.Mail
@@ -13,13 +15,15 @@ import com.charlag.tuta.network.API
 import io.ktor.client.features.ClientRequestException
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MailSender(
+@UserScoped
+class MailSender @Inject constructor(
     private val mailFacade: MailFacade,
     private val fileHandler: FileHandler,
     private val notificationManager: LocalNotificationManager,
     private val mailRepository: MailRepository,
-    private val api: API
+    @UserBound private val api: API
 ) {
     fun send(user: User, localDraft: LocalDraftEntity) {
         GlobalScope.launch {

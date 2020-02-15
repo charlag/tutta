@@ -3,48 +3,47 @@ package com.charlag.tuta
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
-import com.charlag.tuta.entities.GeneratedId
+import com.charlag.tuta.user.Credentials
+import com.charlag.tuta.user.LoginController
+import dagger.android.support.DaggerAppCompatActivity
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_login.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import javax.crypto.Cipher
+import javax.inject.Inject
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : DaggerAppCompatActivity() {
+
+    @Inject
+    lateinit var loginController: LoginController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setTheme(R.style.AppTheme)
         setContentView(R.layout.activity_login)
 
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val sessionData = loginController.getCredentials()
 
-        val savedUserId = prefs.getString("userId", null)
-        val savedAccessToken = prefs.getString("accessToken", null)
-        val encPassword = prefs.getString("password", null)
-        val savedMailAddress = prefs.getString("mailAddress", null)
-
-
-        if (savedUserId != null && savedAccessToken != null &&
-            encPassword != null && savedMailAddress != null
-        ) {
-            emailField.setText(savedMailAddress)
+        if (sessionData != null) {
+            emailField.setText(sessionData.mailAddress)
             biometricButton.visibility = View.VISIBLE
             biometricButton.setOnClickListener {
-                loginWithSaved(encPassword, savedUserId, savedAccessToken, savedMailAddress)
+                loginWithSaved(sessionData)
             }
-            loginWithSaved(encPassword, savedUserId, savedAccessToken, savedMailAddress)
+            loginWithSaved(sessionData)
         }
 
         loginButton.setOnClickListener {
@@ -54,10 +53,17 @@ class LoginActivity : AppCompatActivity() {
             statusLabel.text = "Logging in"
             lifecycleScope.launch {
                 try {
-                    val (user, _, accessToken) = withContext(Dispatchers.IO) {
-                        DependencyDump.loginFacade.createSession(
+                    CredentialsManager()
+                        .register()
+                    val cipher = getCipher(null) ?: return@launch
+                    val encryptedPassword = cipher.doFinal(password.toByteArray())
+                    val encryptedPasswordWithIv = cipher.iv + encryptedPassword
+
+                    withContext(Dispatchers.IO) {
+                        loginController.createSession(
                             mailAddress,
-                            password
+                            password,
+                            encryptedPasswordWithIv
                         ) { sessionId ->
                             loginButton.post {
                                 val field = EditText(this@LoginActivity).apply {
@@ -72,7 +78,7 @@ class LoginActivity : AppCompatActivity() {
                                     val totpCode = field.text.toString().toLong()
                                     lifecycleScope.launch {
                                         try {
-                                            DependencyDump.loginFacade.submitTOTPLogin(
+                                            loginController.submitTOTPCode(
                                                 sessionId,
                                                 totpCode
                                             )
@@ -97,23 +103,6 @@ class LoginActivity : AppCompatActivity() {
                     }
 
                     withContext(Dispatchers.Main) {
-                        val userId = user._id.asString()
-                        CredentialsManager()
-                            .register()
-                        val cipher = getCipher(null) ?: return@withContext
-                        val encryptedPassword = cipher.doFinal(password.toByteArray())
-                        val encryptedPasswordWithIv = cipher.iv + encryptedPassword
-                        igniteApp(password)
-
-                        PreferenceManager.getDefaultSharedPreferences(this@LoginActivity)
-                            .edit()
-                            .putString("userId", userId)
-                            .putString("accessToken", accessToken)
-                            .putString("password", encryptedPasswordWithIv.toBase64())
-                            .putString("mailAddress", mailAddress)
-                            .apply()
-                        DependencyDump.credentials =
-                            Credentials(userId, accessToken, password, mailAddress)
                         statusLabel.text = "Success!"
                         goToMain()
                     }
@@ -132,15 +121,10 @@ class LoginActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun loginWithSaved(
-        encPassword: String,
-        savedUserId: String,
-        savedAccessToken: String,
-        savedMailAddress: String
-    ) {
+    private fun loginWithSaved(credentials: Credentials) {
         lifecycleScope.launch {
             try {
-                val passwordWithIvBytes = base64ToBytes(encPassword)
+                val passwordWithIvBytes = credentials.encPassword
                 val iv = passwordWithIvBytes.copyOfRange(0, 16)
                 val encPasswordBytes =
                     passwordWithIvBytes.copyOfRange(16, passwordWithIvBytes.size)
@@ -150,37 +134,27 @@ class LoginActivity : AppCompatActivity() {
                     return@launch
                 }
                 val password = bytesToString(cipher.doFinal(encPasswordBytes))
-                igniteApp(password)
-                DependencyDump.credentials =
-                    Credentials(savedUserId, savedAccessToken, password, savedMailAddress)
-                goToMain()
-                GlobalScope.launch {
-                    try {
-                        DependencyDump.loginFacade.resumeSession(
-                            savedMailAddress,
-                            GeneratedId(savedUserId),
-                            savedAccessToken,
-                            password
-                        )
-                    } catch (e: IOException) {
-                        val msg = "Failed to log in because of IO $e"
-                        withContext(Dispatchers.Main) {
-                            statusLabel.text = msg
-                        }
-                        Log.w("Main", msg)
+
+                try {
+                    loginController.resumeSession(
+                        credentials.mailAddress,
+                        credentials.userId,
+                        credentials.accessToken,
+                        password
+                    )
+                    goToMain()
+                } catch (e: IOException) {
+                    val msg = "Failed to log in because of IO $e"
+                    withContext(Dispatchers.Main) {
+                        statusLabel.text = msg
                     }
+                    Log.w("Main", msg)
                 }
             } catch (e: java.lang.Exception) {
                 Log.d("Mail", "Failed to log in", e)
                 statusLabel.text = "Failed to log in $e"
             }
         }
-    }
-
-    private fun igniteApp(password: String) {
-        // We *probably* should use another password but we would need another level of indirection
-        // and that's not what we want probably.
-        DependencyDump.ignite(password, applicationContext)
     }
 
     suspend fun getCipher(iv: ByteArray?): Cipher? {

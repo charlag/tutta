@@ -8,15 +8,17 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.charlag.tuta.DependencyDump
 import com.charlag.tuta.R
 import kotlinx.android.synthetic.main.activity_contact_viewer.*
 import kotlinx.android.synthetic.main.item_contact.nameLabel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
 class ContactViewerActivity : AppCompatActivity(R.layout.activity_contact_viewer) {
+    @Inject lateinit var contactsRepository: ContactsRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -37,7 +39,7 @@ class ContactViewerActivity : AppCompatActivity(R.layout.activity_contact_viewer
         addressesRecycler.adapter = mailAddressesAdapter
 
         lifecycleScope.launch {
-            val contact = DependencyDump.contactRepository.getContact(contactId)
+            val contact = contactsRepository.getContact(contactId)
             if (contact == null) {
                 finish()
                 return@launch

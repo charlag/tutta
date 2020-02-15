@@ -1,13 +1,11 @@
 package com.charlag.tuta.contacts
 
 import android.os.Bundle
-import android.os.PersistableBundle
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.observe
 import androidx.paging.PagedListAdapter
@@ -15,13 +13,14 @@ import androidx.paging.toLiveData
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.charlag.tuta.DependencyDump
 import com.charlag.tuta.R
 import com.charlag.tuta.data.ContactEntity
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_contacts.*
+import javax.inject.Inject
 
 class ContactsActivity : AppCompatActivity(R.layout.activity_contacts) {
+
+    @Inject lateinit var contactsRepository: ContactsRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +37,7 @@ class ContactsActivity : AppCompatActivity(R.layout.activity_contacts) {
         recycler.adapter = adapter
         recycler.layoutManager = LinearLayoutManager(this)
 
-        DependencyDump.contactRepository.loadContacts().toLiveData(40).observe(this) {
+        contactsRepository.loadContacts().toLiveData(40).observe(this) {
             adapter.submitList(it)
         }
     }

@@ -8,12 +8,16 @@ import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.*
 import com.charlag.tuta.*
+import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.MailAddressEntity
+import com.charlag.tuta.di.UserBound
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.ConversationEntry
 import com.charlag.tuta.entities.tutanota.File
+import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.mail.MailRepository
+import com.charlag.tuta.network.API
 import com.charlag.tuta.util.FilledMutableLiveData
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.mutate
@@ -21,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.io.FileNotFoundException
 import java.io.IOException
+import javax.inject.Inject
 
 
 sealed class DraftFile {
@@ -39,19 +44,18 @@ data class RemoteFile(
     override val name: String,
     override val size: Long,
     val fileId: IdTuple
-) :
-    DraftFile()
+) : DraftFile()
 
-class ComposeViewModel : ViewModel() {
-    private val api = DependencyDump.api
-    private val mailFacade = DependencyDump.mailFacade
-    private val loginFacade = DependencyDump.loginFacade
-    private val contactRepo = DependencyDump.contactRepository
-    private val mailSender = DependencyDump.mailSender
-    private val userController = DependencyDump.userController
-    private val mailRepository: MailRepository = DependencyDump.mailRepository
-    private val fileHandler = DependencyDump.fileHandler
 
+class ComposeViewModel @Inject constructor(
+    @UserBound val api: API,
+    private val mailFacade: MailFacade,
+    private val userController: UserController,
+    private val contactRepo: ContactsRepository,
+    private val mailSender: MailSender,
+    private val mailRepository: MailRepository,
+    private val fileHandler: FileHandler
+) : ViewModel() {
     val enabledMailAddresses: LiveData<List<String>>
     val toRecipients = FilledMutableLiveData<List<String>>(listOf())
     val ccRecipients = FilledMutableLiveData<List<String>>(listOf())
@@ -101,7 +105,7 @@ class ComposeViewModel : ViewModel() {
                     } else mailAddresses
                 enabledMailAddresses.postValue(sortedAddresses)
             } catch (e: Exception) {
-                Log.d("ComposeVM", "Failed to load enabled mail addresses $e")
+                Log.w("ComposeVM", "Failed to load enabled mail addresses $e")
             }
         }
     }
@@ -113,7 +117,7 @@ class ComposeViewModel : ViewModel() {
     ) {
         val text = Html.toHtml(body, 0)
         mailSender.send(
-            loginFacade.user!!,
+            userController.waitForLogin(),
             prepareLocalDraft(subject, text, senderAddress, resolveRemaining = true)
         )
     }
@@ -133,7 +137,7 @@ class ComposeViewModel : ViewModel() {
         }
         val text = Html.toHtml(body, 0)
         mailSender.save(
-            loginFacade.user!!,
+            userController.waitForLogin(),
             prepareLocalDraft(subject, text, senderAddress, resolveRemaining = false)
         )
         return true
@@ -165,7 +169,7 @@ class ComposeViewModel : ViewModel() {
             ?: mailRepository.getEnabledMailAddresses().first()
         return LocalDraftEntity(
             localDraftId,
-            loginFacade.user!!._id.asString(),
+            userController.waitForLogin()._id.asString(),
             subject,
             body,
             sender,

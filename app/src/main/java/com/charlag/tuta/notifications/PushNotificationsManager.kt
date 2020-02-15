@@ -6,27 +6,34 @@ import android.content.ComponentName
 import android.content.Context
 import android.util.Log
 import com.charlag.tuta.*
+import com.charlag.tuta.di.SSEPath
+import com.charlag.tuta.di.UserBound
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.PushIdentifier
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.network.API
+import com.charlag.tuta.network.GroupKeysCache
 import com.charlag.tuta.notifications.push.PushNotificationService
 import com.charlag.tuta.notifications.push.SseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
-class PushNotificationsManager(
+class PushNotificationsManager @Inject constructor(
     private val sseStorage: SseStorage,
     private val context: Context,
-    private val api: API,
-    private val cryptor: Cryptor
+    @UserBound private val api: API,
+    private val cryptor: Cryptor,
+    private val userController: UserController,
+    @UserBound private val groupKeysCache: GroupKeysCache,
+    @SSEPath private val ssePath: String
 ) {
     fun register() {
         GlobalScope.launch(Dispatchers.Default) {
             try {
-                val user = DependencyDump.loginFacade.waitForLogin()
+                val user = userController.waitForLogin()
                 val listId = user.pushIdentifierList!!.list
                 val deviceIdentifier = sseStorage.pushIdentifier
 
@@ -70,7 +77,7 @@ class PushNotificationsManager(
             id.asString(),
             sessionKey.toBase64()
         )
-        sseStorage.storePushIdentifier(deviceIdentifier, DependencyDump.BASE_URL)
+        sseStorage.storePushIdentifier(deviceIdentifier, ssePath)
     }
 
     private suspend fun createPushIdentifier(
@@ -78,13 +85,13 @@ class PushNotificationsManager(
         newDeviceIdentifier: String,
         listId: Id
     ): Pair<ByteArray, Id> {
-        val sessionKey = DependencyDump.cryptor.aes128RandomKey()
+        val sessionKey = cryptor.aes128RandomKey()
         val userGroupKey =
-            DependencyDump.groupKeysCache.getGroupKey(user.userGroup.group.asString())
+            groupKeysCache.getGroupKey(user.userGroup.group.asString())
         val pushIdentifierTemplate = PushIdentifier(
-            _owner = DependencyDump.userController.getUserGroupInfo().group,
-            _ownerGroup = DependencyDump.userController.getUserGroupInfo().group,
-            _ownerEncSessionKey = DependencyDump.cryptor.encryptKey(
+            _owner = userController.getUserGroupInfo().group,
+            _ownerGroup = userController.getUserGroupInfo().group,
+            _ownerEncSessionKey = cryptor.encryptKey(
                 sessionKey,
                 userGroupKey!!
             ),
@@ -95,7 +102,7 @@ class PushNotificationsManager(
             disabled = false,
             lastNotificationDate = null
         )
-        val id = DependencyDump.api.createListElementEntity(
+        val id = api.createListElementEntity(
             listId,
             pushIdentifierTemplate
         )!!

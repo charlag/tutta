@@ -10,9 +10,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.notifications.isAtLeastOreo
+import javax.inject.Inject
 import kotlin.random.Random
 
-class LocalNotificationManager(
+class LocalNotificationManager @Inject constructor(
     private val context: Context
 ) {
     private val notificationManager = context.getSystemService<NotificationManager>()!!

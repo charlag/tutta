@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagedList
 import androidx.paging.toLiveData
-import com.charlag.tuta.DependencyDump
 import com.charlag.tuta.MailFolderType
 import com.charlag.tuta.UserController
 import com.charlag.tuta.data.MailBodyEntity
@@ -20,6 +19,7 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.files.FileHandler
+import com.charlag.tuta.user.LoginController
 import com.charlag.tuta.util.combineLiveData
 import com.charlag.tuta.util.map
 import kotlinx.coroutines.CoroutineScope
@@ -29,10 +29,9 @@ import javax.inject.Inject
 class MailViewModel
 @Inject constructor(
     private val mailRepository: MailRepository,
-    private val fileHandler: FileHandler
+    private val fileHandler: FileHandler,
+    private val userController: UserController
 ) : ViewModel() {
-    private val userController: UserController = DependencyDump.userController
-
 
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders: LiveData<List<MailFolderWithCounter>>

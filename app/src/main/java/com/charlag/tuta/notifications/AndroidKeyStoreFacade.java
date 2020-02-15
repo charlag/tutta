@@ -33,8 +33,8 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.inject.Inject;
 import javax.security.auth.x500.X500Principal;
-
 
 public class AndroidKeyStoreFacade {
     public static final String TAG = "AndroidKeyStoreFacade";
@@ -48,7 +48,7 @@ public class AndroidKeyStoreFacade {
     private final Context context;
     private volatile KeyStore keyStore;
 
-
+    @Inject
     public AndroidKeyStoreFacade(Context context) {
         this.context = context;
     }

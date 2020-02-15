@@ -12,14 +12,13 @@ import android.view.MenuItem
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.charlag.tuta.DependencyDump
-import com.charlag.tuta.LoginActivity
+import com.charlag.tuta.AuthenticatedActivity
 import com.charlag.tuta.R
+import com.charlag.tuta.di.ViewModelFactory
 import com.charlag.tuta.mail.AttachmentAdapter
 import com.charlag.tuta.mail.BlockingWebViewClient
 import com.charlag.tuta.mail.ListedAttachment
@@ -27,9 +26,12 @@ import com.charlag.tuta.util.setIconTintListCompat
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.activity_compose.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ComposeActivity : AppCompatActivity() {
-    private val viewModel: ComposeViewModel by viewModels()
+class ComposeActivity : AuthenticatedActivity(R.layout.activity_compose) {
+    @Inject
+    lateinit var viewModelFactory: ViewModelFactory
+    private val viewModel: ComposeViewModel by viewModels { viewModelFactory }
     private val webClient by lazy { BlockingWebViewClient(this) }
 
     // Should be Attachment eventually
@@ -46,13 +48,7 @@ class ComposeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (!DependencyDump.hasLoggedIn) {
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
-            return
-        }
 
-        setContentView(R.layout.activity_compose)
         setSupportActionBar(toolbar)
         supportActionBar?.apply {
             setHomeButtonEnabled(true)

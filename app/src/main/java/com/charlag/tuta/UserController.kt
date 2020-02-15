@@ -1,29 +1,44 @@
 package com.charlag.tuta
 
+import com.charlag.tuta.di.UserBound
+import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.GroupInfo
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.entities.tutanota.TutanotaProperties
 import com.charlag.tuta.network.API
 import com.charlag.tuta.util.AsyncProvider
 import com.charlag.tuta.util.lazyAsync
+import kotlinx.coroutines.Deferred
 
-class UserController(
+interface UserController {
+    val userId: Id
+    suspend fun waitForLogin(): User
+    suspend fun getUserGroupInfo(): GroupInfo
+    suspend fun getProps(): TutanotaProperties
+}
+
+class RealUserController(
+    override val userId: Id,
+    @UserBound
     private val api: API,
-    private val loginFacade: LoginFacade
-) {
-    suspend fun waitForLogin(): User {
-        return loginFacade.waitForLogin()
+    private val deferred: Deferred<SessionData>
+) : UserController {
+    override suspend fun waitForLogin(): User = deferred.await().user
+
+    override suspend fun getUserGroupInfo(): GroupInfo = userGroupInfo()
+
+    override suspend fun getProps(): TutanotaProperties = props()
+
+    private val userGroupInfo = lazyAsync {
+        waitForLogin()
+        api.loadListElementEntity<GroupInfo>(waitForLogin().userGroup.groupInfo)
     }
 
-    val getUserGroupInfo = lazyAsync {
-        val user = loginFacade.waitForLogin()
-        api.loadListElementEntity<GroupInfo>(user.userGroup.groupInfo)
-    }
-
-    val getProps: AsyncProvider<TutanotaProperties> = lazyAsync {
+    private val props: AsyncProvider<TutanotaProperties> = lazyAsync {
+        waitForLogin()
         api.loadRoot(
             TutanotaProperties::class,
-            loginFacade.waitForLogin().userGroup.group
+            waitForLogin().userGroup.group
         )
     }
 }

@@ -1,26 +1,40 @@
 package com.charlag.tuta.network
 
 import com.charlag.tuta.Cryptor
+import com.charlag.tuta.SessionData
 import com.charlag.tuta.decryptKey
-import com.charlag.tuta.entities.sys.User
 
-class GroupKeysCache(private val cryptor: Cryptor) {
-    var user: User? = null
-    val cachedKeys = mutableMapOf<String, ByteArray>()
+interface GroupKeysCache {
+    val accessToken: String?
+    suspend fun getGroupKey(groupId: String): ByteArray?
+    fun stage1(accessToken: String)
+    fun stage2(sessionData: SessionData)
+}
 
-    suspend fun getGroupKey(groupId: String): ByteArray? {
-        val user = this.user
+
+class UserGroupKeysCache(
+    private val cryptor: Cryptor
+) : GroupKeysCache {
+    private val cachedKeys = mutableMapOf<String, ByteArray>()
+    private var sessionData: SessionData? = null
+    override var accessToken: String? = null
+        private set
+
+    override fun stage1(accessToken: String) {
+        this.accessToken = accessToken
+    }
+
+    override fun stage2(sessionData: SessionData) {
+        this.sessionData = sessionData
+        cachedKeys[sessionData.user.userGroup.group.asString()] = sessionData.userGroupKey
+    }
+
+    override suspend fun getGroupKey(groupId: String): ByteArray? {
+        val sessionData = this.sessionData
         return cachedKeys[groupId]
-            ?: if (user != null) {
-                val membership = user.memberships.find { it.group.asString() == groupId }
-                if (membership != null) {
-                    val userGroupKey = cachedKeys[user.userGroup.group.asString()]!!
-                    cryptor.decryptKey(membership.symEncGKey, userGroupKey)
-                } else {
-                    null
+            ?: sessionData?.user?.memberships?.find { it.group.asString() == groupId }
+                ?.let { membership ->
+                    cryptor.decryptKey(membership.symEncGKey, sessionData.userGroupKey)
                 }
-            } else {
-                null
-            }
     }
 }

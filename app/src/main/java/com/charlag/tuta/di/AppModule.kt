@@ -1,19 +1,55 @@
 package com.charlag.tuta.di
 
 import android.content.Context
+import android.util.Log
 import com.charlag.tuta.*
-import com.charlag.tuta.data.AppDatabase
-import com.charlag.tuta.files.FileHandler
-import com.charlag.tuta.network.API
-import com.charlag.tuta.network.GroupKeysCache
-import com.charlag.tuta.network.InstanceMapper
-import com.charlag.tuta.network.SessionKeyResolver
+import com.charlag.tuta.network.*
+import com.charlag.tuta.notifications.data.NotificationDatabase
+import com.charlag.tuta.user.LoginController
+import com.charlag.tuta.user.RealLoginController
+import com.charlag.tuta.user.SessionStore
+import com.charlag.tuta.user.SharedPrefSessionStore
 import dagger.Module
 import dagger.Provides
+import io.ktor.client.HttpClient
+import io.ktor.client.features.logging.LogLevel
+import io.ktor.client.features.logging.Logger
+import io.ktor.client.features.logging.Logging
+import io.ktor.client.features.websocket.WebSockets
+import io.ktor.util.KtorExperimentalAPI
+import kotlinx.serialization.UnstableDefault
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+@Qualifier
+annotation class RestPath
+
+@Qualifier
+annotation class WsPath
+
+@Qualifier
+annotation class SSEPath
 
 @Module
 object AppModule {
+    private const val REST_PATH = "https://mail.tutanota.com/rest/"
+    private const val WS_PATH = "wss://main.tutanota.com/event"
+    private const val SSE_PATH = "https://mail.tutanota.com"
+
+    @Provides
+    @RestPath
+    fun restPath() = REST_PATH
+
+    @Provides
+    @WsPath
+    fun wsPath() = WS_PATH
+
+    @Provides
+    @SSEPath
+    fun ssePath() = SSE_PATH
+
     @Provides
     fun preferencesFacade(context: Context): PreferenceFacade =
         SharedPreferencesPreferenceFacade(context)
@@ -34,46 +70,81 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesApi(): API = DependencyDump.api
+    @NonAuthenticated
+    fun providesApi(
+        httpClient: HttpClient,
+        cryptor: Cryptor,
+        instanceMapper: InstanceMapper,
+        @NonAuthenticated keyResolver: SessionKeyResolver,
+        @NonAuthenticated groupKeysCache: GroupKeysCache
+    ): API =
+        API(
+            httpClient,
+            REST_PATH,
+            cryptor,
+            instanceMapper,
+            groupKeysCache,
+            keyResolver,
+            WS_PATH
+        )
+
+    @UseExperimental(KtorExperimentalAPI::class)
+    @Provides
+    fun providesHttpClient(): HttpClient {
+        return makeHttpClient {
+            install(Logging) {
+                level = LogLevel.INFO
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        Log.d("HTTP", message)
+                    }
+                }
+            }
+            install(WebSockets)
+        }
+    }
 
     @Provides
     @Singleton
-    fun providesAppDatabase(): AppDatabase = DependencyDump.db
+    fun loginFacade(cryptor: Cryptor, @NonAuthenticated api: API): LoginFacade =
+        LoginFacade(cryptor, api)
 
     @Provides
     @Singleton
-    fun userController(api: API, loginFacade: LoginFacade): UserController =
-        // TODO
-//        UserController(api, loginFacade)
-        DependencyDump.userController
-
-    @Provides
-    @Singleton
-    fun groupKeysCache(cryptor: Cryptor): GroupKeysCache =
-        // TODO
-//        GroupKeysCache(cryptor)
-        DependencyDump.groupKeysCache
-
-    @Provides
-    @Singleton
-    fun loginFacade(cryptor: Cryptor, api: API, groupKeysCache: GroupKeysCache): LoginFacade =
-        LoginFacade(cryptor, api, groupKeysCache)
-
-    @Provides
-    @Singleton
-    fun fileFacade(api: API, cryptor: Cryptor, keyResolver: SessionKeyResolver): FileFacade =
-        FileFacade(api, cryptor, keyResolver)
-
-    @Provides
-    @Singleton
-    fun fileHandler(
-        fileFacade: FileFacade,
-        loginFacade: LoginFacade,
-        context: Context
-    ): FileHandler = FileHandler(fileFacade, loginFacade, context)
-
-    @Provides
-    @Singleton
-    fun sessionKeyResolver(cryptor: Cryptor, groupKeysCache: GroupKeysCache): SessionKeyResolver =
+    @NonAuthenticated
+    fun sessionKeyResolver(
+        cryptor: Cryptor,
+        @NonAuthenticated groupKeysCache: GroupKeysCache
+    ): SessionKeyResolver =
         SessionKeyResolver(cryptor, groupKeysCache)
+
+    @Provides
+    @Singleton
+    @NonAuthenticated
+    fun groupKeysCache(cryptor: Cryptor): GroupKeysCache = UserGroupKeysCache(cryptor)
+
+    @Provides
+    @Singleton
+    fun loginController(
+        loginFacade: LoginFacade,
+        @NonAuthenticated api: API,
+        sessionStore: SessionStore,
+        appComponent: AppComponent
+    ): LoginController =
+        RealLoginController(loginFacade, sessionStore, appComponent)
+
+    @UseExperimental(UnstableDefault::class)
+    @Provides
+    @Singleton
+    fun providesJson(): Json = Json(JsonConfiguration.Default)
+
+    @Provides
+    @Singleton
+    fun sessionStore(context: Context, json: Json): SessionStore =
+        SharedPrefSessionStore(context, json)
+
+    @Provides
+    @Singleton
+    fun notificationsDabtabse(context: Context): NotificationDatabase =
+        NotificationDatabase.getDatabase(context, false)
 }

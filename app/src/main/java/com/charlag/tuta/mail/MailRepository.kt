@@ -4,13 +4,12 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import androidx.paging.DataSource
-import com.charlag.tuta.DependencyDump
-import com.charlag.tuta.DependencyDump.loginFacade
-import com.charlag.tuta.DependencyDump.mailFacade
 import com.charlag.tuta.GroupType
+import com.charlag.tuta.MailFacade
 import com.charlag.tuta.UserController
 import com.charlag.tuta.compose.LocalDraftEntity
 import com.charlag.tuta.data.*
+import com.charlag.tuta.di.UserBound
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.Group
 import com.charlag.tuta.entities.sys.IdTuple
@@ -26,13 +25,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MailRepository(
-    private val api: API,
+    @UserBound private val api: API,
     private val db: AppDatabase,
-    private val userController: UserController
+    private val userController: UserController,
+    private val mailFacade: MailFacade
 ) {
 
     val getEnabledMailAddresses: AsyncProvider<List<String>> = lazyAsync {
-        val user = loginFacade.waitForLogin()
+        val user = userController.waitForLogin()
         val mailGroupMembership =
             user.memberships.first { it.groupType == GroupType.Mail.value }
         val mailGroup = api.loadElementEntity<Group>(mailGroupMembership.group)
@@ -154,7 +154,6 @@ class MailRepository(
             val user = userController.waitForLogin()
             val mailMembership = user.memberships
                 .find { it.groupType == GroupType.Mail.value }!!
-            val api = DependencyDump.api
             val groupRoot = api
                 .loadElementEntity<MailboxGroupRoot>(mailMembership.group)
             val mailbox = api.loadElementEntity<MailBox>(groupRoot.mailbox)

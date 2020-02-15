@@ -1,8 +1,7 @@
 package com.charlag.tuta.contacts
 
 import androidx.paging.DataSource
-import com.charlag.tuta.network.API
-import com.charlag.tuta.LoginFacade
+import com.charlag.tuta.UserController
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.data.ContactEntity
 import com.charlag.tuta.data.toEntity
@@ -11,6 +10,7 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.Contact
 import com.charlag.tuta.entities.tutanota.ContactList
+import com.charlag.tuta.network.API
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpStatusCode
 import io.ktor.utils.io.errors.IOException
@@ -18,7 +18,7 @@ import io.ktor.utils.io.errors.IOException
 class ContactsRepository(
     private val api: API,
     private val db: AppDatabase,
-    private val loginFacade: LoginFacade
+    private val userController: UserController
 ) {
     fun loadContacts(): DataSource.Factory<Int, ContactEntity> =
         db.contactDao().getContacts()
@@ -56,7 +56,8 @@ class ContactsRepository(
     }
 
     suspend fun contactListId(): Id {
-        val contactList = api.loadRoot(ContactList::class, loginFacade.user!!.userGroup.group)
+        val user = userController.waitForLogin()
+        val contactList = api.loadRoot(ContactList::class, user.userGroup.group)
         return contactList.contacts
     }
 }
