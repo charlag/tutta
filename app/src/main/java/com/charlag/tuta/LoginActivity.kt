@@ -234,6 +234,8 @@ class LoginActivity : DaggerAppCompatActivity() {
     }
 
     companion object {
+        fun normalIntent(context: Context) = Intent(context, LoginActivity::class.java)
+
         fun newAccountIntent(context: Context) = Intent(context, LoginActivity::class.java).apply {
             action = NEW_ACCOUNT_ACTION
         }

@@ -52,6 +52,8 @@
                 android:screenOrientation="portrait"
                 android:theme="@style/AppTheme"
                 android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ErrorHandlerActivity"
+                android:theme="@style/AppTheme"/>
 
         <provider
                 android:name="androidx.core.content.FileProvider"
