@@ -70,11 +70,7 @@ class RecipientAutocompleteAdapter(
     }
 
     private class AutocompelteViewHolder(itemView: View) {
-        val nameLabel: TextView = itemView.findViewById(
-            R.id.nameLabel
-        )
-        val addressLabel: TextView = itemView.findViewById(
-            R.id.addressLabel
-        )
+        val nameLabel: TextView = itemView.findViewById(R.id.nameLabel)
+        val addressLabel: TextView = itemView.findViewById(R.id.addressLabel)
     }
 }

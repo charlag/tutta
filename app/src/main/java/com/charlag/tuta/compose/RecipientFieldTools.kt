@@ -28,7 +28,7 @@ fun setupRecipientField(
     setupField.doOnTextChanged { text, start, before, count ->
         val lastChar = (start + count - 1).coerceAtLeast(0)
         if (text != null && text.isNotEmpty() && text[lastChar].isSeparator()) {
-            tryCompleteRecipient(setupField, lastChar, fieldType, onAddRecipient)
+            tryCompleteRecipient(setupField, lastChar, fieldType, onAddRecipient, onRemoveRecipient)
         }
     }
     setupField.movementMethod = LinkMovementMethod()
@@ -37,15 +37,20 @@ fun setupRecipientField(
         val spans =
             fieldText.getSpans<RecipientSpan>(start = start + 1, end = start + 1 + count)
         for (span in spans) {
-            fieldText.removeSpan(span)
-            onRemoveRecipient(span.fieldType, span.mailAddress)
+            span.removeSpan()
         }
     }
     setupField.highlightColor = Color.TRANSPARENT
     setupField.onFocusChangeListener
     setupField.setOnFocusChangeListener { _, hasFocus ->
         if (!hasFocus) {
-            tryCompleteRecipient(setupField, setupField.text.length, fieldType, onAddRecipient)
+            tryCompleteRecipient(
+                setupField,
+                setupField.text.length,
+                fieldType,
+                onAddRecipient,
+                onRemoveRecipient
+            )
         }
     }
 
@@ -57,7 +62,8 @@ private fun tryCompleteRecipient(
     setupField: EditText,
     end: Int,
     fieldType: RecipientField,
-    onAddRecipient: (type: RecipientField, address: String) -> Unit
+    onAddRecipient: (type: RecipientField, address: String) -> Unit,
+    onRemoveRecipient: (type: RecipientField, address: String) -> Unit
 ) {
     val fieldText = setupField.text ?: return
     val spans = fieldText.getSpans<RecipientSpan>(end = end)
@@ -75,7 +81,7 @@ private fun tryCompleteRecipient(
         chip.setBounds(
             0, 0, chip.intrinsicWidth, chip.intrinsicHeight
         )
-        val span = RecipientSpan(chip, newText, fieldType, setupField)
+        val span = RecipientSpan(chip, newText, fieldType, setupField, onRemoveRecipient)
         fieldText.setSpan(
             span,
             textStart,
@@ -99,7 +105,8 @@ private class RecipientSpan(
     chip: ChipDrawable,
     val mailAddress: String,
     val fieldType: RecipientField,
-    private val field: EditText
+    private val field: EditText,
+    private val onRemove: (type: RecipientField, address: String) -> Unit
 ) : ImageSpan(chip) {
     val clickableSpan = object : ClickableSpan() {
         override fun onClick(widget: View) {
@@ -113,12 +120,19 @@ private class RecipientSpan(
 
     fun remove() {
         val text = field.text ?: return
+        // Get positions first, remove later
         val spanStart = text.getSpanStart(this)
         val spanEnd = text.getSpanEnd(this)
-        text.removeSpan(this)
-        text.removeSpan(clickableSpan)
+        removeSpan()
         if (spanStart != -1 && spanEnd != -1) {
             text.delete(spanStart, spanEnd)
         }
+    }
+
+    fun removeSpan() {
+        val text = field.text ?: return
+        text.removeSpan(this)
+        text.removeSpan(clickableSpan)
+        onRemove(fieldType, mailAddress)
     }
 }
