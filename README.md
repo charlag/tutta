@@ -67,10 +67,11 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Websocket connection follows screen activity
  - [x] Dependency injection
  - [x] Multi-user support
- - [ ] Contact autocomplete from system
  - [ ] Saving password without biometrics
+ - [ ] Contact autocomplete from system
  - [ ] Prevent loading unnecessary events on initial sync
  - [ ] Viewing inline images
+ - [ ] "Secure external" mails
  - [ ] Replying inline
  - [ ] Mail intent handling
  - [ ] Settings
