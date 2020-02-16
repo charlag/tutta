@@ -11,10 +11,12 @@ import com.charlag.tuta.di.UserBound
 import com.charlag.tuta.di.UserScoped
 import com.charlag.tuta.di.WsPath
 import com.charlag.tuta.entities.Id
+import com.charlag.tuta.events.EntityEventListener
 import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.mail.MailModule
 import com.charlag.tuta.network.*
 import com.charlag.tuta.notifications.PushNotificationsManager
+import com.charlag.tuta.settings.SettingsModule
 import dagger.Module
 import dagger.Provides
 import dagger.Subcomponent
@@ -76,7 +78,7 @@ class UserModule(
     @Provides
     @UserScoped
     fun providesAppDatabase(context: Context): AppDatabase {
-        return Room.databaseBuilder(context, AppDatabase::class.java, "tuta-db")
+        return Room.databaseBuilder(context, AppDatabase::class.java, "tuta-db-$userId")
             .openHelperFactory(dbFactory)
             .fallbackToDestructiveMigration()
             .build()
@@ -116,11 +118,26 @@ class UserModule(
         db: AppDatabase,
         userController: UserController
     ): ContactsRepository = ContactsRepository(api, db, userController)
+
+    @Provides
+    @UserBound
+    @UserScoped
+    fun loginFacade(
+        cryptor: Cryptor,
+        @UserBound api: API
+    ): LoginFacade = LoginFacade(cryptor, api)
 }
 
 
 @UserScoped
-@Subcomponent(modules = [UserModule::class, MailModule::class, ComposeModule::class])
+@Subcomponent(
+    modules = [
+        UserModule::class,
+        MailModule::class,
+        ComposeModule::class,
+        SettingsModule::class
+    ]
+)
 interface UserComponent {
     fun userController(): UserController
     fun androidInjector(): DispatchingAndroidInjector<Any>
@@ -134,4 +151,11 @@ interface UserComponent {
 
     @UserScoped
     fun pushNotificationsManger(): PushNotificationsManager
+
+    @UserBound
+    @UserScoped
+    fun loginFacade(): LoginFacade
+    fun entityEventListener(): EntityEventListener
+    @UserScoped
+    fun db(): AppDatabase
 }

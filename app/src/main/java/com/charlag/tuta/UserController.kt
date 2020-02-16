@@ -8,13 +8,15 @@ import com.charlag.tuta.entities.tutanota.TutanotaProperties
 import com.charlag.tuta.network.API
 import com.charlag.tuta.util.AsyncProvider
 import com.charlag.tuta.util.lazyAsync
-import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.*
 
 interface UserController {
     val userId: Id
     suspend fun waitForLogin(): User
     suspend fun getUserGroupInfo(): GroupInfo
     suspend fun getProps(): TutanotaProperties
+
+    val loggedInScope: CoroutineScope
 }
 
 class RealUserController(
@@ -41,4 +43,6 @@ class RealUserController(
             waitForLogin().userGroup.group
         )
     }
+
+    override val loggedInScope: CoroutineScope = CoroutineScope(SupervisorJob())
 }

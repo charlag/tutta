@@ -9,6 +9,7 @@ import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.map
 import androidx.lifecycle.switchMap
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -21,7 +22,6 @@ import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.compose.DraftInitData
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.getFolderName
-import com.charlag.tuta.util.map
 import com.charlag.tuta.util.setIconTintListCompat
 import com.charlag.tuta.util.withLifecycleContext
 import kotlinx.android.synthetic.main.fragment_mail_list.*

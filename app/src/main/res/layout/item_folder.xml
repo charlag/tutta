@@ -6,7 +6,9 @@
         android:background="?selectableItemBackground"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        tools:background="@drawable/selected_mail_bg">
+        tools:background="@drawable/selected_mail_bg"
+        android:clickable="true"
+        android:focusable="true">
 
     <ImageView
             android:id="@+id/folderIcon"

@@ -16,9 +16,6 @@ package com.charlag.tuta.util
 
 import androidx.lifecycle.*
 
-inline fun <X, Y> LiveData<X>.map(crossinline mapFunction: (X) -> Y): LiveData<Y> =
-    Transformations.map(this) { input -> mapFunction(input) }
-
 inline fun <X> LiveData<X>.filter(crossinline predicate: (X) -> Boolean): LiveData<X> {
     val liveData = MediatorLiveData<X>()
     liveData.addSource(this) { value ->

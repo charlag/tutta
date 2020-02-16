@@ -20,7 +20,6 @@ import com.charlag.tuta.util.lazyAsync
 import io.ktor.client.features.ResponseException
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -121,8 +120,7 @@ class MailRepository(
     fun observeFolders(): LiveData<List<MailFolderWithCounter>> = db.mailDao().getFoldersLiveData()
         .map { folders ->
             if (folders.isEmpty()) {
-                // TODO: switch to userScope or similar
-                GlobalScope.launch {
+                userController.loggedInScope.launch {
                     try {
                         db.mailDao().insertFolders(loadFolders())
                     } catch (e: Exception) {

@@ -1,10 +1,7 @@
 package com.charlag.tuta.mail
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import androidx.paging.PagedList
 import androidx.paging.toLiveData
 import com.charlag.tuta.MailFolderType
@@ -19,9 +16,8 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.files.FileHandler
-import com.charlag.tuta.user.LoginController
+import com.charlag.tuta.util.LocalAccountData
 import com.charlag.tuta.util.combineLiveData
-import com.charlag.tuta.util.map
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,21 +32,23 @@ class MailViewModel
     val selectedFolderId = MutableLiveData<IdTuple>()
     val folders: LiveData<List<MailFolderWithCounter>>
     val selectedFolder: LiveData<MailFolderEntity?>
-    val displayedMailAddress = MutableLiveData<String>()
+    val displayedMailAddress = MutableLiveData<LocalAccountData>()
 
     init {
         folders = mailRepository.observeFolders()
             .map(this::sortFolders)
             .map { dbFolders ->
                 if (selectedFolderId.value == null) {
-                    val selectedFolder =
-                        dbFolders.find { it.folder.folderType == MailFolderType.INBOX.value }!!
-                    selectFolder(
-                        IdTuple(
-                            GeneratedId(selectedFolder.folder.listId),
-                            GeneratedId(selectedFolder.folder.id)
-                        )
-                    )
+                    dbFolders.find { it.folder.folderType == MailFolderType.INBOX.value }
+                        ?.let { selectedFolder ->
+                            // It might not be there if folders have not been loaded yet
+                            selectFolder(
+                                IdTuple(
+                                    GeneratedId(selectedFolder.folder.listId),
+                                    GeneratedId(selectedFolder.folder.id)
+                                )
+                            )
+                        }
                 }
                 dbFolders
             }
@@ -60,7 +58,7 @@ class MailViewModel
 
         viewModelScope.launch {
             val mailAddress = userController.getUserGroupInfo().mailAddress
-            displayedMailAddress.postValue(mailAddress)
+            displayedMailAddress.postValue(LocalAccountData(userController.userId, mailAddress!!))
         }
     }
 

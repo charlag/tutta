@@ -16,7 +16,6 @@ import com.charlag.tuta.network.GroupKeysCache
 import com.charlag.tuta.notifications.push.PushNotificationService
 import com.charlag.tuta.notifications.push.SseStorage
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -31,7 +30,7 @@ class PushNotificationsManager @Inject constructor(
     @SSEPath private val ssePath: String
 ) {
     fun register() {
-        GlobalScope.launch(Dispatchers.Default) {
+        userController.loggedInScope.launch(Dispatchers.Default) {
             try {
                 val user = userController.waitForLogin()
                 val listId = user.pushIdentifierList!!.list

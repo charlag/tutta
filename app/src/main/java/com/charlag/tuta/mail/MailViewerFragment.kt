@@ -80,6 +80,7 @@ class MailViewerFragment : DaggerFragment() {
             val webViewClient = BlockingWebViewClient(context!!).apply {
                 onExternalContentDetected = {
                     externalContentView.post {
+                        // TODO: may crash here if fragment closed too early
                         externalContentView.visibility = View.VISIBLE
                     }
                 }

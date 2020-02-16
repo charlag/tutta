@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class SseClient {
     private static final String TAG = "SSE";
-    public static final int RECONNECTION_ATTEMPTS = 3;
+    public static final int RECONNECTION_ATTEMPTS = 2;
 
     private final Cryptor crypto;
     private final NetworkObserver networkObserver;
@@ -129,6 +129,7 @@ public class SseClient {
     }
 
     private void handleException(Random random, Exception exception) {
+        Log.w(TAG, "exception: " + exception, exception);
         HttpURLConnection httpURLConnection = httpsURLConnectionRef.get();
         try {
             // we get not authorized for the stored identifier and user ids, so remove them

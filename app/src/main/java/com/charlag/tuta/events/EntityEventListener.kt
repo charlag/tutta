@@ -12,6 +12,7 @@ import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.data.MailFolderCounterEntity
 import com.charlag.tuta.data.toEntity
+import com.charlag.tuta.di.UserBound
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.Contact
@@ -25,10 +26,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 import kotlin.reflect.KClass
 
-class EntityEventListener(
-    private val api: API,
+class EntityEventListener @Inject constructor(
+    @UserBound private val api: API,
     private val db: AppDatabase,
     private val contactsRepository: ContactsRepository,
     private val userController: UserController,
@@ -37,9 +39,13 @@ class EntityEventListener(
     private val lastProcessedPrefs =
         appContext.getSharedPreferences(LAST_ENTITY_UPDATE_PREF_KEY, Context.MODE_PRIVATE)
     private var connectionJob: Job? = null
+    // Can replace with userScope later
+    private var stopped = false
 
-    init {
-        GlobalScope.launch {
+    fun start() {
+        this.stopped = false
+
+        userController.loggedInScope.launch {
             val user = userController.waitForLogin()
             // Wait for contact list to load
             contactsRepository.ignite()
@@ -51,7 +57,7 @@ class EntityEventListener(
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
     fun onResume() {
         Log.d(TAG, "onResume")
-        GlobalScope.launch {
+        userController.loggedInScope.launch {
             if (connectionJob == null) {
                 reconnect(userController.waitForLogin())
             }
@@ -65,10 +71,21 @@ class EntityEventListener(
         connectionJob = null
     }
 
+    fun stop() {
+        Log.d(TAG, "stop")
+        connectionJob?.cancel("Stop")
+        connectionJob = null
+        stopped = true
+    }
+
     private fun reconnect(user: User) {
         Log.d(TAG, "reconnect")
+        if (stopped) {
+            Log.d(TAG, "Stopped, don't reconnect")
+            return
+        }
         // Launching each time so that we don't run into recursive executing problems.
-        connectionJob = GlobalScope.launch {
+        connectionJob = userController.loggedInScope.launch {
             // Start consuming events right away so that we don't miss any
             val realtimeEvents =
                 api.getEvents(userId = user._id.asString()).consumeAsFlow()
@@ -100,7 +117,7 @@ class EntityEventListener(
                         )
                     }
             } catch (e: IOException) {
-                Log.d(TAG, "Exception during event processing", e)
+                Log.d(TAG, "Exception during event processing $e", e)
                 delay(TimeUnit.SECONDS.toMillis(30))
             } catch (e: CancellationException) {
                 Log.d(TAG, "Connection cancelled")

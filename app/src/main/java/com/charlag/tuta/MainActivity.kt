@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.charlag.tuta.contacts.ContactsActivity
@@ -22,11 +23,12 @@ import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.mail.MailListFragment
 import com.charlag.tuta.mail.MailViewModel
 import com.charlag.tuta.settings.SettingsActivity
+import com.charlag.tuta.util.LocalAccountData
 import com.charlag.tuta.util.withLifecycleContext
-import dagger.android.support.DaggerAppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.item_folder.view.*
 import kotlinx.android.synthetic.main.mail_menu.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class MainActivity : AuthenticatedActivity(R.layout.activity_main) {
@@ -67,6 +69,20 @@ class MainActivity : AuthenticatedActivity(R.layout.activity_main) {
                 .commit()
         }
 
+        accountHeaderView.onNewAccount = {
+            startActivity(LoginActivity.newAccountIntent(this))
+        }
+        accountHeaderView.onAccountSelected = {
+            lifecycleScope.launch {
+                loginController.switchAccount(it.userId)
+                val intent = Intent(this@MainActivity, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                startActivity(intent)
+                finish()
+            }
+        }
+
         withLifecycleContext {
             viewModel.selectedFolderId.observe {
                 foldersAdapter.selectedFolder = it
@@ -79,8 +95,14 @@ class MainActivity : AuthenticatedActivity(R.layout.activity_main) {
                 foldersAdapter.notifyDataSetChanged()
             }
 
-            viewModel.displayedMailAddress.observe {
-                mailAddressLabel.text = it
+            viewModel.displayedMailAddress.observe { accountData ->
+                val allCredentials = loginController.getAllCredentials()
+                val localAccounts = allCredentials
+                    .filter { it.userId != accountData.userId }
+                    .map { LocalAccountData(it.userId, it.mailAddress) }
+                accountHeaderView.updateAccounts(localAccounts)
+
+                accountHeaderView.mailAddressLabel.text = accountData.mainAddress
             }
         }
     }

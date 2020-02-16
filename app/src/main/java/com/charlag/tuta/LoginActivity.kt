@@ -1,5 +1,6 @@
 package com.charlag.tuta
 
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
@@ -10,10 +11,13 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
+import com.charlag.tuta.entities.sys.IdTuple
 import com.charlag.tuta.user.Credentials
 import com.charlag.tuta.user.LoginController
+import com.charlag.tuta.user.SessionStore
 import dagger.android.support.DaggerAppCompatActivity
 import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_login.*
@@ -29,118 +33,128 @@ class LoginActivity : DaggerAppCompatActivity() {
 
     @Inject
     lateinit var loginController: LoginController
+    @Inject
+    lateinit var sessionStore: SessionStore
+    @Inject
+    lateinit var cryptor: Cryptor
+
+    private val credentialsManager by lazy { CredentialsManager() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setTheme(R.style.AppTheme)
         setContentView(R.layout.activity_login)
 
-        val sessionData = loginController.getCredentials()
-
-        if (sessionData != null) {
-            emailField.setText(sessionData.mailAddress)
-            biometricButton.visibility = View.VISIBLE
-            biometricButton.setOnClickListener {
+        if (intent.action == NEW_ACCOUNT_ACTION) {
+            backButton.isVisible = true
+            backButton.setOnClickListener {
+                finish()
+            }
+        } else {
+            val sessionData = loginController.getLastCredentials()
+            if (sessionData != null) {
+                emailField.setText(sessionData.mailAddress)
+                biometricButton.visibility = View.VISIBLE
+                biometricButton.setOnClickListener {
+                    loginWithSaved(sessionData)
+                }
                 loginWithSaved(sessionData)
             }
-            loginWithSaved(sessionData)
         }
 
         loginButton.setOnClickListener {
-            val mailAddress = emailField.text.toString()
-            val password = passwordField.text.toString()
+            loginWithNewAccount()
+        }
+    }
 
-            statusLabel.text = "Logging in"
-            lifecycleScope.launch {
-                try {
-                    CredentialsManager()
-                        .register()
-                    val cipher = getCipher(null) ?: return@launch
-                    val encryptedPassword = cipher.doFinal(password.toByteArray())
-                    val encryptedPasswordWithIv = cipher.iv + encryptedPassword
+    private fun loginWithNewAccount() {
+        val mailAddress = emailField.text.toString()
+        val password = passwordField.text.toString()
 
-                    withContext(Dispatchers.IO) {
-                        loginController.createSession(
-                            mailAddress,
-                            password,
-                            encryptedPasswordWithIv
-                        ) { sessionId ->
-                            loginButton.post {
-                                val field = EditText(this@LoginActivity).apply {
-                                    hint = "TOTP code"
-                                }
-                                val dialog = AlertDialog.Builder(this@LoginActivity)
-                                    .setView(field)
-                                    .setPositiveButton(android.R.string.ok, null)
-                                    .show()
-                                val okButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
-                                okButton.setOnClickListener {
-                                    val totpCode = field.text.toString().toLong()
-                                    lifecycleScope.launch {
-                                        try {
-                                            loginController.submitTOTPCode(
-                                                sessionId,
-                                                totpCode
-                                            )
-                                            dialog.dismiss()
-                                        } catch (e: ClientRequestException) {
-                                            Log.d("Login", "TOTP request failed $e")
-                                            Toast.makeText(
-                                                this@LoginActivity,
-                                                "TOTP didn't match",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
-                                field.doAfterTextChanged {
-                                    okButton.isEnabled = field.text.length >= 6 &&
-                                            field.text.toString().toLongOrNull() != null
-                                }
-                            }
-
-                        }
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        statusLabel.text = "Success!"
-                        goToMain()
-                    }
-                } catch (e: Exception) {
-                    Log.e("Main", "ooops", e)
-                    withContext(Dispatchers.Main) {
-                        statusLabel.text = "Error $e"
-                    }
+        statusLabel.text = "Logging in"
+        lifecycleScope.launch {
+            try {
+                val deviceKey = getDevicekey()
+                withContext(Dispatchers.IO) {
+                    loginController.createSession(
+                        mailAddress,
+                        password,
+                        deviceKey,
+                        this@LoginActivity::handleTOTP
+                    )
+                }
+                withContext(Dispatchers.Main) {
+                    statusLabel.text = "Success!"
+                    goToMain()
+                }
+            } catch (e: Exception) {
+                Log.e("Main", "ooops", e)
+                withContext(Dispatchers.Main) {
+                    statusLabel.text = "Error $e"
                 }
             }
         }
     }
 
+    private fun handleTOTP(sessionId: IdTuple) {
+        loginButton.post {
+            val field = EditText(this@LoginActivity).apply {
+                hint = "TOTP code"
+            }
+            val dialog = AlertDialog.Builder(this@LoginActivity)
+                .setView(field)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            val okButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+            okButton.setOnClickListener {
+                val totpCode = field.text.toString().toLong()
+                lifecycleScope.launch {
+                    try {
+                        loginController.submitTOTPCode(
+                            sessionId,
+                            totpCode
+                        )
+                        dialog.dismiss()
+                    } catch (e: ClientRequestException) {
+                        Log.d("Login", "TOTP request failed $e")
+                        Toast.makeText(
+                            this@LoginActivity,
+                            "TOTP didn't match",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+            field.doAfterTextChanged {
+                okButton.isEnabled = field.text.length >= 6 &&
+                        field.text.toString().toLongOrNull() != null
+            }
+        }
+
+    }
+
     private fun goToMain() {
-        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+        val intent = Intent(this@LoginActivity, MainActivity::class.java).apply {
+            if (this@LoginActivity.intent.action == NEW_ACCOUNT_ACTION) {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+        }
+        startActivity(intent)
         finish()
     }
 
     private fun loginWithSaved(credentials: Credentials) {
         lifecycleScope.launch {
             try {
-                val passwordWithIvBytes = credentials.encPassword
-                val iv = passwordWithIvBytes.copyOfRange(0, 16)
-                val encPasswordBytes =
-                    passwordWithIvBytes.copyOfRange(16, passwordWithIvBytes.size)
-                val cipher = getCipher(iv)
-                if (cipher == null) {
-                    Log.d("Main", "Failed to get login cipher")
-                    return@launch
-                }
-                val password = bytesToString(cipher.doFinal(encPasswordBytes))
+                val deviceKey = getDevicekey()
 
                 try {
                     loginController.resumeSession(
                         credentials.mailAddress,
                         credentials.userId,
                         credentials.accessToken,
-                        password
+                        credentials.encPassword,
+                        deviceKey
                     )
                     goToMain()
                 } catch (e: IOException) {
@@ -157,7 +171,7 @@ class LoginActivity : DaggerAppCompatActivity() {
         }
     }
 
-    suspend fun getCipher(iv: ByteArray?): Cipher? {
+    suspend fun getDevicekey(): ByteArray {
         val deferred = CompletableDeferred<Cipher?>()
         val prompt = BiometricPrompt(
             this,
@@ -191,13 +205,40 @@ class LoginActivity : DaggerAppCompatActivity() {
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Biometric login")
-            .setNegativeButtonText("Use account password")
+            .setNegativeButtonText("Cancel")
             .build()
-        prompt.authenticate(
-            promptInfo,
-            BiometricPrompt.CryptoObject(CredentialsManager().prepareCipher(iv))
-        )
-        return deferred.await()
+        val existingKey = sessionStore.getDeviceKey()
+
+        if (existingKey != null) {
+            val iv = existingKey.copyOfRange(0, 16)
+            val encDeviceKeyWithoutIv =
+                existingKey.copyOfRange(16, existingKey.size)
+
+            prompt.authenticate(
+                promptInfo,
+                BiometricPrompt.CryptoObject(credentialsManager.prepareCipher(iv))
+            )
+            val cipher = deferred.await() ?: error("Something wrong with cipher")
+            return cipher.doFinal(encDeviceKeyWithoutIv)
+        } else {
+            val key = cryptor.aes128RandomKey()
+            prompt.authenticate(
+                promptInfo,
+                BiometricPrompt.CryptoObject(credentialsManager.prepareCipher(null))
+            )
+            val cipher = deferred.await() ?: error("Something wrong with cipher")
+            val encKey = cipher.doFinal(key)!!
+            sessionStore.storeDeviceKey(cipher.iv + encKey)
+            return key
+        }
+    }
+
+    companion object {
+        fun newAccountIntent(context: Context) = Intent(context, LoginActivity::class.java).apply {
+            action = NEW_ACCOUNT_ACTION
+        }
+
+        private const val NEW_ACCOUNT_ACTION = "com.charlag.tuta.newlogin"
     }
 }
 

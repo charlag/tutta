@@ -9,8 +9,17 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 
 class CredentialsManager {
+    private val keystore = KeyStore.getInstance("AndroidKeyStore").apply {
+        load(null)
+    }
 
-    fun register() {
+    init {
+        if (!keystore.containsAlias(KEY_NAME)) {
+            register()
+        }
+    }
+
+    private fun register() {
         generateSecretKey(
             KeyGenParameterSpec.Builder(
                 KEY_NAME,
@@ -31,19 +40,14 @@ class CredentialsManager {
     }
 
     private fun generateSecretKey(keyGenParameterSpec: KeyGenParameterSpec) {
-        KeyGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore"
-        ).apply {
+        KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
             init(keyGenParameterSpec)
             generateKey()
         }
     }
 
     private fun getSecretKey(): SecretKey? {
-        return KeyStore.getInstance("AndroidKeyStore").run {
-            load(null)
-            getKey(KEY_NAME, null) as SecretKey
-        }
+        return keystore.getKey(KEY_NAME, null) as SecretKey?
     }
 
     private fun getCipher(): Cipher = Cipher.getInstance(

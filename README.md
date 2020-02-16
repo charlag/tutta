@@ -65,8 +65,8 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Warnings for technical sender
  - [x] Updating permissions
  - [x] Websocket connection follows screen activity
- - [ ] Dependency injection
- - [ ] Multi-user support
+ - [x] Dependency injection
+ - [x] Multi-user support
  - [ ] Contact autocomplete from system
  - [ ] Saving password without biometrics
  - [ ] Prevent loading unnecessary events on initial sync

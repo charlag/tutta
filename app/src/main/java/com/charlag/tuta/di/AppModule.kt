@@ -35,8 +35,8 @@ annotation class SSEPath
 @Module
 object AppModule {
     private const val REST_PATH = "https://mail.tutanota.com/rest/"
-    private const val WS_PATH = "wss://main.tutanota.com/event"
-    private const val SSE_PATH = "https://mail.tutanota.com"
+    private const val WS_PATH = "wss://mail.tutanota.com/event/"
+    private const val SSE_PATH = "https://mail.tutanota.com/"
 
     @Provides
     @RestPath
@@ -127,11 +127,11 @@ object AppModule {
     @Singleton
     fun loginController(
         loginFacade: LoginFacade,
-        @NonAuthenticated api: API,
         sessionStore: SessionStore,
-        appComponent: AppComponent
+        appComponent: AppComponent,
+        cryptor: Cryptor
     ): LoginController =
-        RealLoginController(loginFacade, sessionStore, appComponent)
+        RealLoginController(loginFacade, sessionStore, appComponent, cryptor)
 
     @UseExperimental(UnstableDefault::class)
     @Provides
