@@ -20,6 +20,7 @@ import com.charlag.tuta.user.LoginController
 import com.charlag.tuta.user.SessionStore
 import dagger.android.support.DaggerAppCompatActivity
 import io.ktor.client.features.ClientRequestException
+import io.ktor.http.HttpStatusCode
 import kotlinx.android.synthetic.main.activity_login.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,13 +68,18 @@ class LoginActivity : DaggerAppCompatActivity() {
         val mailAddress = emailField.text.toString()
         val password = passwordField.text.toString()
 
+        enableFields(false)
+        passwordField.error = null
         statusLabel.text = "Logging in"
         lifecycleScope.launch {
             try {
                 val deviceKey =
                     when (val authResult = authenticator.getDeviceKey(this@LoginActivity)) {
                         is AuthResult.Success -> authResult.data
-                        else -> return@launch
+                        else -> {
+                            enableFields(true)
+                            return@launch
+                        }
                     }
                 withContext(Dispatchers.IO) {
                     loginController.createSession(
@@ -88,12 +94,24 @@ class LoginActivity : DaggerAppCompatActivity() {
                     goToMain()
                 }
             } catch (e: Exception) {
-                Log.e("Main", "ooops", e)
                 withContext(Dispatchers.Main) {
-                    statusLabel.text = "Error $e"
+                    Log.e("Main", "ooops", e)
+                    enableFields(true)
+                    if (e.isUnauthorized()) {
+                        enableFields(true)
+                        passwordField.error = "Not authorized"
+                    } else {
+                        statusLabel.text = "Error ${e.message}"
+                    }
                 }
             }
         }
+    }
+
+    private fun enableFields(status: Boolean) {
+        emailField.isEnabled = status
+        passwordField.isEnabled = status
+        loginButton.isEnabled = status
     }
 
     private fun handleTOTP(sessionId: IdTuple) {
@@ -144,12 +162,17 @@ class LoginActivity : DaggerAppCompatActivity() {
     }
 
     private fun loginWithSaved(credentials: Credentials) {
+        enableFields(false)
+        passwordField.error = null
         lifecycleScope.launch {
             try {
                 val deviceKey =
                     when (val authResult = authenticator.getDeviceKey(this@LoginActivity)) {
                         is AuthResult.Success -> authResult.data
-                        else -> return@launch
+                        else -> {
+                            enableFields(true)
+                            return@launch
+                        }
                     }
                 try {
                     loginController.resumeSession(
@@ -167,12 +190,18 @@ class LoginActivity : DaggerAppCompatActivity() {
                     }
                     Log.w("Main", msg)
                 }
-            } catch (e: java.lang.Exception) {
-                Log.d("Mail", "Failed to log in", e)
-                statusLabel.text = "Failed to log in $e"
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Log.d("Mail", "Failed to log in", e)
+                    enableFields(true)
+                    statusLabel.text = "Failed to log in ${e.message}"
+                }
             }
         }
     }
+
+    private fun Exception.isUnauthorized() = this is ClientRequestException &&
+            this.response.status == HttpStatusCode.Unauthorized
 
     companion object {
         fun normalIntent(context: Context) = Intent(context, LoginActivity::class.java)
