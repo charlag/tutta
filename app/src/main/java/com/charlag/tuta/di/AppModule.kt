@@ -3,7 +3,10 @@ package com.charlag.tuta.di
 import android.content.Context
 import android.util.Log
 import com.charlag.tuta.*
+import com.charlag.tuta.login.Authenticator
+import com.charlag.tuta.login.RealAuthenticator
 import com.charlag.tuta.network.*
+import com.charlag.tuta.notifications.AndroidKeyStoreFacade
 import com.charlag.tuta.notifications.data.NotificationDatabase
 import com.charlag.tuta.user.LoginController
 import com.charlag.tuta.user.RealLoginController
@@ -33,7 +36,7 @@ annotation class WsPath
 annotation class SSEPath
 
 @Module
-object AppModule {
+internal object AppModule {
     private const val REST_PATH = "https://mail.tutanota.com/rest/"
     private const val WS_PATH = "wss://mail.tutanota.com/event/"
     private const val SSE_PATH = "https://mail.tutanota.com/"
@@ -147,4 +150,12 @@ object AppModule {
     @Singleton
     fun notificationsDabtabse(context: Context): NotificationDatabase =
         NotificationDatabase.getDatabase(context, false)
+
+    @Provides
+    fun authenticator(
+        sessionStore: SessionStore,
+        keyStoreFacade: AndroidKeyStoreFacade,
+        cryptor: Cryptor
+    ): Authenticator =
+        RealAuthenticator(sessionStore, keyStoreFacade, cryptor)
 }

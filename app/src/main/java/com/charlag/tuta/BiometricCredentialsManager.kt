@@ -8,7 +8,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 
-class CredentialsManager {
+class BiometricCredentialsManager {
     private val keystore = KeyStore.getInstance("AndroidKeyStore").apply {
         load(null)
     }

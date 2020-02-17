@@ -11,6 +11,7 @@
             android:layout_height="wrap_content">
 
         <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:buttonGravity="center_vertical"
@@ -19,15 +20,25 @@
                 tools:layout_height="46dp" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <TextView
+    <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="40dp"
-            android:layout_marginBottom="40dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Unofficial Tutanota prototype app"
-            android:textSize="20sp" />
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginRight="16dp">
+
+        <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Use biometric authentication" />
+
+        <Switch
+                android:id="@+id/biometricSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+    </LinearLayout>
+
 
     <Button
             android:id="@+id/logoutButton"
