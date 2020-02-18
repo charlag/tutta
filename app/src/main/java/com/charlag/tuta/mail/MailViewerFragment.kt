@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
 import android.graphics.drawable.RotateDrawable
 import android.os.Bundle
+import android.text.format.DateUtils
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -36,6 +37,7 @@ import io.ktor.client.features.ClientRequestException
 import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
 import java.io.IOException
+import java.text.DateFormat
 import java.text.SimpleDateFormat
 import javax.inject.Inject
 
@@ -211,7 +213,7 @@ class MailViewerFragment : DaggerFragment() {
             setupDetailsField(ccLabel, ccAddressLabel, openedMail.ccRecipients)
             setupDetailsField(bccLabel, bccAddressLabel, openedMail.bccRecipients)
             setupDetailsField(replyToLabel, replyToAddressLabel, openedMail.replyTos)
-            sentValueLabel.text = SimpleDateFormat.getDateInstance().format(openedMail.sentDate)
+            sentValueLabel.text = DateFormat.getDateInstance().format(openedMail.sentDate)
 
             if (openedMail.differentEnvelopeSender != null) {
                 warningIcon.isVisible = true

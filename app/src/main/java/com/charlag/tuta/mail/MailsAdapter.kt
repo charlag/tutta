@@ -1,6 +1,8 @@
 package com.charlag.tuta.mail
 
+import android.content.Context
 import android.graphics.Typeface
+import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -18,17 +20,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.charlag.tuta.R
 import com.charlag.tuta.data.MailEntity
 import java.text.DateFormat
-import java.text.SimpleDateFormat
 import java.util.*
 
 class MailsAdapter(
     val onSelected: (MailEntity) -> Unit
 ) : PagedListAdapter<MailEntity, MailsAdapter.MailviewHolder>(DIFF_CALLBACK) {
-    private val fullFormat = DateFormat.getDateInstance()
-    private val shortFormat = SimpleDateFormat(
-        "dd/MM",
-        Locale.getDefault()
-    )
+    private val fullFormat = DateFormat.getDateInstance(DateFormat.SHORT)
+    private val timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT)
     lateinit var selectionTracker: SelectionTracker<String>
     private val cal = Calendar.getInstance()
 
@@ -49,7 +47,7 @@ class MailsAdapter(
             if (mail.sender.name.isNotBlank()) "${mail.sender.name} ${mail.sender.address}"
             else mail.sender.address
         holder.subject.text = mail.subject
-        holder.date.text = formatDate(mail)
+        holder.date.text = formatDate(holder.itemView.context, mail)
         holder.itemView.setOnClickListener { onSelected(mail) }
         holder.subject.setTypeface(null, if (mail.unread) Typeface.BOLD else Typeface.NORMAL)
         if (selectionTracker.isSelected(mail.id)) {
@@ -62,18 +60,24 @@ class MailsAdapter(
         holder.unreadIndicator.isGone = !mail.unread
     }
 
-    private fun fromThisYear(mail: MailEntity): Boolean {
+    private fun formatDate(context: Context, mail: MailEntity): String {
         cal.timeInMillis = System.currentTimeMillis()
+        // There's an Android DateUtil method to check that but it allocates multiple calendars
+        // right away
+        val monthNow = cal.get(Calendar.MONTH)
+        val dateNow = cal.get(Calendar.DATE)
         val yearNow = cal.get(Calendar.YEAR)
         cal.timeInMillis = mail.receivedDate.time
-        return yearNow == cal.get(Calendar.YEAR)
-    }
-
-    private fun formatDate(mail: MailEntity): String {
-        return if (fromThisYear(mail)) {
-            shortFormat.format(mail.receivedDate)
-        } else {
-            fullFormat.format(mail.receivedDate)
+        return when {
+            cal.get(Calendar.YEAR) != yearNow ->
+                fullFormat.format(mail.receivedDate)
+            cal.get(Calendar.MONTH) == monthNow && cal.get(Calendar.DATE) == dateNow ->
+                timeFormat.format(mail.receivedDate)
+            else -> DateUtils.formatDateTime(
+                context,
+                mail.receivedDate.time,
+                DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_NO_YEAR or DateUtils.FORMAT_ABBREV_MONTH
+            )
         }
     }
 
