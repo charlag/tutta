@@ -6,19 +6,19 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.observe
 import androidx.paging.PagedListAdapter
 import androidx.paging.toLiveData
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.charlag.tuta.AuthenticatedActivity
 import com.charlag.tuta.R
 import com.charlag.tuta.data.ContactEntity
 import kotlinx.android.synthetic.main.activity_contacts.*
 import javax.inject.Inject
 
-class ContactsActivity : AppCompatActivity(R.layout.activity_contacts) {
+class ContactsActivity : AuthenticatedActivity(R.layout.activity_contacts) {
 
     @Inject lateinit var contactsRepository: ContactsRepository
 

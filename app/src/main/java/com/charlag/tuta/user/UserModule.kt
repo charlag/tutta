@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.charlag.tuta.*
 import com.charlag.tuta.compose.ComposeModule
+import com.charlag.tuta.contacts.ContactsModule
 import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
 import com.charlag.tuta.di.RestPath
@@ -144,7 +145,8 @@ class UserModule(
         UserModule::class,
         MailModule::class,
         ComposeModule::class,
-        SettingsModule::class
+        SettingsModule::class,
+        ContactsModule::class
     ]
 )
 interface UserComponent {
@@ -164,6 +166,7 @@ interface UserComponent {
     @UserBound
     @UserScoped
     fun loginFacade(): LoginFacade
+
     fun entityEventListener(): EntityEventListener
     @UserScoped
     fun db(): AppDatabase

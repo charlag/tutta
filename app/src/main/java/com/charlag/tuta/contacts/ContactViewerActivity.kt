@@ -5,9 +5,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.charlag.tuta.AuthenticatedActivity
 import com.charlag.tuta.R
 import kotlinx.android.synthetic.main.activity_contact_viewer.*
 import kotlinx.android.synthetic.main.item_contact.nameLabel
@@ -16,7 +16,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
-class ContactViewerActivity : AppCompatActivity(R.layout.activity_contact_viewer) {
+class ContactViewerActivity : AuthenticatedActivity(R.layout.activity_contact_viewer) {
     @Inject lateinit var contactsRepository: ContactsRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
