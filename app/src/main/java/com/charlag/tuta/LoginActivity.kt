@@ -100,9 +100,8 @@ class LoginActivity : DaggerAppCompatActivity() {
                     if (e.isUnauthorized()) {
                         enableFields(true)
                         passwordField.error = "Not authorized"
-                    } else {
-                        statusLabel.text = "Error ${e.message}"
                     }
+                    statusLabel.text = "Error ${e.message}"
                 }
             }
         }

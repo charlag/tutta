@@ -20,11 +20,13 @@ import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.network.API
 import com.charlag.tuta.typemodelMap
+import com.charlag.tuta.util.timestmpToGeneratedId
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.io.IOException
+import java.util.Date
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.reflect.KClass
@@ -37,12 +39,14 @@ class EntityEventListener @Inject constructor(
     appContext: Context
 ) : LifecycleObserver {
     private val lastProcessedPrefs =
-        appContext.getSharedPreferences(LAST_ENTITY_UPDATE_PREF_KEY, Context.MODE_PRIVATE)
+        appContext.getSharedPreferences(LAST_ENTITY_UPDATE_PREF_NAME, Context.MODE_PRIVATE)
     private var connectionJob: Job? = null
     // Can replace with userScope later
     private var stopped = false
+    private var startTime: Date? = null
 
     fun start() {
+        this.startTime = Date()
         this.stopped = false
 
         userController.loggedInScope.launch {
@@ -55,6 +59,7 @@ class EntityEventListener @Inject constructor(
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    @Suppress("unused")
     fun onResume() {
         Log.d(TAG, "onResume")
         userController.loggedInScope.launch {
@@ -65,6 +70,7 @@ class EntityEventListener @Inject constructor(
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+    @Suppress("unused")
     fun onPause() {
         Log.d(TAG, "onPause, had connection: ${connectionJob != null}")
         connectionJob?.cancel("cancelling webSocket for background")
@@ -150,17 +156,22 @@ class EntityEventListener @Inject constructor(
             val eventGroups = eventGroups(user)
             for (groupId in eventGroups) {
                 val lastPref = lastProcessedPrefs.getString(groupId.asString(), null)
+                    ?.let(::GeneratedId) ?: run {
+                    val startTime = checkNotNull(this@EntityEventListener.startTime)
+                    val id = timestmpToGeneratedId(startTime.time - 60_000, 0)
+                    // We save it so that on the next run we don't miss updates
+                    lastProcessedPrefs.edit().putString(groupId.asString(), id.asString()).apply()
+                    id
+                }
                 val eventBatches = api.loadRangeInBetween(
                     EntityEventBatch::class,
                     groupId,
-                    // TODO: don't use MIN_ID here, we download a lot of crap
-                    lastPref?.let(::GeneratedId) ?: GENERATED_MIN_ID,
-                    GENERATED_MAX_ID
+                    lastPref
                 )
 
                 for (batch in eventBatches) {
                     val batchId = batch._id.elementId.asString()
-                    if (lastPref != null && lastPref < batchId) {
+                    if (lastPref.asString() < batchId) {
                         emit(WebsocketEntityData(GeneratedId(batchId), groupId, batch.events))
                     }
                 }
@@ -240,7 +251,7 @@ class EntityEventListener @Inject constructor(
 
     companion object {
         private const val TAG = "Event"
-        private const val LAST_ENTITY_UPDATE_PREF_KEY = "lastEntityUpdate"
+        private const val LAST_ENTITY_UPDATE_PREF_NAME = "lastEntityUpdate"
         private val includedEntities = setOf(
             Mail::class,
             MailFolder::class,

@@ -68,7 +68,8 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Dependency injection
  - [x] Multi-user support
  - [x] Saving password without biometrics
- - [ ] Prevent loading unnecessary events on initial sync
+ - [x] Prevent loading unnecessary events on initial sync
+ - [ ] Inbox rules
  - [ ] Contact autocomplete from system
  - [ ] Viewing inline images
  - [ ] "Secure external" mails

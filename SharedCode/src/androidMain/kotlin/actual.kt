@@ -1,6 +1,5 @@
 package com.charlag.tuta
 
-import android.util.Base64
 import com.charlag.tuta.entities.sys.typeInfos
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
@@ -10,6 +9,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import okio.ByteString
 import java.math.BigInteger
 import java.util.*
 import kotlin.reflect.KClass
@@ -22,11 +22,13 @@ actual fun platformEngine(): HttpClientEngine {
     return OkHttp.create { }
 }
 
+// We depend on Okio through OkHttp because of the websockets anyway, might as well
+// use well-tested, fast and sane implementation. Can even use it in multiplatform later.
 actual fun base64ToBytes(base64: String): ByteArray =
-    Base64.decode(base64, 0)
+    ByteString.decodeBase64(base64)!!.toByteArray()
 
 actual fun ByteArray.toBase64(): String =
-    Base64.encodeToString(this, Base64.NO_WRAP)
+    ByteString.of(this, 0, this.size).base64()
 
 @UnstableDefault
 actual fun platformJsonSerializer(): JsonSerializer {
@@ -82,16 +84,4 @@ fun arrayToPublicKey(keyArray: Array<BigInteger>): PublicKey {
         version = 0,
         modulus = keyArray[0].toByteArray()
     )
-}
-
-fun hexToBytes(s: String): ByteArray {
-    val len = s.length
-    val data = ByteArray(len / 2)
-    var i = 0
-    while (i < len) {
-        data[i / 2] = ((Character.digit(s[i], 16) shl 4)
-                + Character.digit(s[i + 1], 16)).toByte()
-        i += 2
-    }
-    return data
 }
