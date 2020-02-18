@@ -18,6 +18,7 @@ import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.Contact
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
+import com.charlag.tuta.mail.MailRepository
 import com.charlag.tuta.network.API
 import com.charlag.tuta.typemodelMap
 import com.charlag.tuta.util.timestmpToGeneratedId
@@ -35,6 +36,7 @@ class EntityEventListener @Inject constructor(
     @UserBound private val api: API,
     private val db: AppDatabase,
     private val contactsRepository: ContactsRepository,
+    private val mailRepository: MailRepository,
     private val userController: UserController,
     appContext: Context
 ) : LifecycleObserver {
@@ -139,12 +141,7 @@ class EntityEventListener @Inject constructor(
     private suspend fun processCounterUpdate(update: API.WSEvent.CounterUpdate) {
         for (counterValue in update.counterData.counterValues) {
             try {
-                db.mailDao().insertFolderCounter(
-                    MailFolderCounterEntity(
-                        counterValue.mailListId.asString(),
-                        counterValue.count
-                    )
-                )
+                mailRepository.onCounterUpdated(counterValue.mailListId, counterValue.count)
             } catch (e: Throwable) {
                 Log.d(TAG, "Inserting counter failed $e")
             }
@@ -200,8 +197,10 @@ class EntityEventListener @Inject constructor(
                     }
                     OPERATION_DELETE -> {
                         when (typeInfo.klass) {
-                            Mail::class -> db.mailDao().deleteMail(entityUpdate.instanceId)
-                            MailFolder::class -> db.mailDao().deleteMail(entityUpdate.instanceId)
+                            Mail::class -> mailRepository
+                                .onMailDeleted(GeneratedId(entityUpdate.instanceId))
+                            MailFolder::class -> mailRepository
+                                .onFolderDeleted(GeneratedId(entityUpdate.instanceId))
                         }
                     }
                 }
@@ -237,8 +236,8 @@ class EntityEventListener @Inject constructor(
             }
         }
         when (downloaded) {
-            is Mail -> db.mailDao().insertMail(downloaded.toEntity())
-            is MailFolder -> db.mailDao().insertFolder(downloaded.toEntity())
+            is Mail -> mailRepository.onMailUpdated(downloaded)
+            is MailFolder -> mailRepository.onFolderUpdated(downloaded)
             is Contact -> db.contactDao().insertContact(downloaded.toEntity())
         }
     }

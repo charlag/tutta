@@ -199,7 +199,26 @@ fun MailFolder.toEntity() = MailFolderEntity(
     listId = _id.listId.asString(),
     folderType = folderType,
     name = name,
-    mails = mails
+    mails = mails,
+    ownerEncSessionKey = _ownerEncSessionKey,
+    ownerGroup = _ownerGroup,
+    permissions = _permissions,
+    parentFolder = parentFolder,
+    subFolders = subFolders
+)
+
+fun MailFolderEntity.toFolder() = MailFolder(
+    _format = 0,
+    _id = IdTuple.fromRawValues(listId, id),
+    _ownerEncSessionKey = ownerEncSessionKey,
+    _ownerGroup = ownerGroup,
+    _permissions = permissions,
+    folderType = folderType,
+    name = name,
+    parentFolder = parentFolder,
+    mails = mails,
+    subFolders = subFolders
+
 )
 
 fun EncryptedMailAddress.toEntity() =

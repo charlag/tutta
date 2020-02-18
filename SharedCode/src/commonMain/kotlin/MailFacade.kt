@@ -246,6 +246,22 @@ class MailFacade(
         api.serviceRequestVoid("tutanota", "senddraftservice", HttpMethod.Post, requestBody)
     }
 
+    suspend fun moveMails(ids: List<IdTuple>, targetFolder: IdTuple) {
+        val moveMailData = MoveMailData(
+            _format = 0,
+            mails = ids,
+            targetFolder = targetFolder
+        )
+        api.serviceRequestVoid(
+            "tutanota",
+            "movemailservice",
+            HttpMethod.Post,
+            moveMailData,
+            null,
+            null
+        )
+    }
+
     suspend fun getEnabledMailAddresses(
         user: User,
         userGroupInfo: GroupInfo,

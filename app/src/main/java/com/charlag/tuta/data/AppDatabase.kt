@@ -10,7 +10,7 @@ import com.charlag.tuta.compose.LocalDraftEntity
         MailEntity::class, MailFolderEntity::class, MailBodyEntity::class,
         ContactEntity::class, LocalDraftEntity::class, MailFolderCounterEntity::class
     ],
-    version = 7
+    version = 8
 )
 @TypeConverters(TutanotaConverters::class, DateConverter::class)
 abstract class AppDatabase : RoomDatabase() {

@@ -13,7 +13,9 @@ import com.charlag.tuta.di.WsPath
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.events.EntityEventListener
 import com.charlag.tuta.files.FileHandler
+import com.charlag.tuta.mail.InboxRuleHandler
 import com.charlag.tuta.mail.MailModule
+import com.charlag.tuta.mail.RealInboxRuleHandler
 import com.charlag.tuta.network.*
 import com.charlag.tuta.notifications.PushNotificationsManager
 import com.charlag.tuta.settings.SettingsModule
@@ -126,6 +128,13 @@ class UserModule(
         cryptor: Cryptor,
         @UserBound api: API
     ): LoginFacade = LoginFacade(cryptor, api)
+
+    @Provides
+    @UserScoped
+    fun inboxRuleHandler(
+        userController: UserController,
+        mailFacade: MailFacade
+    ): InboxRuleHandler = RealInboxRuleHandler(userController, mailFacade)
 }
 
 

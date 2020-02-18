@@ -113,7 +113,7 @@ class MailViewModel
     private suspend fun markReadUnread(ids: List<String>, unread: Boolean) {
         val folder = selectedFolder.value ?: return
         for (id in ids) {
-            mailRepository.markReadUnrad(IdTuple(folder.mails, GeneratedId(id)), unread)
+            mailRepository.markReadUnread(IdTuple(folder.mails, GeneratedId(id)), unread)
         }
     }
 

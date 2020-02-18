@@ -37,8 +37,9 @@ abstract class MailModule {
             @UserBound api: API,
             db: AppDatabase,
             userController: UserController,
-            mailFacade: MailFacade
+            mailFacade: MailFacade,
+            inboxRuleHandler: InboxRuleHandler
         ) =
-            MailRepository(api, db, userController, mailFacade)
+            MailRepository(api, db, userController, mailFacade, inboxRuleHandler)
     }
 }

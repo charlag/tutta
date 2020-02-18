@@ -2,6 +2,7 @@ package com.charlag.tuta.mail
 
 import android.util.Log
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.map
 import androidx.paging.DataSource
 import com.charlag.tuta.GroupType
@@ -20,6 +21,7 @@ import com.charlag.tuta.util.lazyAsync
 import io.ktor.client.features.ResponseException
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -27,9 +29,9 @@ class MailRepository(
     @UserBound private val api: API,
     private val db: AppDatabase,
     private val userController: UserController,
-    private val mailFacade: MailFacade
+    private val mailFacade: MailFacade,
+    private val inboxRuleHandler: InboxRuleHandler
 ) {
-
     val getEnabledMailAddresses: AsyncProvider<List<String>> = lazyAsync {
         val user = userController.waitForLogin()
         val mailGroupMembership =
@@ -42,21 +44,52 @@ class MailRepository(
         )
     }
 
+    private var folders = db.mailDao().getFoldersLiveData().map { list ->
+        list.map { it.folder.toFolder() }
+    }
+
+    init {
+        // subscribing in loggedInScope so that we unsubscribe at some point
+        // subscribing to get up-to-date value
+        userController.loggedInScope.launch {
+            folders.asFlow().collect()
+        }
+    }
+
+    suspend fun onMailUpdated(mail: Mail) {
+        val foldersList = folders.value
+        if (foldersList != null && mail.unread) { // just an optimization
+            userController.loggedInScope.launch {
+                inboxRuleHandler.findAndApplyMatchingRule(foldersList, mail)
+            }
+        }
+        db.mailDao().insertMail(mail.toEntity())
+    }
+
+    suspend fun onMailDeleted(id: Id) {
+        db.mailDao().deleteMail(id.asString())
+    }
+
+    suspend fun onFolderUpdated(folder: MailFolder) {
+        db.mailDao().insertFolder(folder.toEntity())
+    }
+
+    suspend fun onFolderDeleted(id: Id) {
+        db.mailDao().deleteFolder(id.asString())
+    }
+
+    suspend fun onCounterUpdated(mailListId: Id, count: Long) {
+        db.mailDao().insertFolderCounter(
+            MailFolderCounterEntity(
+                mailListId.asString(),
+                count
+            )
+        )
+    }
+
     // Should this be on the mailFacade?
     suspend fun moveMails(ids: List<IdTuple>, targetFolder: IdTuple) {
-        val moveMailData = MoveMailData(
-            _format = 0,
-            mails = ids,
-            targetFolder = targetFolder
-        )
-        api.serviceRequestVoid(
-            "tutanota",
-            "movemailservice",
-            HttpMethod.Post,
-            moveMailData,
-            null,
-            null
-        )
+        mailFacade.moveMails(ids, targetFolder)
     }
 
     suspend fun getMail(id: IdTuple): MailEntity? {
@@ -71,7 +104,9 @@ class MailRepository(
     }
 
     fun observeMails(listId: Id): DataSource.Factory<Int, MailEntity> {
-        return db.mailDao().getMailsLiveData(listId.asString())
+        return db.mailDao().getMailsLiveData(listId.asString()).map { mail ->
+            mail
+        }
     }
 
     /**
@@ -136,7 +171,7 @@ class MailRepository(
 
     suspend fun loadAttachment(id: IdTuple): File = api.loadListElementEntity(id)
 
-    suspend fun markReadUnrad(id: IdTuple, unread: Boolean) {
+    suspend fun markReadUnread(id: IdTuple, unread: Boolean) {
         val mail = (getMail(id) ?: return)
             .copy(unread = unread)
             .toMail()
@@ -179,7 +214,9 @@ class MailRepository(
                 startId,
                 MAIL_LOAD_PAGE,
                 true
-            ).map { it.toEntity() }
+            ).map { mail ->
+                mail.toEntity()
+            }
         }
     }
 

@@ -88,3 +88,12 @@ enum class MailFolderType(val value: Long) {
     SPAM(5),
     DRAFT(6)
 }
+
+enum class InboxRuleType(val raw: String) {
+    FROM_EQUALS("0"),
+    RECIPIENT_TO_EQUALS("1"),
+    RECIPIENT_CC_EQUALS("2"),
+    RECIPIENT_BCC_EQUALS("3"),
+    SUBJECT_CONTAINS("4"),
+    MAIL_HEADER_CONTAINS("5")
+}
