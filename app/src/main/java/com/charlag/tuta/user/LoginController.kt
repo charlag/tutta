@@ -41,6 +41,7 @@ class RealLoginController(
     private val sessionStore: SessionStore,
     private val appComponent: AppComponent,
     private val cryptor: Cryptor
+
 ) : LoginController {
     private var sessionData = CompletableDeferred<SessionData>()
     private var deviceKey: ByteArray? = null
@@ -127,6 +128,11 @@ class RealLoginController(
         val userId: Id
         checkNotNull(userComponent).apply {
             userId = userController().userId
+            try {
+                pushNotificationsManger().deletePushIdentifier()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to delete push identifier on logout $e")
+            }
             sessionStore.lastUser = sessionStore.loadAllCredentials()
                 .firstOrNull { it.userId != userId }?.userId
 
@@ -136,7 +142,8 @@ class RealLoginController(
                     loginFacade().deleteSession(it)
                 }
             } catch (e: ClientRequestException) {
-                Log.w("LoginC", "Error during logout", e)
+
+                Log.w(TAG, "Error during logout", e)
             }
 
             cancelSession(this)
@@ -183,5 +190,9 @@ class RealLoginController(
         this.userComponent = userComponent
         userComponent.groupKeysCache().stage1(accessToken)
         userComponent.pushNotificationsManger().register()
+    }
+
+    companion object {
+        private const val TAG = "LoginC"
     }
 }

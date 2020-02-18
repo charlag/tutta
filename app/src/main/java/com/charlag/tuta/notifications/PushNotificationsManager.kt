@@ -17,6 +17,7 @@ import com.charlag.tuta.notifications.push.PushNotificationService
 import com.charlag.tuta.notifications.push.SseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -46,8 +47,7 @@ class PushNotificationsManager @Inject constructor(
                     )
                     storeInfoLocally(user, id, sessionKey, newDeviceIdentifier)
                 } else {
-                    val pushIdentifier = api.loadAll(PushIdentifier::class, listId)
-                        .find { it.identifier == deviceIdentifier }
+                    val pushIdentifier = loadRemotePushIdentifier(listId, deviceIdentifier)
                     if (pushIdentifier == null) {
                         val (sessionKey, id) = createPushIdentifier(
                             user,
@@ -63,6 +63,24 @@ class PushNotificationsManager @Inject constructor(
                 Log.e("PushManager", "Error during register", e)
             }
         }
+    }
+
+    private suspend fun loadRemotePushIdentifier(
+        listId: Id,
+        deviceIdentifier: String
+    ): PushIdentifier? {
+        return api.loadAll(PushIdentifier::class, listId)
+            .find { it.identifier == deviceIdentifier }
+    }
+
+    suspend fun deletePushIdentifier() {
+        val user = userController.waitForLogin()
+        val listId = user.pushIdentifierList!!.list
+        val deviceIdentifier = withContext(Dispatchers.IO) {
+            sseStorage.pushIdentifier
+        } ?: return
+        val pushIdentifierId = loadRemotePushIdentifier(listId, deviceIdentifier)?._id ?: return
+        api.deleteListElementEntity(PushIdentifier::class, pushIdentifierId)
     }
 
     private fun storeInfoLocally(
