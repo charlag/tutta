@@ -84,6 +84,16 @@ kotlin {
 //                implementation("org.jetbrains.kotlin:kotlin-test-js")
 //            }
 //        }
+        val linuxMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-serialization-native:$ktor_version")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:$serialization_version")
+                api("io.ktor:ktor-client-core-native:$ktor_version")
+                api("io.ktor:ktor-client-json-native:$ktor_version")
+                api("io.ktor:ktor-client-curl:$ktor_version")
+                api("io.ktor:ktor-client-logging-native:$ktor_version")
+            }
+        }
     }
 }
 

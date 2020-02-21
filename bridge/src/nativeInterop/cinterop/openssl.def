@@ -1,0 +1,3 @@
+headers = openssl/conf.h openssl/evp.h openssl/err.h string.h openssl/rsa.h openssl/rand.h
+headerFilter = openssl/**
+linkerOpts.linux = -L/usr/lib -L/usr/lib64 -L/usr/lib/x86_64-linux-gnu -lcrypto
