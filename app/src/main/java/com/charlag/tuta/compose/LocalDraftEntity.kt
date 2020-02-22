@@ -4,7 +4,7 @@ import androidx.room.*
 import com.charlag.tuta.ConversationType
 import com.charlag.tuta.RecipientInfo
 import com.charlag.tuta.data.json
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import kotlinx.serialization.internal.ArrayListSerializer
 
 @Entity

@@ -8,44 +8,6 @@ package com.charlag.tuta.entities.sys
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.tutanota.File
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.ArrayListSerializer
-import kotlinx.serialization.internal.SerialClassDescImpl
-import kotlinx.serialization.internal.StringSerializer
-
-@Serializable
-data class IdTuple(val listId: Id, val elementId: Id) {
-    @Serializer(forClass = IdTuple::class)
-    companion object : KSerializer<IdTuple> {
-        override val descriptor: SerialDescriptor = object : SerialClassDescImpl("IdTuple") {
-            override val kind: SerialKind = StructureKind.LIST
-        }
-
-        override fun serialize(encoder: Encoder, obj: IdTuple) {
-            val listDecoder = encoder.beginCollection(
-                ArrayListSerializer(StringSerializer).descriptor,
-                2
-            )
-            listDecoder.encodeStringElement(descriptor, 0, obj.listId.asString())
-            listDecoder.encodeStringElement(descriptor, 1, obj.elementId.asString())
-            listDecoder.endStructure(descriptor)
-        }
-
-        override fun deserialize(decoder: Decoder): IdTuple {
-            val listDecoder =
-                decoder.beginStructure(ArrayListSerializer(StringSerializer).descriptor)
-            val idTuple = IdTuple(
-                GeneratedId(listDecoder.decodeStringElement(descriptor, 0)),
-                GeneratedId(listDecoder.decodeStringElement(descriptor, 1))
-            )
-            listDecoder.endStructure(descriptor)
-            return idTuple
-        }
-
-        fun fromRawValues(listId: String, elementId: String): IdTuple {
-            return IdTuple(GeneratedId(listId), GeneratedId(elementId))
-        }
-    }
-}
 
 @Serializable
 data class KeyPair(

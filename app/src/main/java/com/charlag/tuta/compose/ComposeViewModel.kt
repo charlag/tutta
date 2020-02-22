@@ -12,7 +12,7 @@ import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.MailAddressEntity
 import com.charlag.tuta.di.UserBound
 import com.charlag.tuta.entities.GeneratedId
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.ConversationEntry
 import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.files.FileHandler
@@ -309,7 +309,10 @@ class ComposeViewModel @Inject constructor(
         conversationType = ConversationType.REPLY
         val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
         previousMessageId = conversationEntry.messageId
-        previousMail = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
+        previousMail = IdTuple(
+            GeneratedId(mail.listId),
+            GeneratedId(mail.id)
+        )
         loadExternalContent = replyInitData.loadExternalContent
 
         val body = mailRepository.getMailBody(mail.body)
@@ -350,7 +353,10 @@ class ComposeViewModel @Inject constructor(
         conversationType = ConversationType.FORWARD
         val conversationEntry = api.loadListElementEntity<ConversationEntry>(mail.conversationEntry)
         previousMessageId = conversationEntry.messageId
-        previousMail = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
+        previousMail = IdTuple(
+            GeneratedId(mail.listId),
+            GeneratedId(mail.id)
+        )
         loadExternalContent = forwardInitData.loadExternalContent
 
         val body = mailRepository.getMailBody(mail.body)
@@ -375,7 +381,10 @@ class ComposeViewModel @Inject constructor(
                 draftInitData.draftId
             )
         ) ?: error("Could not load mail for draft $draftInitData")
-        this.draftId = IdTuple(GeneratedId(mail.listId), GeneratedId(mail.id))
+        this.draftId = IdTuple(
+            GeneratedId(mail.listId),
+            GeneratedId(mail.id)
+        )
         viewModelScope.launch {
             val loaded = mail.attachments.mapNotNull {
                 try {

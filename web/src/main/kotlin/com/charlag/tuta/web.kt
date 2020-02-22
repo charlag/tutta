@@ -2,6 +2,7 @@ package com.charlag.tuta.web
 
 import com.charlag.tuta.*
 import com.charlag.tuta.network.*
+import com.charlag.tuta.network.mapping.InstanceMapper
 import io.ktor.client.features.logging.LogLevel
 import io.ktor.client.features.logging.Logger
 import io.ktor.client.features.logging.Logging
@@ -16,8 +17,6 @@ fun main(args: Array<String>) {
     GlobalScope.launch {
         try {
             val sessionData = withContext(Dispatchers.Default) {
-
-
                 val httpClient = makeHttpClient {
                     this.install(Logging) {
                         logger = object : Logger {
@@ -30,11 +29,16 @@ fun main(args: Array<String>) {
                 }
                 val cryptor = Cryptor()
                 val groupKeysCache =
-                    UserGroupKeysCache(cryptor)
+                    UserSessionDataProvider(cryptor)
                 val url =
                     if (platformName() == "JS") "http://localhost:9000/rest" else "https://mail.tutanota.com/rest/"
                 val compressor = Compressor()
-                val instanceMapper = InstanceMapper(cryptor, compressor, typemodelMap)
+                val instanceMapper =
+                    InstanceMapper(
+                        cryptor,
+                        compressor,
+                        typemodelMap
+                    )
                 val keyResolver = SessionKeyResolver(cryptor, groupKeysCache)
                 val api = API(
                     httpClient, url, cryptor,

@@ -12,7 +12,7 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.PushIdentifier
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.network.API
-import com.charlag.tuta.network.GroupKeysCache
+import com.charlag.tuta.network.SessionDataProvider
 import com.charlag.tuta.notifications.push.PushNotificationService
 import com.charlag.tuta.notifications.push.SseStorage
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +27,7 @@ class PushNotificationsManager @Inject constructor(
     @UserBound private val api: API,
     private val cryptor: Cryptor,
     private val userController: UserController,
-    @UserBound private val groupKeysCache: GroupKeysCache,
+    @UserBound private val sessionDataProvider: SessionDataProvider,
     @SSEPath private val ssePath: String
 ) {
     fun register() {
@@ -104,7 +104,7 @@ class PushNotificationsManager @Inject constructor(
     ): Pair<ByteArray, Id> {
         val sessionKey = cryptor.aes128RandomKey()
         val userGroupKey =
-            groupKeysCache.getGroupKey(user.userGroup.group.asString())
+            sessionDataProvider.getGroupKey(user.userGroup.group.asString())
         val pushIdentifierTemplate = PushIdentifier(
             _owner = userController.getUserGroupInfo().group,
             _ownerGroup = userController.getUserGroupInfo().group,

@@ -19,7 +19,7 @@ import com.charlag.tuta.data.MailFolderEntity
 import com.charlag.tuta.data.MailFolderWithCounter
 import com.charlag.tuta.di.ViewModelFactory
 import com.charlag.tuta.entities.GeneratedId
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.mail.MailListFragment
 import com.charlag.tuta.mail.MailViewModel
 import com.charlag.tuta.settings.SettingsActivity

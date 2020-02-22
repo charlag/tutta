@@ -1,10 +1,10 @@
 package com.charlag.tuta
 
 import com.charlag.tuta.entities.Id
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.network.API
-import com.charlag.tuta.network.GroupKeysCache
 import com.charlag.tuta.network.SessionKeyResolver
 import io.ktor.client.features.ClientRequestException
 import io.ktor.http.HttpMethod
@@ -52,10 +52,10 @@ class MailFacade(
         replyTos: List<RecipientInfo>
     ): Mail {
         val mailGroupId = getMailGroupIdForMailAddress(user, senderAddress).asString()
-        val userGroupKey = api.groupKeysCache.getGroupKey(user.userGroup.group.asString())
+        val userGroupKey = api.sessionDataProvider.getGroupKey(user.userGroup.group.asString())
             ?: error("Could not get user group key")
         val mailGroupKey =
-            api.groupKeysCache.getGroupKey(mailGroupId) ?: error("Could not get mail group key")
+            api.sessionDataProvider.getGroupKey(mailGroupId) ?: error("Could not get mail group key")
 
 
         // For now we assume that all files are new
@@ -115,7 +115,7 @@ class MailFacade(
     ): Mail {
         val mailGroupId = getMailGroupIdForMailAddress(user, senderAddress)
         val mailGroupKey =
-            api.groupKeysCache.getGroupKey(mailGroupId.asString())
+            api.sessionDataProvider.getGroupKey(mailGroupId.asString())
                 ?: error("Could not get mail group key")
         val sessionKey = cryptor.decryptKey(draft._ownerEncSessionKey!!, mailGroupKey)
 

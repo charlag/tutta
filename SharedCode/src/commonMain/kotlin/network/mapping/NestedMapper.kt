@@ -1,12 +1,15 @@
-package com.charlag.tuta
+package com.charlag.tuta.network.mapping
 
 import com.charlag.tuta.entities.ByteArraySerializer
 import kotlinx.serialization.*
 import kotlinx.serialization.modules.EmptyModule
 import kotlinx.serialization.modules.SerialModule
 
-
-class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(context) {
+/**
+ * This class maps is a "serial format" in a two-pass serialization mechanism. It serializes things
+ * into maps and lists
+ */
+internal class NestedMapper(context: SerialModule = EmptyModule) : AbstractSerialFormat(context) {
 
     fun <T : Any?> map(serializer: SerializationStrategy<T>, value: T): Map<String, Any?> {
         lateinit var result: Map<String, Any?>

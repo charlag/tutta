@@ -1,4 +1,4 @@
-import com.charlag.tuta.NestedMapper
+import com.charlag.tuta.network.mapping.NestedMapper
 import com.charlag.tuta.entities.ByteArraySerializer
 import com.charlag.tuta.entities.Entity
 import kotlinx.serialization.Serializable

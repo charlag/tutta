@@ -18,6 +18,7 @@ import com.charlag.tuta.mail.InboxRuleHandler
 import com.charlag.tuta.mail.MailModule
 import com.charlag.tuta.mail.RealInboxRuleHandler
 import com.charlag.tuta.network.*
+import com.charlag.tuta.network.mapping.InstanceMapper
 import com.charlag.tuta.notifications.PushNotificationsManager
 import com.charlag.tuta.settings.SettingsModule
 import dagger.Module
@@ -44,7 +45,7 @@ class UserModule(
         httpClient: HttpClient,
         cryptor: Cryptor,
         instanceMapper: InstanceMapper,
-        @UserBound groupKeysCache: GroupKeysCache,
+        @UserBound sessionDataProvider: SessionDataProvider,
         @UserBound keyResolver: SessionKeyResolver,
         @RestPath restPath: String,
         @WsPath wsPath: String
@@ -54,7 +55,7 @@ class UserModule(
             restPath,
             cryptor,
             instanceMapper,
-            groupKeysCache,
+            sessionDataProvider,
             keyResolver,
             wsPath
         )
@@ -67,8 +68,8 @@ class UserModule(
     @Provides
     @UserBound
     @UserScoped
-    fun providesUserGroupKeysCache(cryptor: Cryptor): GroupKeysCache =
-        UserGroupKeysCache(cryptor)
+    fun providesUserGroupKeysCache(cryptor: Cryptor): SessionDataProvider =
+        UserSessionDataProvider(cryptor)
 
     @Provides
     @UserScoped
@@ -92,9 +93,9 @@ class UserModule(
     @UserBound
     @UserScoped
     fun sessionKeyResolver(
-        cryptor: Cryptor, @UserBound groupKeysCache: GroupKeysCache
+        cryptor: Cryptor, @UserBound sessionDataProvider: SessionDataProvider
     ): SessionKeyResolver =
-        SessionKeyResolver(cryptor, groupKeysCache)
+        SessionKeyResolver(cryptor, sessionDataProvider)
 
 
     @Provides
@@ -158,7 +159,7 @@ interface UserComponent {
 
     @UserBound
     @UserScoped
-    fun groupKeysCache(): GroupKeysCache
+    fun groupKeysCache(): SessionDataProvider
 
     @UserScoped
     fun pushNotificationsManger(): PushNotificationsManager

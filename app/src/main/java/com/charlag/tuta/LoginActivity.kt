@@ -12,7 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.login.AuthResult
 import com.charlag.tuta.login.Authenticator
 import com.charlag.tuta.user.Credentials

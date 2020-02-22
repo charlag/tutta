@@ -6,7 +6,7 @@ import com.charlag.tuta.RecipientType
 import com.charlag.tuta.base64ToBytes
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.toBase64
 import kotlinx.serialization.internal.*
@@ -265,7 +265,10 @@ fun Contact.toEntity() = ContactEntity(
 )
 
 fun ContactEntity.toContact() = Contact(
-    _id = IdTuple(GeneratedId(listId), GeneratedId(id)),
+    _id = IdTuple(
+        GeneratedId(listId),
+        GeneratedId(id)
+    ),
     _owner = _owner,
     _ownerEncSessionKey = _ownerEncSessionKey,
     _ownerGroup = _ownerGroup,

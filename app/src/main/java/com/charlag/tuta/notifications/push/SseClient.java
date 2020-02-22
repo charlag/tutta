@@ -4,7 +4,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.charlag.tuta.ConverterKt;
 import com.charlag.tuta.Cryptor;
 import com.charlag.tuta.notifications.NetworkUtils;
 import com.charlag.tuta.notifications.NotificationUtil;
@@ -26,6 +25,8 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.charlag.tuta.ConverterKt.base64ToBase64Url;
 
 public class SseClient {
     private static final String TAG = "SSE";
@@ -200,7 +201,7 @@ public class SseClient {
 
     private String generateId() {
         byte[] bytes = crypto.generateRandomData(4);
-        return ConverterKt.base64ToBase64Url(NotificationUtil.bytesToBase64(bytes));
+        return base64ToBase64Url(NotificationUtil.bytesToBase64(bytes));
     }
 
     @NonNull

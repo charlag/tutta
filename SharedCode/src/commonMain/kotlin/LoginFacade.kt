@@ -3,6 +3,7 @@ package com.charlag.tuta
 import com.charlag.tuta.entities.GENERATED_ID_BYTES_LENGTH
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.network.API
 import io.ktor.client.features.ClientRequestException
@@ -28,7 +29,7 @@ class LoginFacade(
     private val api: API
 ) {
     private suspend fun createAuthVerifier(cryptor: Cryptor, passwordKey: ByteArray): ByteArray =
-        cryptor.hash(passwordKey)
+        cryptor.sha256hash(passwordKey)
 
     private suspend fun createAuthVerifierAsBase64Url(
         cryptor: Cryptor,
@@ -116,7 +117,7 @@ class LoginFacade(
             .let(::GeneratedId)
 
         val elementId = byteAccessToken.copyOfRange(GENERATED_ID_BYTES_LENGTH, byteAccessToken.size)
-            .let { cryptor.hash(it) }
+            .let { cryptor.sha256hash(it) }
             .toBase64()
             .let(::base64ToBase64Url)
             .let(::GeneratedId)
@@ -128,10 +129,5 @@ class LoginFacade(
             "sys", "saltservice", HttpMethod.Get, SaltData(mailAddress),
             SaltReturn::class
         )
-    }
-
-    private enum class SecondFactorType(val raw: Long) {
-        U2F(0),
-        TOTP(1)
     }
 }

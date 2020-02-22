@@ -7,7 +7,7 @@ package com.charlag.tuta.entities.tutanota
 
 
 import com.charlag.tuta.entities.*
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 

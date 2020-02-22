@@ -7,7 +7,7 @@ import com.charlag.tuta.data.ContactEntity
 import com.charlag.tuta.data.toEntity
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.Contact
 import com.charlag.tuta.entities.tutanota.ContactList
 import com.charlag.tuta.network.API
@@ -32,7 +32,12 @@ class ContactsRepository(
 
     private suspend fun loadContact(id: String): ContactEntity? {
         return kotlin.runCatching {
-            api.loadListElementEntity<Contact>(IdTuple(contactListId(), GeneratedId(id)))
+            api.loadListElementEntity<Contact>(
+                IdTuple(
+                    contactListId(),
+                    GeneratedId(id)
+                )
+            )
         }.getOrElse { e ->
             if (e is ClientRequestException && e.response.status == HttpStatusCode.NotFound
                 || e is IOException

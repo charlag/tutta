@@ -13,7 +13,7 @@ import com.charlag.tuta.data.MailFolderWithCounter
 import com.charlag.tuta.entities.GENERATED_MAX_ID
 import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.files.FileHandler
 import com.charlag.tuta.util.LocalAccountData
@@ -113,7 +113,11 @@ class MailViewModel
     private suspend fun markReadUnread(ids: List<String>, unread: Boolean) {
         val folder = selectedFolder.value ?: return
         for (id in ids) {
-            mailRepository.markReadUnread(IdTuple(folder.mails, GeneratedId(id)), unread)
+            mailRepository.markReadUnread(
+                IdTuple(
+                    folder.mails,
+                    GeneratedId(id)
+                ), unread)
         }
     }
 
@@ -125,7 +129,12 @@ class MailViewModel
             val folderId = IdTuple.fromRawValues(selectedFolder.listId, selectedFolder.id)
             mailRepository.deleteMails(
                 folderId,
-                ids.map { IdTuple(selectedFolder.mails, GeneratedId(it)) })
+                ids.map {
+                    IdTuple(
+                        selectedFolder.mails,
+                        GeneratedId(it)
+                    )
+                })
         } else {
             Log.w(TAG, "Trying to permanently delete mails in non-trash folder $selectedFolder")
         }
@@ -148,7 +157,12 @@ class MailViewModel
     suspend fun moveMails(ids: List<String>, targetFolder: MailFolderEntity) {
         val currentMailList = selectedFolder.value!!.mails
         mailRepository.moveMails(
-            ids.map { id -> IdTuple(currentMailList, GeneratedId(id)) },
+            ids.map { id ->
+                IdTuple(
+                    currentMailList,
+                    GeneratedId(id)
+                )
+            },
             IdTuple(
                 GeneratedId(targetFolder.listId),
                 GeneratedId(targetFolder.id)

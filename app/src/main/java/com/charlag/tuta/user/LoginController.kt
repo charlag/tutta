@@ -4,7 +4,7 @@ import android.util.Log
 import com.charlag.tuta.*
 import com.charlag.tuta.di.AppComponent
 import com.charlag.tuta.entities.Id
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.sys.User
 import io.ktor.client.features.ClientRequestException
 import kotlinx.coroutines.*
@@ -97,7 +97,7 @@ class RealLoginController(
         encPassphrase: ByteArray,
         deviceKey: ByteArray
     ) {
-        val passphrase = bytesToString(cryptor.decrypt(encPassphrase, deviceKey, true).data)
+        val passphrase = bytesToString(cryptor.aesDecrypt(encPassphrase, deviceKey, true).data)
         // This is back-and-forth because we need to load user using authenticated API so we create
         // the component here first to get such an API
         val userComponent = makeUserComponent(userId, passphrase)
@@ -181,14 +181,14 @@ class RealLoginController(
 
     private fun initSession(sessionData: SessionData, userComponent: UserComponent) {
         // important: first add key, then notify about loggin in
-        userComponent.groupKeysCache().stage2(sessionData)
+        userComponent.groupKeysCache().setSessionData(sessionData)
         this.sessionData.complete(sessionData)
         userComponent.entityEventListener().start()
     }
 
     private fun init(userComponent: UserComponent, accessToken: String) {
         this.userComponent = userComponent
-        userComponent.groupKeysCache().stage1(accessToken)
+        userComponent.groupKeysCache().setAccessToken(accessToken)
         userComponent.pushNotificationsManger().register()
     }
 

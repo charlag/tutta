@@ -1,7 +1,7 @@
 package com.charlag.tuta.util
 
 import android.os.Parcelable
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import kotlinx.android.parcel.Parcelize
 
 /**

@@ -11,7 +11,7 @@ val subtleCrypto = window.crypto.subtle
 
 actual class Cryptor {
     @UseExperimental(ExperimentalUnsignedTypes::class)
-    suspend actual fun encrypt(
+    suspend actual fun aesEncrypt(
         value: ByteArray,
         iv: ByteArray,
         key: ByteArray,
@@ -28,7 +28,7 @@ actual class Cryptor {
             .toByteArray()
     }
 
-    suspend actual fun decrypt(
+    suspend actual fun aesDecrypt(
         value: ByteArray,
         key: ByteArray,
         usePadding: Boolean
@@ -51,7 +51,7 @@ actual class Cryptor {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    actual suspend fun hash(bytes: ByteArray): ByteArray {
+    actual suspend fun sha256hash(bytes: ByteArray): ByteArray {
         return subtleCrypto.digest("SHA-256", bytes.asInt8Array()).await().toByteArray()
     }
 

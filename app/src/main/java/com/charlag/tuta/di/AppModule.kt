@@ -6,6 +6,7 @@ import com.charlag.tuta.*
 import com.charlag.tuta.login.Authenticator
 import com.charlag.tuta.login.RealAuthenticator
 import com.charlag.tuta.network.*
+import com.charlag.tuta.network.mapping.InstanceMapper
 import com.charlag.tuta.notifications.AndroidKeyStoreFacade
 import com.charlag.tuta.notifications.data.NotificationDatabase
 import com.charlag.tuta.user.LoginController
@@ -64,7 +65,11 @@ internal object AppModule {
     @Provides
     @Singleton
     fun instanceMapper(cryptor: Cryptor, compressor: Compressor): InstanceMapper {
-        return InstanceMapper(cryptor, compressor, typemodelMap)
+        return InstanceMapper(
+            cryptor,
+            compressor,
+            typemodelMap
+        )
     }
 
     @Provides
@@ -79,14 +84,14 @@ internal object AppModule {
         cryptor: Cryptor,
         instanceMapper: InstanceMapper,
         @NonAuthenticated keyResolver: SessionKeyResolver,
-        @NonAuthenticated groupKeysCache: GroupKeysCache
+        @NonAuthenticated sessionDataProvider: SessionDataProvider
     ): API =
         API(
             httpClient,
             REST_PATH,
             cryptor,
             instanceMapper,
-            groupKeysCache,
+            sessionDataProvider,
             keyResolver,
             WS_PATH
         )
@@ -117,14 +122,14 @@ internal object AppModule {
     @NonAuthenticated
     fun sessionKeyResolver(
         cryptor: Cryptor,
-        @NonAuthenticated groupKeysCache: GroupKeysCache
+        @NonAuthenticated sessionDataProvider: SessionDataProvider
     ): SessionKeyResolver =
-        SessionKeyResolver(cryptor, groupKeysCache)
+        SessionKeyResolver(cryptor, sessionDataProvider)
 
     @Provides
     @Singleton
     @NonAuthenticated
-    fun groupKeysCache(cryptor: Cryptor): GroupKeysCache = UserGroupKeysCache(cryptor)
+    fun groupKeysCache(cryptor: Cryptor): SessionDataProvider = UserSessionDataProvider(cryptor)
 
     @Provides
     @Singleton

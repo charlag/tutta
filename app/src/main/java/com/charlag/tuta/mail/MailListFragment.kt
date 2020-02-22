@@ -20,7 +20,7 @@ import com.charlag.tuta.MainActivity
 import com.charlag.tuta.R
 import com.charlag.tuta.compose.ComposeActivity
 import com.charlag.tuta.compose.DraftInitData
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.getFolderName
 import com.charlag.tuta.util.setIconTintListCompat
 import com.charlag.tuta.util.withLifecycleContext

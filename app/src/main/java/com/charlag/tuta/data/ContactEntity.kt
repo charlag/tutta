@@ -2,7 +2,7 @@ package com.charlag.tuta.data
 
 import androidx.room.*
 import com.charlag.tuta.entities.Id
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.*
 import kotlinx.serialization.internal.ArrayListSerializer
 import java.util.*

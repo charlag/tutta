@@ -3,7 +3,7 @@ package com.charlag.tuta.network
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.BucketPermission
 import com.charlag.tuta.entities.sys.Group
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.sys.Permission
 
 interface SessionKeyLoader {

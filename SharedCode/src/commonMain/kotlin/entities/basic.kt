@@ -1,6 +1,5 @@
 package com.charlag.tuta.entities
 
-import com.charlag.tuta.entities.sys.IdTuple
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.*
 

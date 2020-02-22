@@ -97,3 +97,15 @@ enum class InboxRuleType(val raw: String) {
     SUBJECT_CONTAINS("4"),
     MAIL_HEADER_CONTAINS("5")
 }
+
+enum class ContactAddressType(val raw: Long) {
+    PRIVATE(0),
+    WORK(1),
+    OTHER(2),
+    CUSTOM(3);
+}
+
+enum class SecondFactorType(val raw: Long) {
+    U2F(0),
+    TOTP(1)
+}

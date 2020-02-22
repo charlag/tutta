@@ -10,7 +10,6 @@ import com.charlag.tuta.GroupType
 import com.charlag.tuta.UserController
 import com.charlag.tuta.contacts.ContactsRepository
 import com.charlag.tuta.data.AppDatabase
-import com.charlag.tuta.data.MailFolderCounterEntity
 import com.charlag.tuta.data.toEntity
 import com.charlag.tuta.di.UserBound
 import com.charlag.tuta.entities.*

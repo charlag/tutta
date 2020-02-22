@@ -10,7 +10,7 @@ import kotlinx.serialization.json.contentOrNull
 
 class SessionKeyResolver(
     private val cryptor: Cryptor,
-    private val groupKeysCache: GroupKeysCache
+    private val sessionDataProvider: SessionDataProvider
 ) {
 
     suspend fun resolveSessionKey(
@@ -21,7 +21,7 @@ class SessionKeyResolver(
         loader: SessionKeyLoader
     ): ByteArray? {
         if (!typeModel.encrypted) return null
-        val groupKey = ownerGroup?.let { groupKeysCache.getGroupKey(ownerGroup) }
+        val groupKey = ownerGroup?.let { sessionDataProvider.getGroupKey(ownerGroup) }
         if (ownerEncSessionKey != null && groupKey != null) {
             try {
                 return cryptor.decryptKey(ownerEncSessionKey, groupKey)
@@ -37,10 +37,10 @@ class SessionKeyResolver(
             (p.type == PermissionType.PublicSymemtric.value ||
                     p.type == PermissionType.Symmetric.value) &&
                     p._ownerGroup != null &&
-                    groupKeysCache.getGroupKey(p._ownerGroup.asString()) != null
+                    sessionDataProvider.getGroupKey(p._ownerGroup.asString()) != null
         }
         if (symmetricPermission != null) {
-            val gk = groupKeysCache.getGroupKey(symmetricPermission._ownerGroup!!.asString())
+            val gk = sessionDataProvider.getGroupKey(symmetricPermission._ownerGroup!!.asString())
             return cryptor.decryptKey(symmetricPermission._ownerEncSessionKey!!, gk!!)
         }
         val publicPermission =
@@ -66,14 +66,14 @@ class SessionKeyResolver(
             val group = loader.loadGroup(bucketPermission.group)
             val keypair = group.keys[0]
             // decrypt RSA keys
-            val bucketPermissionGroupKey = groupKeysCache.getGroupKey(group._id.asString())
+            val bucketPermissionGroupKey = sessionDataProvider.getGroupKey(group._id.asString())
                 ?: error("No key for ${group._id} ")
 
             val privKey = cryptor.decryptRsaKey(keypair.symEncPrivKey, bucketPermissionGroupKey)
             val bucketKey = cryptor.rsaDecrypt(bucketPermission.pubEncBucketKey, privKey)
             val sessionKey = cryptor.decryptKey(publicPermission.bucketEncSessionKey, bucketKey)
             val bucketPermissionOwnerGroupKey =
-                groupKeysCache.getGroupKey(bucketPermission._ownerGroup!!.asString())
+                sessionDataProvider.getGroupKey(bucketPermission._ownerGroup!!.asString())
                     ?: error(
                         "Could not get bucketPermissionOwnerGroupKey for group " +
                                 bucketPermission._ownerGroup

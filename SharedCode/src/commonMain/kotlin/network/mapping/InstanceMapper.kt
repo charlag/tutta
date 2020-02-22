@@ -1,38 +1,50 @@
-package com.charlag.tuta.network
+package com.charlag.tuta.network.mapping
 
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.*
 import kotlinx.serialization.json.*
 import kotlin.reflect.KClass
 
+/**
+ * This class provides transformations for communication with the API. This includes:
+ *  - walking type model
+ *  - transforming fields into their Json (string) form
+ *  - encryption
+ *  - compression
+ *  - assigning default values
+ *
+ * We use maps for transformations because Json cannot represent binary data and we need
+ * that quite often. Transformation JSON->JSON would require encoding/decoding binary fields as
+ * Base64 multiple times.
+ *
+ * Each entity (Instances, Aggregates, DataTransfterTypes) has description of it's structure -
+ * [TypeModel].
+ */
 class InstanceMapper(
     private val cryptor: Cryptor,
     private val compressor: Compressor,
     private val typeModelByName: Map<String, TypeInfo<*>>
 ) {
+    /**
+     * Does transformation map -> json
+     */
     suspend fun encryptAndMapToLiteral(
         map: Map<String, Any?>,
         typeModel: TypeModel,
         sessionKey: ByteArray?
     ): JsonObject {
         val encrypted = mutableMapOf<String, JsonElement>()
-        @Suppress("UNCHECKED_CAST")
-        val finalIvs = map["finalIvs"] as Map<String, ByteArray?>?
         for ((fieldName, valueModel) in typeModel.values) {
             encrypted[fieldName] =
                 if (typeModel.type == MetamodelType.AGGREGATED_TYPE &&
-                    fieldName == "_id" &&
+                    fieldName == ID_FIELD_NAME &&
                     map[fieldName] == null
                 ) {
-                    // We must give aggregates IDs
-                    JsonLiteral(
-                        base64ToBase64Url(
-                            cryptor.generateRandomData(
-                                4
-                            ).toBase64()
-                        )
-                    )
-                } else if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
+                    // We must give aggregates an IDs
+                    JsonLiteral(generateAggregateId())
+                } else if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE
+                    && fieldName == ID_FIELD_NAME
+                ) {
                     val idFieldValue = map[fieldName]
                     if (idFieldValue != null) {
                         @Suppress("UNCHECKED_CAST")
@@ -41,8 +53,10 @@ class InstanceMapper(
                         JsonNull
                     }
                 } else {
-                    // If we update entity, we must get the same final fields. So we useIVs for
+                    // If we update entity, we must get the same final fields. So we use IVs for
                     // that.
+                    @Suppress("UNCHECKED_CAST")
+                    val finalIvs = map["finalIvs"] as Map<String, ByteArray?>?
                     val iv = if (valueModel.final) finalIvs?.get(fieldName) else null
                     encryptValue(fieldName, valueModel, map[fieldName], sessionKey, iv)
                 }
@@ -53,7 +67,7 @@ class InstanceMapper(
                 if (assocModel.cardinality == Cardinality.ZeroOrOne) JsonNull
                 else error("No association $fieldName")
             } else {
-                val refTypeModel = typeModelByName[assocModel.refType]!!.typemodel
+                val refTypeModel = typeModelByName.getValue(assocModel.refType).typemodel
                 @Suppress("UNCHECKED_CAST")
                 when (assocModel.type) {
                     AssociationType.AGGREGATION -> when (assocModel.cardinality) {
@@ -86,6 +100,9 @@ class InstanceMapper(
         return JsonObject(encrypted)
     }
 
+    /**
+     * Does transformation json -> map
+     */
     suspend fun decryptAndMapToMap(
         map: JsonObject,
         typeModel: TypeModel,
@@ -97,7 +114,9 @@ class InstanceMapper(
             val fieldValue = map[fieldName]!!
             decrypted[fieldName] =
                     // Kind of a hack because model only defines type of the element id
-                if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE && fieldName == "_id") {
+                if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE
+                    && fieldName == ID_FIELD_NAME
+                ) {
                     listOf(fieldValue.jsonArray[0].content, fieldValue.jsonArray[1].content)
                 } else {
                     decryptValue(fieldName, valueModel, fieldValue, sessionKey, finalIvs)
@@ -107,7 +126,11 @@ class InstanceMapper(
         for ((fieldName, assocModel) in typeModel.associations) {
             val value = map[fieldName]
             decrypted[fieldName] = if (value == null) {
-                if (assocModel.cardinality == Cardinality.ZeroOrOne) null else error("No association $fieldName")
+                if (assocModel.cardinality == Cardinality.ZeroOrOne) {
+                    null
+                } else {
+                    error("No association $fieldName")
+                }
             } else {
                 @Suppress("UNCHECKED_CAST")
                 when (assocModel.type) {
@@ -131,11 +154,12 @@ class InstanceMapper(
                             )
                         }
                     }
-                    AssociationType.ELEMENT_ASSOCIATION, AssociationType.LIST_ASSOCIATION -> when (assocModel.cardinality) {
+                    AssociationType.ELEMENT_ASSOCIATION,
+                    AssociationType.LIST_ASSOCIATION -> when (assocModel.cardinality) {
                         Cardinality.One -> value.contentOrNull
                             ?: error("association $fieldName is null even though it's cardinality One")
                         Cardinality.ZeroOrOne -> value.contentOrNull
-                        Cardinality.Any -> error("Cannot have ANY element assciation")
+                        Cardinality.Any -> error("Cannot have ANY element association")
                     }
                     AssociationType.LIST_ELEMENT_ASSOCIATION -> when (assocModel.cardinality) {
                         Cardinality.One -> value.asIdTuple()
@@ -158,7 +182,7 @@ class InstanceMapper(
         return listOf(jsonArray[0].content, jsonArray[1].content)
     }
 
-    suspend fun encryptValue(
+    private suspend fun encryptValue(
         name: String,
         valueModel: Value,
         value: Any?,
@@ -166,7 +190,7 @@ class InstanceMapper(
         iv: ByteArray?
     ): JsonPrimitive {
         if (value == null) {
-            if (name == "_id"
+            if (name == ID_FIELD_NAME
                 || name == "_permissions"
                 || valueModel.cardinality == Cardinality.ZeroOrOne
             ) {
@@ -182,7 +206,7 @@ class InstanceMapper(
             val bytes = if (valueModel.type === ValueType.BytesType) value as ByteArray
             else valueToString(value, valueModel).toBytes()
             return JsonLiteral(
-                cryptor.encrypt(
+                cryptor.aesEncrypt(
                     bytes,
                     iv ?: cryptor.generateIV(),
                     sessionKey!!,
@@ -195,7 +219,7 @@ class InstanceMapper(
         }
     }
 
-    suspend fun decryptValue(
+    private suspend fun decryptValue(
         name: String,
         valueModel: Value,
         encryptedValue: JsonElement,
@@ -209,8 +233,7 @@ class InstanceMapper(
                 error("Value $name is null")
             }
         } else if (valueModel.encrypted) {
-            val bytes =
-                base64ToBytes(encryptedValue.primitive.content)
+            val bytes = base64ToBytes(encryptedValue.primitive.content)
 
             val decryptedBytes =
                 if (bytes.isEmpty()) {
@@ -220,7 +243,7 @@ class InstanceMapper(
                     }
                     bytes
                 } else {
-                    val decryptResult = cryptor.decrypt(bytes, sessionKey!!, true)
+                    val decryptResult = cryptor.aesDecrypt(bytes, sessionKey!!, true)
                     if (valueModel.final) {
                         finalIvs[name] = decryptResult.iv
                     }
@@ -230,10 +253,7 @@ class InstanceMapper(
             when (valueModel.type) {
                 ValueType.BytesType -> decryptedBytes
                 ValueType.CompressedStringType -> compressor.decompressString(decryptedBytes)
-                else -> valueFromString(
-                    bytesToString(
-                        decryptedBytes
-                    ), valueModel)
+                else -> valueFromString(bytesToString(decryptedBytes), valueModel)
             }
         } else {
             valueFromString(encryptedValue.primitive.content, valueModel)
@@ -291,5 +311,13 @@ class InstanceMapper(
     private fun getTypeModelForName(name: String): TypeModel {
         val typeInfo = typeModelByName[name] ?: error("No type info for $name")
         return typeInfo.typemodel
+    }
+
+    private fun generateAggregateId(): String {
+        return base64ToBase64Url(cryptor.generateRandomData(4).toBase64())
+    }
+
+    companion object {
+        private const val ID_FIELD_NAME = "_id"
     }
 }

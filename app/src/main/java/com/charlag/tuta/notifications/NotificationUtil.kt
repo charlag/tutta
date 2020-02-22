@@ -25,7 +25,7 @@ internal fun base64ToBytes(base64: String) = com.charlag.tuta.base64ToBytes(base
 @Throws(CryptoException::class)
 internal fun decrypt(cryptor: Cryptor, value: ByteArray, key: ByteArray) =
     runBlocking {
-        cryptor.decrypt(value, key, true)
+        cryptor.aesDecrypt(value, key, true)
     }
 
 @Throws(CryptoException::class)

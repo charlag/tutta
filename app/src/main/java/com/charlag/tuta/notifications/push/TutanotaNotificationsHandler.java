@@ -5,7 +5,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.charlag.tuta.ConverterKt;
+import com.charlag.tuta.ConverterExpectsKt;
 import com.charlag.tuta.notifications.NetworkUtils;
 import com.charlag.tuta.notifications.NotificationUtil;
 import com.charlag.tuta.notifications.alarms.AlarmNotification;
@@ -25,6 +25,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static com.charlag.tuta.ConverterKt.base64ToBase64Url;
 
 
 public class TutanotaNotificationsHandler {
@@ -140,7 +142,7 @@ public class TutanotaNotificationsHandler {
     }
 
     private URL makeAlarmNotificationUrl(SseInfo sseInfo) throws MalformedURLException {
-        String customId = ConverterKt.base64ToBase64Url(NotificationUtil.bytesToBase64(
+        String customId = base64ToBase64Url(NotificationUtil.bytesToBase64(
                 sseInfo.getPushIdentifier().getBytes(StandardCharsets.UTF_8)));
         return new URL(sseInfo.getSseOrigin() + "rest/sys/missednotification/" + customId);
     }

@@ -17,7 +17,7 @@ import javax.crypto.spec.SecretKeySpec
 
 
 actual class Cryptor {
-    actual suspend fun encrypt(
+    actual suspend fun aesEncrypt(
         value: ByteArray,
         iv: ByteArray,
         key: ByteArray,
@@ -59,7 +59,7 @@ actual class Cryptor {
         return Cipher.getInstance(mode)
     }
 
-    actual suspend fun decrypt(
+    actual suspend fun aesDecrypt(
         value: ByteArray,
         key: ByteArray,
         usePadding: Boolean
@@ -108,7 +108,7 @@ actual class Cryptor {
     }
 
     actual suspend fun decryptRsaKey(value: ByteArray, key: ByteArray): PrivateKey {
-        return hexToPrivateKey(bytesToHex(decrypt(value, key, true).data))
+        return hexToPrivateKey(bytesToHex(aesDecrypt(value, key, true).data))
     }
 
     actual suspend fun rsaEncrypt(value: ByteArray, publicKey: PublicKey): ByteArray {
@@ -221,7 +221,7 @@ actual class Cryptor {
         private val RSA_PUBLIC_EXPONENT = BigInteger.valueOf(65537)
     }
 
-    actual suspend fun hash(bytes: ByteArray): ByteArray {
+    actual suspend fun sha256hash(bytes: ByteArray): ByteArray {
         return MessageDigest.getInstance("SHA-256").digest(bytes)
     }
 

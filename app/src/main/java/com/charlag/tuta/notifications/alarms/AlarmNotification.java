@@ -10,7 +10,7 @@ import androidx.room.TypeConverters;
 import com.charlag.tuta.CryptoException;
 import com.charlag.tuta.Cryptor;
 import com.charlag.tuta.entities.GeneratedId;
-import com.charlag.tuta.entities.sys.IdTuple;
+import com.charlag.tuta.entities.IdTuple;
 import com.charlag.tuta.notifications.NotificationUtil;
 import com.charlag.tuta.notifications.OperationType;
 

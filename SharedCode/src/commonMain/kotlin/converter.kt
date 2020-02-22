@@ -1,14 +1,5 @@
 package com.charlag.tuta
 
-
-expect fun base64ToBytes(base64: String): ByteArray
-expect fun ByteArray.toBase64(): String
-
-expect fun bytesToString(bytes: ByteArray): String
-expect fun String.toBytes(): ByteArray
-
-expect fun hexToPublicKey(hex: String): PublicKey
-
 fun base64ToBase64Url(base64: String): String =
     base64.replace('+', '-').replace('/', '_').replace("=", "")
 
@@ -35,6 +26,38 @@ fun bytesToHex(bytes: ByteArray): String {
         hexChars[j * 2 + 1] = hexArray[v and 0x0F]
     }
     return String(hexChars)
+}
+
+
+// Might replace with Okio later
+fun hexToBase64(hex: String): String = hexToBytes(hex).toBase64()
+
+// Might replace with Okio later
+fun hexToBytes(s: String): ByteArray {
+    val len = s.length
+    val data = ByteArray(len / 2)
+    var i = 0
+    while (i < len) {
+        val digit1 = charToHexDigit(s[i])
+        val digit2 = charToHexDigit(s[i + 1])
+        data[i / 2] = (digit1 * 16 + digit2).toByte()
+        i += 2
+    }
+    return data
+}
+
+// From ktor
+private fun charToHexDigit(c2: Char) = when (c2) {
+    in '0'..'9' -> c2 - '0'
+    in 'A'..'F' -> c2 - 'A' + 10
+    in 'a'..'f' -> c2 - 'a' + 10
+    else -> -1
+}
+
+// From ktor
+private fun hexDigitToChar(digit: Int): Char = when (digit) {
+    in 0..9 -> '0' + digit
+    else -> 'A' + digit - 10
 }
 
 /**
@@ -124,8 +147,8 @@ private val BASE64_EXT_ENCODE = charArrayOf(
 
 
 /**
- * Converts a base64 string to a base64ext string. Base64ext uses another character set than base64 in order to make it sortable.
- *
+ * Converts a base64 string to a base64ext string. Base64ext uses another character set than base64
+ * in order to make it sortable.
  *
  * @param base64 The base64 string.
  * @return The base64Ext string.

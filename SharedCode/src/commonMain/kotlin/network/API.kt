@@ -3,6 +3,8 @@ package com.charlag.tuta.network
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.sys.*
+import com.charlag.tuta.network.mapping.InstanceMapper
+import com.charlag.tuta.network.mapping.NestedMapper
 import io.ktor.client.HttpClient
 import io.ktor.client.features.feature
 import io.ktor.client.features.json.JsonFeature
@@ -25,7 +27,7 @@ class API(
     val baseUrl: String,
     val cryptor: Cryptor,
     val instanceMapper: InstanceMapper,
-    val groupKeysCache: GroupKeysCache,
+    val sessionDataProvider: SessionDataProvider,
     val keyResolver: SessionKeyResolver,
     val wsUrl: String
 ) : SessionKeyLoader {
@@ -70,7 +72,7 @@ class API(
         sessionKey: ByteArray? = null
     ): ByteArray {
         val path = "${app}/${name}"
-        val serializedEntity = requestEntity.let { serializeEntity(it, sessionKey) }
+        val serializedEntity = serializeEntity(requestEntity, sessionKey)
         val address = Url(baseUrl + path)
         return if (method == HttpMethod.Get) {
             httpClient.get<ByteArray> {
@@ -86,7 +88,7 @@ class API(
             }
         }.let { data ->
             if (sessionKey != null) {
-                cryptor.decrypt(data, sessionKey, true).data
+                cryptor.aesDecrypt(data, sessionKey, true).data
             } else {
                 data
             }
@@ -101,7 +103,7 @@ class API(
         queryParams: Map<String, String>? = null,
         sessionKey: ByteArray
     ) {
-        val encData = cryptor.encrypt(data, cryptor.generateIV(), sessionKey, true, true)
+        val encData = cryptor.aesEncrypt(data, cryptor.generateIV(), sessionKey, true, true)
         httpClient.request<Unit> {
             this.method = method
             commonHeaders()
@@ -233,7 +235,7 @@ class API(
     /**
      * Returns generatedId if it's a generatedId instance
      *
-     * Currently ownerEncSessonKey must be explicitly set if needed but this can be fixed with
+     * Currently ownerEncSessionKey must be explicitly set if needed but this can be fixed with
      * better Entity definition.
      */
     suspend fun <T : ElementEntity> createElementEntity(entity: T): Id? {
@@ -256,7 +258,6 @@ class API(
     }
 
     suspend fun <T : Entity> updateEntity(entity: T) {
-
         val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(entity::class)
 
         val idPart = if (entity is ListElementEntity) {
@@ -303,7 +304,7 @@ class API(
                     url.parameters["modelVersions"] = "49.36"
                     url.parameters["clientVersion"] = "3.59.7"
                     url.parameters["userId"] = userId
-                    groupKeysCache.accessToken?.let { token ->
+                    sessionDataProvider.accessToken?.let { token ->
                         url.parameters["accessToken"] = token
                     }
                 }) {
@@ -372,7 +373,7 @@ class API(
 
     private fun HttpRequestBuilder.commonHeaders() {
         header("cv", "3.59.16")
-        groupKeysCache.accessToken?.let {
+        sessionDataProvider.accessToken?.let {
             header("accessToken", it)
         }
     }
@@ -419,6 +420,7 @@ class API(
         val sessionKey = keyResolver.resolveSessionKey(typeModel, map, this) ?: serviceSessionKey
         val processedMap = instanceMapper.decryptAndMapToMap(map, typeModel, sessionKey)
         @Suppress("UNCHECKED_CAST")
-        return NestedMapper().unmap(serializer, processedMap)
+        return NestedMapper()
+            .unmap(serializer, processedMap)
     }
 }

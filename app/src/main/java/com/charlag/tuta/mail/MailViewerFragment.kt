@@ -4,7 +4,6 @@ import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
 import android.graphics.drawable.RotateDrawable
 import android.os.Bundle
-import android.text.format.DateUtils
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -26,7 +25,7 @@ import com.charlag.tuta.compose.ForwardInitData
 import com.charlag.tuta.compose.ReplyInitData
 import com.charlag.tuta.data.MailAddressEntity
 import com.charlag.tuta.data.MailEntity
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.util.IdTupleWrapper
 import com.charlag.tuta.util.setIconTintListCompat
@@ -38,7 +37,6 @@ import kotlinx.android.synthetic.main.activity_mail_viewer.*
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.text.DateFormat
-import java.text.SimpleDateFormat
 import javax.inject.Inject
 
 class MailViewerFragment : DaggerFragment() {

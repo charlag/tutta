@@ -4,27 +4,28 @@ import com.charlag.tuta.Cryptor
 import com.charlag.tuta.SessionData
 import com.charlag.tuta.decryptKey
 
-interface GroupKeysCache {
+interface SessionDataProvider {
     val accessToken: String?
     suspend fun getGroupKey(groupId: String): ByteArray?
-    fun stage1(accessToken: String)
-    fun stage2(sessionData: SessionData)
+    fun setAccessToken(accessToken: String)
+    fun setSessionData(sessionData: SessionData)
 }
 
-
-class UserGroupKeysCache(
+class UserSessionDataProvider(
     private val cryptor: Cryptor
-) : GroupKeysCache {
+) : SessionDataProvider {
     private val cachedKeys = mutableMapOf<String, ByteArray>()
     private var sessionData: SessionData? = null
     override var accessToken: String? = null
         private set
 
-    override fun stage1(accessToken: String) {
+    override fun setAccessToken(accessToken: String) {
+        check(this.accessToken == null)
         this.accessToken = accessToken
     }
 
-    override fun stage2(sessionData: SessionData) {
+    override fun setSessionData(sessionData: SessionData) {
+        check(this.sessionData == null)
         this.sessionData = sessionData
         cachedKeys[sessionData.user.userGroup.group.asString()] = sessionData.userGroupKey
     }

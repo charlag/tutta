@@ -13,7 +13,7 @@ import com.charlag.tuta.data.*
 import com.charlag.tuta.di.UserBound
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.Group
-import com.charlag.tuta.entities.sys.IdTuple
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.network.API
 import com.charlag.tuta.util.AsyncProvider
