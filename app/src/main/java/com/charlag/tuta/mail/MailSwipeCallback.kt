@@ -54,7 +54,7 @@ class MailSwipeCallback(
     ) {
         if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
             val view = viewHolder.itemView
-            val bgPaint = if (dX > 0) deletePaint else archivePaint
+            val bgPaint = if (dX < 0) deletePaint else archivePaint
             c.drawRect(
                 view.left.toFloat(),
                 view.top.toFloat(),
@@ -63,23 +63,23 @@ class MailSwipeCallback(
                 bgPaint
             )
 
-            if (dX > 0) {
+            if (dX < 0) {
                 val iconTop = view.top + (view.bottom - view.top) / 2 - (iconSize / 2)
-                val iconLeft = view.left + iconSize
+                val iconRight = view.right - iconSize
                 trashIcon.setBounds(
-                    iconLeft,
+                    iconRight - iconSize,
                     iconTop,
-                    iconLeft + iconSize,
+                    iconRight,
                     iconTop + iconSize
                 )
                 trashIcon.draw(c)
             } else {
                 val iconTop = view.top + (view.bottom - view.top) / 2 - (iconSize / 2)
-                val iconRight = view.right - iconSize
+                val iconLeft = view.left + iconSize
                 archiveIcon.setBounds(
-                    iconRight - iconSize,
+                    iconLeft,
                     iconTop,
-                    iconRight,
+                    iconLeft + iconSize,
                     iconTop + iconSize
                 )
                 archiveIcon.draw(c)

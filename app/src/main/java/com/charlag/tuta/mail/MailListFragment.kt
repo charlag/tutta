@@ -100,9 +100,9 @@ class MailListFragment : Fragment() {
         val swipeCallback = MailSwipeCallback(context!!) { direction, position ->
             val mailId = adapter.currentList?.get(position)?.id ?: return@MailSwipeCallback
             if (direction == ItemTouchHelper.RIGHT) {
-                trashMails(view, viewModel, listOf(mailId))
-            } else {
                 archiveMails(view, viewModel, listOf(mailId))
+            } else {
+                trashMails(view, viewModel, listOf(mailId))
             }
         }
         ItemTouchHelper(swipeCallback).attachToRecyclerView(recycler)
