@@ -1,0 +1,16 @@
+{
+  "name": "tutanota-metadata-extractor",
+  "version": "0.0.1",
+  "description": "Script to extract Tutanota model definitions from source code.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --experimental-modules index",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "type": "module",
+  "devDependencies": {
+    "@babel/parser": "^7.11.0"
+  }
+}
