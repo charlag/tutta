@@ -15,18 +15,25 @@ abstract class AuthenticatedActivity(@LayoutRes layoutId: Int) : AppCompatActivi
     HasAndroidInjector {
     @Inject
     lateinit var dispatchingAndroidInjector: DispatchingAndroidInjector<Any>
-    @Inject
-    lateinit var loginController: LoginController
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    private var notAuthenticated = false
+
+    final override fun onCreate(savedInstanceState: Bundle?) {
         AndroidInjection.inject(this)
         super.onCreate(savedInstanceState)
-
-        if (loginController.userComponent == null) {
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
+        if (!notAuthenticated) {
+            onAuthenticatedCreate(savedInstanceState)
         }
     }
 
     override fun androidInjector(): AndroidInjector<Any> = dispatchingAndroidInjector
+
+    fun onNotAuthenticated() {
+        this.notAuthenticated = true
+        startActivity(Intent(this, LoginActivity::class.java))
+        finish()
+    }
+
+    open fun onAuthenticatedCreate(savedInstanceState: Bundle?) {
+    }
 }

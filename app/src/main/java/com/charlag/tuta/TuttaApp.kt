@@ -37,11 +37,18 @@ class TuttaApp : Application(), HasAndroidInjector {
     override fun androidInjector() = AndroidInjector<Any> { instance ->
         // We use this to user userComponent for authenticated activities
         val userComponent = loginController.userComponent
-        if (instance is AuthenticatedActivity && userComponent != null) {
-            userComponent.androidInjector().maybeInject(instance)
-                    || appDispatchingAndroidInjector.maybeInject(instance)
+        if (instance is AuthenticatedActivity) {
+            if (userComponent != null) {
+                userComponent.androidInjector().inject(instance)
+                Log.d("App", "Injected into AuthenticatedActivity $instance")
+            } else {
+                appDispatchingAndroidInjector.maybeInject(instance)
+                instance.onNotAuthenticated()
+                Log.d("App", "onNotAuthenticated into AuthenticatedActivity $instance")
+            }
         } else {
-            appDispatchingAndroidInjector.maybeInject(instance)
+            val injected = appDispatchingAndroidInjector.maybeInject(instance)
+            Log.d("App", "Injected into other $instance $injected")
         }
     }
 }

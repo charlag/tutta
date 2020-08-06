@@ -46,8 +46,8 @@ class ComposeActivity : AuthenticatedActivity(R.layout.activity_compose) {
             }
         )
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onAuthenticatedCreate(savedInstanceState: Bundle?) {
+        super.onAuthenticatedCreate(savedInstanceState)
 
         setSupportActionBar(toolbar)
         supportActionBar?.apply {

@@ -264,7 +264,7 @@ class API(
             val id = entity._id ?: throw IllegalArgumentException("Entity id is not set")
             "${id.listId.asString()}/${id.elementId.asString()}"
         } else {
-            (entity as ElementEntity)._id.asString()
+            (entity as ElementEntity)._id!!.asString()
         }
         val address = Url(baseUrl + "${model}/${typeModel.name.toLowerCase()}/${idPart}")
         val serializedEntity = serializeEntity(entity)

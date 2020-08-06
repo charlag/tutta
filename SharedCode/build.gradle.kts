@@ -37,6 +37,7 @@ kotlin {
         val serialization_version: String by rootProject.extra
 
         val commonMain by getting {
+            kotlin.srcDir("$buildDir/generated/source/kotlin")
             dependencies {
                 implementation(kotlin("stdlib-common"))
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$serialization_version")
@@ -102,11 +103,12 @@ tasks.register("copyJsFiles", Copy::class) {
     into("${buildDir}/classes/kotlin/js/main")
 }
 
-//task copyJsFiles(type: Copy) {
-//    from "src/jsMain/js"
-//
-//    into "${buildDir}/classes/kotlin/js/main"
-//
-//    jsMainClasses.dependsOn copyJsFiles
-//}
 
+tasks.register<GenerateModels>("generateModelClasses") {
+    modelsFile = File("metadata/models.json")
+    outputDir = File("$buildDir/generated/source/kotlin")
+
+    doLast {
+        generate()
+    }
+}

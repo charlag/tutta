@@ -19,8 +19,8 @@ import javax.inject.Inject
 class ContactViewerActivity : AuthenticatedActivity(R.layout.activity_contact_viewer) {
     @Inject lateinit var contactsRepository: ContactsRepository
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onAuthenticatedCreate(savedInstanceState: Bundle?) {
+        super.onAuthenticatedCreate(savedInstanceState)
 
         val contactId = intent.getStringExtra(CONTACT_ID_EXTRA)
 

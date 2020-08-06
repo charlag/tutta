@@ -44,14 +44,18 @@ class LoginFacade(
         passphrase: String,
         onSecondFactorPending: SecondFactorCallback
     ): CreateSessionResult {
-        val (salt) = getSalt(mailAddress)
+        val salt = getSalt(mailAddress).salt
 
         val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
         val authVerifier = createAuthVerifierAsBase64Url(cryptor, passphraseKey)
         val postData = CreateSessionData(
             mailAddress = mailAddress,
             authVerifier = authVerifier,
-            clientIdentifier = "Multiplatform test"
+            clientIdentifier = "Multiplatform test",
+            accessKey = null,
+            authToken = null,
+            recoverCodeVerifier = null,
+            user = null
         )
         val sessionReturn = api.serviceRequest(
             "sys", "sessionService", HttpMethod.Post, postData,
@@ -96,7 +100,7 @@ class LoginFacade(
         mailAddress: String,
         passphrase: String
     ): ByteArray {
-        val (salt) = getSalt(mailAddress)
+        val salt = getSalt(mailAddress).salt
         return cryptor.generateKeyFromPassphrase(passphrase, salt)
     }
 
@@ -126,7 +130,7 @@ class LoginFacade(
 
     private suspend fun getSalt(mailAddress: String): SaltReturn {
         return api.serviceRequest(
-            "sys", "saltservice", HttpMethod.Get, SaltData(mailAddress),
+            "sys", "saltservice", HttpMethod.Get, SaltData(null, mailAddress),
             SaltReturn::class
         )
     }

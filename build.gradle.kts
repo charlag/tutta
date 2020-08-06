@@ -1,9 +1,9 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
-val kotlin_version = "1.3.61"
+val kotlin_version = "1.3.70"
 
 buildscript {
-    val kotlin_version by rootProject.extra("1.3.61")
+    val kotlin_version by rootProject.extra("1.3.70")
     rootProject.apply {
         extra["ktor_version"] = "1.3.0"
         extra["coroutines_version"] = "1.3.3"
@@ -23,7 +23,7 @@ buildscript {
 
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:3.5.3")
+        classpath("com.android.tools.build:gradle:4.0.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
         classpath("org.jetbrains.kotlin:kotlin-serialization:$kotlin_version")
 

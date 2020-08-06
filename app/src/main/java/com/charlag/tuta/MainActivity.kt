@@ -23,6 +23,7 @@ import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.mail.MailListFragment
 import com.charlag.tuta.mail.MailViewModel
 import com.charlag.tuta.settings.SettingsActivity
+import com.charlag.tuta.user.LoginController
 import com.charlag.tuta.util.LocalAccountData
 import com.charlag.tuta.util.withLifecycleContext
 import kotlinx.android.synthetic.main.activity_main.*
@@ -34,6 +35,9 @@ import javax.inject.Inject
 class MainActivity : AuthenticatedActivity(R.layout.activity_main) {
     @Inject
     lateinit var viewModelFactory: ViewModelFactory
+    @Inject
+    lateinit var loginController: LoginController
+
     private val viewModel: MailViewModel by viewModels { viewModelFactory }
     private val foldersAdapter = MailFoldersAdapter { selectedFolder ->
         viewModel.selectFolder(
@@ -45,8 +49,8 @@ class MainActivity : AuthenticatedActivity(R.layout.activity_main) {
         drawerLayout.closeDrawer(navigationView)
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onAuthenticatedCreate(savedInstanceState: Bundle?) {
+        super.onAuthenticatedCreate(savedInstanceState)
 
         foldersRecycler.layoutManager = LinearLayoutManager(this)
         foldersRecycler.adapter = foldersAdapter

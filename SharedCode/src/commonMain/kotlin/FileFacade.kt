@@ -21,16 +21,17 @@ class FileFacade(
     private val keyResolver: SessionKeyResolver
 ) {
     suspend fun downloadFile(file: File): DataFile {
+        val id = requireNotNull(file._id) { "File has no id" }
         val sessionKey = keyResolver.resolveSessionKey(
             typemodelMap.getValue(File::class.noReflectionName).typemodel,
             file._ownerEncSessionKey,
             file._ownerGroup?.asString(),
-            file._permissions.asString(),
+            file._permissions?.asString(),
             api
         )
         val data = api.serviceRequestBinaryGet(
             "tutanota", "filedataservice", HttpMethod.Get,
-            FileDataDataGet(base64 = false, file = file._id), sessionKey
+            FileDataDataGet(base64 = false, file = file._id, _format = null), sessionKey
         )
         return DataFile(file.name, file.mimeType ?: DEFAULT_MIME, data)
     }

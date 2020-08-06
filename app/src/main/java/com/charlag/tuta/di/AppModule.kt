@@ -138,8 +138,10 @@ internal object AppModule {
         sessionStore: SessionStore,
         appComponent: AppComponent,
         cryptor: Cryptor
-    ): LoginController =
-        RealLoginController(loginFacade, sessionStore, appComponent, cryptor)
+    ): LoginController {
+        Log.d("App", "LoginController")
+        return RealLoginController(loginFacade, sessionStore, appComponent, cryptor)
+    }
 
     @UseExperimental(UnstableDefault::class)
     @Provides

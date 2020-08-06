@@ -4,6 +4,7 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.entities.tutanota.*
+import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.network.API
 import com.charlag.tuta.network.SessionKeyResolver
 import io.ktor.client.features.ClientRequestException
@@ -134,7 +135,7 @@ class MailFacade(
                 bccRecipients = recipientInfoToDraftRecipient(bccRecipients),
                 replyTos = draft.replyTos
             ),
-            draft = draft._id
+            draft = draft._id!!
         )
         api.serviceRequestVoid(
             "tutanota",
@@ -185,7 +186,7 @@ class MailFacade(
             mailTypeModel,
             draft._ownerEncSessionKey,
             draft._ownerGroup?.asString(),
-            draft._permissions.asString(),
+            draft._permissions?.asString(),
             api
         ) ?: error("Could not resolve draft session key $draft")
 
@@ -214,7 +215,7 @@ class MailFacade(
                 typemodelMap.getValue(File::class.noReflectionName).typemodel,
                 file._ownerEncSessionKey,
                 file._ownerGroup?.asString(),
-                file._permissions.asString(),
+                file._permissions?.asString(),
                 api
             ) ?: error("Count not resolve file key $fileId")
             if (draft.confidential) {
@@ -240,7 +241,7 @@ class MailFacade(
             senderNameUnencrypted = null, // for now
             attachmentKeyData = attachmentKeyData,
             internalRecipientKeyData = internalRecipientKeyData,
-            mail = draft._id,
+            mail = draft._id!!,
             secureExternalRecipientKeyData = listOf() // for now
         )
         api.serviceRequestVoid("tutanota", "senddraftservice", HttpMethod.Post, requestBody)
@@ -279,7 +280,7 @@ class MailFacade(
     suspend fun resolveRecipient(mailAddress: String): RecipientType {
         return try {
             api.serviceRequest(
-                "sys", "publickeyservice", HttpMethod.Get, PublicKeyData(mailAddress),
+                "sys", "publickeyservice", HttpMethod.Get, PublicKeyData(null, mailAddress),
                 PublicKeyReturn::class
             )
             RecipientType.INTENRAL
@@ -335,7 +336,7 @@ class MailFacade(
             "sys",
             "publickeyservice",
             HttpMethod.Get,
-            PublicKeyData(recipientAddress),
+            PublicKeyData(null, recipientAddress),
             PublicKeyReturn::class
         )
         val publicKey = hexToPublicKey(bytesToHex(publicKeyData.pubKey))

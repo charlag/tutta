@@ -22,8 +22,8 @@ class ContactsActivity : AuthenticatedActivity(R.layout.activity_contacts) {
 
     @Inject lateinit var contactsRepository: ContactsRepository
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onAuthenticatedCreate(savedInstanceState: Bundle?) {
+        super.onAuthenticatedCreate(savedInstanceState)
 
         setSupportActionBar(toolbar)
         supportActionBar?.apply {

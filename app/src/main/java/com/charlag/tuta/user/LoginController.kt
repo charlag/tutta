@@ -113,7 +113,7 @@ class RealLoginController(
 
                 initSession(SessionData(user, accessToken, userGroupKey), userComponent)
             } catch (e: Exception) {
-                Log.e("LoginController", "Failed to log in")
+                Log.e("LoginController", "Failed to log in", e)
 //                sessionData.completeExceptionally(e)
             }
         }

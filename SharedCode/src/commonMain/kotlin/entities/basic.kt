@@ -17,7 +17,7 @@ abstract class Entity(
 
 @Serializable
 abstract class ElementEntity : Entity() {
-    abstract val _id: Id
+    abstract val _id: Id?
 }
 
 @Serializable

@@ -10,6 +10,7 @@ import com.charlag.tuta.LoginActivity
 import com.charlag.tuta.R
 import com.charlag.tuta.login.AuthResult
 import com.charlag.tuta.login.Authenticator
+import com.charlag.tuta.user.LoginController
 import com.charlag.tuta.user.SessionStore
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_settings.*
@@ -21,6 +22,8 @@ class SettingsActivity : AuthenticatedActivity(R.layout.activity_settings) {
     internal lateinit var sessionStore: SessionStore
     @Inject
     internal lateinit var authenticator: Authenticator
+    @Inject
+    internal lateinit var loginController: LoginController
 
     override fun onStart() {
         super.onStart()

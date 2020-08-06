@@ -66,7 +66,7 @@ class SessionKeyResolver(
             val group = loader.loadGroup(bucketPermission.group)
             val keypair = group.keys[0]
             // decrypt RSA keys
-            val bucketPermissionGroupKey = sessionDataProvider.getGroupKey(group._id.asString())
+            val bucketPermissionGroupKey = sessionDataProvider.getGroupKey(group._id!!.asString())
                 ?: error("No key for ${group._id} ")
 
             val privKey = cryptor.decryptRsaKey(keypair.symEncPrivKey, bucketPermissionGroupKey)
@@ -98,10 +98,11 @@ class SessionKeyResolver(
         sessionKey: ByteArray,
         loader: SessionKeyLoader
     ) {
-        // Let's try to always update with the service
+        // FIXME it's not always correct to do it with the service
+        //  it's only okay for updating bucket permissions like mailbody but not for mails
         loader.updatePermission(
-            publicPermission._id,
-            bucketPermission._id,
+            publicPermission._id!!,
+            bucketPermission._id!!,
             cryptor.encryptKey(sessionKey, bucketPermissionOwnerGroupKey),
             cryptor.encryptKey(sessionKey, bucketPermissionGroupKey)
         )
