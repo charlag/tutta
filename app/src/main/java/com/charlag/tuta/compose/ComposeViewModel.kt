@@ -169,7 +169,7 @@ class ComposeViewModel @Inject constructor(
             ?: mailRepository.getEnabledMailAddresses().first()
         return LocalDraftEntity(
             localDraftId,
-            userController.waitForLogin()._id.asString(),
+            userController.waitForLogin()._id!!.asString(),
             subject,
             body,
             sender,
@@ -389,7 +389,7 @@ class ComposeViewModel @Inject constructor(
             val loaded = mail.attachments.mapNotNull {
                 try {
                     val file = api.loadListElementEntity<File>(it)
-                    RemoteFile(file.name, file.size, file._id)
+                    RemoteFile(file.name, file.size, file._id!!)
                 } catch (e: FileNotFoundException) {
                     null
                 } catch (e: IOException) {

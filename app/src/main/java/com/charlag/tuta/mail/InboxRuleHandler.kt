@@ -27,14 +27,14 @@ class RealInboxRuleHandler(
             return
         }
         val folder = folders.find { it.folderType == MailFolderType.INBOX.value }
-        if (folder == null || folder.mails != mail._id.listId) {
+        if (folder == null || folder.mails != mail._id!!.listId) {
             return
         }
         findMatchingRule(mail)
             ?.let { rule -> folders.find { it._id == rule.targetFolder } }
             ?.let { targetFolder ->
                 try {
-                    mailFacade.moveMails(listOf(mail._id), targetFolder._id)
+                    mailFacade.moveMails(listOf(mail._id!!), targetFolder._id!!)
                 } catch (e: ClientRequestException) {
                     Log.d("InboxRule", "Server locked the list $e")
                 }

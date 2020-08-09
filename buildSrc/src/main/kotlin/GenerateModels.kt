@@ -6,37 +6,37 @@ import java.io.File
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import java.lang.Error
+import java.lang.reflect.WildcardType
 
-/**
- * Type of the entity.
- * Entities and services are grouped into "apps" (like "sys" or "tutanota") which are namespaces
- * with their own versioning and migrations.
- */
-enum class MetamodelType {
+val metamodelTypes = listOf(
     /**
      * Instance (separate database entity) which does not belong to any particular list. Has a
      * single ID - [GeneratedId] or [CustomId].
      */
-    ELEMENT_TYPE,
+    "ELEMENT_TYPE",
 
     /**
      * Instance (separate database entity) which belongs to one of the lists. It means that it's
      * Id is [IdTuple], it can be loaded in ranges.
      */
-    LIST_ELEMENT_TYPE,
+    "LIST_ELEMENT_TYPE",
 
     /**
      * Not a separate database entity but a structure on Instance or DataTransferType. Has it's
      * own id.
      */
-    AGGREGATED_TYPE,
+    "AGGREGATED_TYPE",
 
     /**
      * Entity which is not represented in the database but is used for sending/receiving data via
      * services.
      */
-    DATA_TRANSFER_TYPE;
-}
+    "DATA_TRANSFER_TYPE"
+)
+
+val cardinatlityTypes = listOf(
+    "One", "ZeroOrOne", "Any"
+)
 
 enum class ValueType {
     BooleanType,
@@ -113,20 +113,6 @@ data class Association(
     val external: Boolean
 )
 
-/**
- * Description of the entity structure and type.
- */
-data class TypeModel(
-    val name: String,
-    val encrypted: Boolean,
-    val type: MetamodelType,
-    val id: Long,
-    val rootId: String,
-    val values: Map<String, Value> = mapOf(),
-    val associations: Map<String, Association> = mapOf(),
-    val version: Int
-)
-
 
 val idClassName = ClassName.bestGuess("com.charlag.tuta.entities.Id")
 val idTupleClassName = ClassName.bestGuess("com.charlag.tuta.entities.IdTuple")
@@ -160,6 +146,8 @@ fun valueToType(type: Map<String, Any>, value: Map<String, Any>): TypeName {
     }
 }
 
+fun generateBoolean(value: Any?): String = if (value as Boolean) "true" else "false"
+
 open class GenerateModels : DefaultTask() {
     @get:InputFile
     lateinit var modelsFile: File
@@ -169,13 +157,11 @@ open class GenerateModels : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        println("I am alive! $modelsFile $outputDir")
         val modelsText = modelsFile.readText()
         val modelsJson = groovy.json.JsonSlurper()
             .parseText(modelsText) as Map<String, Map<String, Map<String, Any>>>
         for ((modelName, model) in modelsJson.entries) {
             val modelDir = outputDir
-            println("Writing to $modelDir")
             modelDir.mkdirs()
             for (type in model.values) {
                 val typeName = type["name"] as String
@@ -184,7 +170,22 @@ open class GenerateModels : DefaultTask() {
                         AnnotationSpec.builder(ClassName.bestGuess("kotlinx.serialization.UseSerializers"))
                             .addMember("com.charlag.tuta.entities.ByteArraySerializer::class")
                             .addMember("com.charlag.tuta.entities.DateSerializer::class")
+                            .addMember("com.charlag.tuta.entities.IdSerilizer::class")
                             .build()
+                    )
+                    .addImport("com.charlag.tuta.entities", "TypeInfo", "TypeModel")
+
+                    .addImport("com.charlag.tuta.entities.MetamodelType", metamodelTypes)
+                    .addImport("com.charlag.tuta.entities.Cardinality", cardinatlityTypes)
+                    .addImport(
+                        "com.charlag.tuta.entities",
+                        "Value",
+                        "ValueType",
+                        "Association",
+                        "AssociationType"
+                    )
+                    .addProperty(
+                        generateMetamodelType(typeName, modelName, type)
                     )
                     .addType(
                         TypeSpec.classBuilder(typeName)
@@ -245,7 +246,94 @@ open class GenerateModels : DefaultTask() {
                     .build()
                 fileSpec.writeTo(modelDir)
             }
+
+            // Generate typeInfos list
+            val entityTYpe = ClassName.bestGuess("com.charlag.tuta.entities.Entity")
+            FileSpec.builder("com.charlag.tuta.entities.${modelName}", "TypeInfos")
+                .addProperty(
+                    PropertySpec.builder(
+                        "typeInfo", LIST.parameterizedBy(
+                            ClassName.bestGuess("com.charlag.tuta.entities.TypeInfo")
+                                .parameterizedBy(WildcardTypeName.producerOf(entityTYpe))
+                        )
+                    )
+                        .initializer(
+                            """
+                        listOf(
+${model.keys.joinToString { "${it}TypeInfo" }}                        
+                        )
+                    """.trimIndent()
+                        )
+                        .build()
+                )
+                .build()
+                .writeTo(modelDir)
         }
+    }
+
+    private fun generateMetamodelType(
+        typeName: String,
+        modelName: String,
+        type: Map<String, Any>
+    ): PropertySpec {
+        return PropertySpec.builder(
+            "${typeName}TypeInfo",
+            ClassName.bestGuess("com.charlag.tuta.entities.TypeInfo")
+                .parameterizedBy(ClassName.bestGuess("com.charlag.tuta.entities.${modelName}.${typeName}"))
+        )
+            .initializer(
+                """
+                                    TypeInfo(
+                                       ${typeName}::class,
+                                       "$modelName",
+                                       TypeModel(
+                                           name = "$typeName",
+                                           encrypted = ${generateBoolean(type["encrypted"])},
+                                           type = ${type["type"] as String},
+                                           id = ${type["id"] as Int},
+                                           rootId = "${type["rootId"] as String}",
+                                           values = mapOf(
+                                           ${
+                (type["values"] as Map<String, Map<String, Any>>).entries.joinToString { (k, v) ->
+                    val valueBlock = CodeBlock.of(
+                        """
+                                                Value(
+                                                    type = ${"ValueType.${v["type"] as String}Type"},
+                                                    cardinality = ${v["cardinality"]},
+                                                    encrypted = ${generateBoolean(v["encrypted"])},
+                                                    final = ${generateBoolean(v["final"])}
+                                                )
+                                                
+                                            """.trimIndent()
+                    )
+                    "\"$k\" to $valueBlock"
+                }
+                }
+                                            ),
+                                           associations = mapOf(${
+                (type["associations"] as Map<String, Map<String, Any>>)
+                    .entries.joinToString(separator = ",\n") { (k, v) ->
+                        val assocBlock = CodeBlock.of(
+                            """
+                                Association(
+                                    type = AssociationType.${v["type"]},
+                                    cardinality = ${v["cardinality"]},
+                                    refType = "${v["refType"]}",
+                                    final = ${generateBoolean(v["final"])},
+                                    external = ${if (v["external"] == true) "true" else false}
+                                )
+                            """.trimIndent()
+                        )
+                        "\"$k\" to $assocBlock"
+                    }
+                }),
+                                           version = ${(type["version"] as String).toLong()}
+                                       ),
+                                       serializer = ${typeName}.serializer()
+                                    )
+                                """.trimIndent()
+            )
+            .build()
     }
 }
 

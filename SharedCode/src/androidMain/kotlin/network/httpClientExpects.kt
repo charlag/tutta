@@ -3,7 +3,7 @@
 
 package com.charlag.tuta.network
 
-import com.charlag.tuta.entities.sys.typeInfos
+import com.charlag.tuta.entities.sys.typeInfo
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.features.json.JsonSerializer
@@ -22,7 +22,7 @@ actual fun platformEngine(): HttpClientEngine {
 actual fun platformJsonSerializer(): JsonSerializer {
     return KotlinxSerializer(Json(JsonConfiguration.Default)).apply {
         // TODO: check if we still have to do this
-        typeInfos.forEach { (klass, _, _, serializer) ->
+        typeInfo.forEach { (klass, _, _, serializer) ->
             @Suppress("UNCHECKED_CAST")
             setMapper(klass as KClass<Any>, serializer as KSerializer<Any>)
         }

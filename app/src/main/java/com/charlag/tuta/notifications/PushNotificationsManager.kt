@@ -8,6 +8,7 @@ import android.util.Log
 import com.charlag.tuta.*
 import com.charlag.tuta.di.SSEPath
 import com.charlag.tuta.di.UserBound
+import com.charlag.tuta.entities.Date
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.PushIdentifier
 import com.charlag.tuta.entities.sys.User
@@ -90,7 +91,7 @@ class PushNotificationsManager @Inject constructor(
         deviceIdentifier: String
     ) {
         sseStorage.storePushIdentifierSessionKey(
-            user._id.asString(),
+            user._id!!.asString(),
             id.asString(),
             sessionKey.toBase64()
         )
@@ -117,7 +118,8 @@ class PushNotificationsManager @Inject constructor(
             identifier = newDeviceIdentifier,
             language = "en", // not used for SSE anymore
             disabled = false,
-            lastNotificationDate = null
+            lastNotificationDate = null,
+            lastUsageTime = Date(System.currentTimeMillis())
         )
         val id = api.createListElementEntity(
             listId,

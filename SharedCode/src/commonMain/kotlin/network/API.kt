@@ -145,7 +145,6 @@ class API(
     }
 
     suspend fun <T : Entity> loadElementEntity(klass: KClass<T>, id: Id): T {
-        instanceMapper.getTypeModelByClass(klass)
         val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(klass)
         return loadAndMapToEntity(
             "${model}/${typeModel.name.toLowerCase()}/${id.asString()}",

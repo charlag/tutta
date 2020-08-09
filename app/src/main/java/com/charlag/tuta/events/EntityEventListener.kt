@@ -95,7 +95,7 @@ class EntityEventListener @Inject constructor(
         connectionJob = userController.loggedInScope.launch {
             // Start consuming events right away so that we don't miss any
             val realtimeEvents =
-                api.getEvents(userId = user._id.asString()).consumeAsFlow()
+                api.getEvents(userId = user._id!!.asString()).consumeAsFlow()
                     .onEach { update ->
                         if (update is API.WSEvent.CounterUpdate) {
                             processCounterUpdate(update)
@@ -111,6 +111,7 @@ class EntityEventListener @Inject constructor(
                     .onCompletion {
                         emitAll(realtimeEvents.map { (entityData) ->
                             WebsocketEntityData(
+                                null,
                                 entityData.eventBatchId,
                                 entityData.eventBatchOwner,
                                 entityData.eventBatch
@@ -166,9 +167,9 @@ class EntityEventListener @Inject constructor(
                 )
 
                 for (batch in eventBatches) {
-                    val batchId = batch._id.elementId.asString()
+                    val batchId = batch._id!!.elementId.asString()
                     if (lastPref.asString() < batchId) {
-                        emit(WebsocketEntityData(GeneratedId(batchId), groupId, batch.events))
+                        emit(WebsocketEntityData(null, GeneratedId(batchId), groupId, batch.events))
                     }
                 }
             }

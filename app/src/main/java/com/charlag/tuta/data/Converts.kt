@@ -131,11 +131,11 @@ class DateConverter {
 
 fun MailAddress.toEntity() = MailAddressEntity(_id?.asString(), name, address, contact, finalIvs)
 fun Mail.toEntity() = MailEntity(
-    id = _id.elementId.asString(),
-    listId = _id.listId.asString(),
-    _owner = _owner,
+    id = _id!!.elementId.asString(),
+    listId = _id!!.listId.asString(),
+    _owner = _owner!!,
     _ownerGroup = _ownerGroup,
-    _permissions = _permissions,
+    _permissions = _permissions!!,
     _ownerEncSessionKey = _ownerEncSessionKey,
     confidential = confidential,
     differentEnvelopeSender = differentEnvelopeSender,
@@ -189,20 +189,22 @@ fun MailEntity.toMail() = Mail(
     conversationEntry = conversationEntry,
     attachments = attachments,
     headers = headers,
-    restrictions = null
+    restrictions = null,
+    authStatus = 0,
+    phishingStatus = 0
 ).also {
     it.finalIvs = finalIvs
 }
 
 fun MailFolder.toEntity() = MailFolderEntity(
-    id = _id.elementId.asString(),
-    listId = _id.listId.asString(),
+    id = _id!!.elementId.asString(),
+    listId = _id!!.listId.asString(),
     folderType = folderType,
     name = name,
     mails = mails,
     ownerEncSessionKey = _ownerEncSessionKey,
     ownerGroup = _ownerGroup,
-    permissions = _permissions,
+    permissions = _permissions!!,
     parentFolder = parentFolder,
     subFolders = subFolders
 )
@@ -240,24 +242,24 @@ fun MailAddressEntity.toEncryptedMailAddress() =
 
 
 fun Contact.toEntity() = ContactEntity(
-    id = _id.elementId.asString(),
-    listId = _id.listId.asString(),
-    _owner = _owner,
+    id = _id!!.elementId.asString(),
+    listId = _id!!.listId.asString(),
+    _owner = _owner!!,
     _ownerEncSessionKey = _ownerEncSessionKey,
     _ownerGroup = _ownerGroup,
-    _permissions = _permissions,
+    _permissions = _permissions!!,
     autoTransmitPassword = autoTransmitPassword,
     comment = comment,
     company = company,
     firstName = firstName,
     lastName = lastName,
     nickname = nickname,
-    oldBirthday = oldBirthday?.toDate(),
+    oldBirthday = null,
     presharedPassword = presharedPassword,
     role = role,
     title = title,
     addresses = addresses,
-    birthday = birthday,
+    birthday = null, // TODO
     mailAddresses = mailAddresses,
     phoneNumbers = phoneNumbers,
     socialIds = socialIds,
@@ -279,14 +281,16 @@ fun ContactEntity.toContact() = Contact(
     firstName = firstName,
     lastName = lastName,
     nickname = nickname,
-    oldBirthday = oldBirthday?.toDate(),
     presharedPassword = presharedPassword,
     role = role,
     title = title,
     addresses = addresses,
-    birthday = birthday,
+    // TODO
+    birthdayIso = null,
     mailAddresses = mailAddresses,
     phoneNumbers = phoneNumbers,
     socialIds = socialIds,
-    photo = photo
+    photo = photo,
+    oldBirthdayAggregate = null,
+    oldBirthdayDate = null
 )
