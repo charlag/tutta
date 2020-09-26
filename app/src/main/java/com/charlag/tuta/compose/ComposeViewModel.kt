@@ -20,7 +20,7 @@ import com.charlag.tuta.mail.MailRepository
 import com.charlag.tuta.network.API
 import com.charlag.tuta.util.FilledMutableLiveData
 import com.charlag.tuta.util.combineLiveData
-import com.charlag.tuta.util.mutate
+import com.charlag.tuta.util.mutateFilled
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.io.FileNotFoundException
@@ -211,7 +211,7 @@ class ComposeViewModel @Inject constructor(
                 recipients,
                 recipientTypes.value
             )
-            recipientTypes.mutate { it + resolved }
+            recipientTypes.mutateFilled { it + resolved }
         }
     }
 
@@ -245,7 +245,7 @@ class ComposeViewModel @Inject constructor(
             mailAddress !in ccRecipients.value &&
             mailAddress !in bccRecipients.value
         ) {
-            recipientTypes.mutate { it - mailAddress }
+            recipientTypes.mutateFilled { it - mailAddress }
         }
     }
 
@@ -266,14 +266,14 @@ class ComposeViewModel @Inject constructor(
     fun addAttachment(fileReference: FileReference) {
         viewModelScope.launch {
             val copied = fileHandler.copyFilesToTempDir(fileReference)
-            pickedFiles.mutate { it + copied }
+            pickedFiles.mutateFilled { it + copied }
         }
     }
 
     fun removeAttachment(file: DraftFile) {
         when (file) {
-            is FileReference -> pickedFiles.mutate { it - file }
-            is RemoteFile -> remoteFiles.mutate { it - file }
+            is FileReference -> pickedFiles.mutateFilled { it - file }
+            is RemoteFile -> remoteFiles.mutateFilled { it - file }
         }
     }
 

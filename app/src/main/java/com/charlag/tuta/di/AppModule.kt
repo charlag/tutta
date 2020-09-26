@@ -15,15 +15,11 @@ import com.charlag.tuta.user.SessionStore
 import com.charlag.tuta.user.SharedPrefSessionStore
 import dagger.Module
 import dagger.Provides
-import io.ktor.client.HttpClient
-import io.ktor.client.features.logging.LogLevel
-import io.ktor.client.features.logging.Logger
-import io.ktor.client.features.logging.Logging
-import io.ktor.client.features.websocket.WebSockets
-import io.ktor.util.KtorExperimentalAPI
-import kotlinx.serialization.UnstableDefault
+import io.ktor.client.*
+import io.ktor.client.features.logging.*
+import io.ktor.client.features.websocket.*
+import io.ktor.util.*
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
@@ -143,10 +139,9 @@ internal object AppModule {
         return RealLoginController(loginFacade, sessionStore, appComponent, cryptor)
     }
 
-    @UseExperimental(UnstableDefault::class)
     @Provides
     @Singleton
-    fun providesJson(): Json = Json(JsonConfiguration.Default)
+    fun providesJson(): Json = Json {  }
 
     @Provides
     @Singleton

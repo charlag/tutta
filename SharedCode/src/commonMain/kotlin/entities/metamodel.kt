@@ -1,9 +1,11 @@
 package com.charlag.tuta.entities
 
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.ArrayListSerializer
-import kotlinx.serialization.internal.SerialClassDescImpl
-import kotlinx.serialization.internal.StringSerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlin.reflect.KClass
 
 /**
@@ -129,12 +131,10 @@ data class TypeInfo<T : Any>(
 )
 
 object IdSerilizer : KSerializer<Id> {
-    override val descriptor = object : SerialClassDescImpl("IdSerializier") {
-        override val kind = PrimitiveKind.STRING
-    }
+    override val descriptor = buildClassSerialDescriptor("IdSerializier")
 
-    override fun serialize(encoder: Encoder, obj: Id) {
-        encoder.encodeString(obj.asString())
+    override fun serialize(encoder: Encoder, value: Id) {
+        encoder.encodeString(value.asString())
     }
 
     override fun deserialize(decoder: Decoder): Id {
@@ -168,8 +168,8 @@ data class CustomId(val stringData: String) : Id() {
 
     @Serializer(forClass = Id::class)
     companion object IdSerilizer : KSerializer<Id> {
-        override fun serialize(encoder: Encoder, obj: Id) {
-            encoder.encodeString(obj.asString())
+        override fun serialize(encoder: Encoder, value: Id) {
+            encoder.encodeString(value.asString())
         }
 
         override fun deserialize(decoder: Decoder): Id {
@@ -183,29 +183,22 @@ data class IdTuple(val listId: Id, val elementId: Id) {
     @Serializer(forClass = IdTuple::class)
     companion object :
         KSerializer<IdTuple> {
-        override val descriptor: SerialDescriptor = object : SerialClassDescImpl("IdTuple") {
-            override val kind: SerialKind =
-                StructureKind.LIST
-        }
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("IdTuple")
 
-        override fun serialize(encoder: Encoder, obj: IdTuple) {
+        override fun serialize(encoder: Encoder, value: IdTuple) {
             val listDecoder = encoder.beginCollection(
-                ArrayListSerializer(
-                    StringSerializer
-                ).descriptor,
+                ListSerializer(String.serializer()).descriptor,
                 2
             )
-            listDecoder.encodeStringElement(descriptor, 0, obj.listId.asString())
-            listDecoder.encodeStringElement(descriptor, 1, obj.elementId.asString())
+            listDecoder.encodeStringElement(descriptor, 0, value.listId.asString())
+            listDecoder.encodeStringElement(descriptor, 1, value.elementId.asString())
             listDecoder.endStructure(descriptor)
         }
 
         override fun deserialize(decoder: Decoder): IdTuple {
             val listDecoder =
                 decoder.beginStructure(
-                    ArrayListSerializer(
-                        StringSerializer
-                    ).descriptor
+                    ListSerializer(String.serializer()).descriptor
                 )
             val idTuple = IdTuple(
                 GeneratedId(

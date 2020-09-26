@@ -4,7 +4,7 @@ import androidx.room.*
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.*
-import kotlinx.serialization.internal.ArrayListSerializer
+import kotlinx.serialization.builtins.ListSerializer
 import java.util.*
 
 @Entity
@@ -93,40 +93,40 @@ data class ContactEntity(
     }
 
     class ContactConverters {
-        private val addressesSerializer = ArrayListSerializer(ContactAddress.serializer())
+        private val addressesSerializer = ListSerializer(ContactAddress.serializer())
         @TypeConverter
         fun contactAddressesToJson(addresses: List<ContactAddress>): String =
-            json.stringify(addressesSerializer, addresses)
+            json.encodeToString(addressesSerializer, addresses)
 
         @TypeConverter
         fun jsonToContactAddresses(jsonString: String): List<ContactAddress> =
-            json.parse(addressesSerializer, jsonString)
+            json.decodeFromString(addressesSerializer, jsonString)
 
-        private val mailAddressesSerializer = ArrayListSerializer(ContactMailAddress.serializer())
+        private val mailAddressesSerializer = ListSerializer(ContactMailAddress.serializer())
         @TypeConverter
         fun contactMailAddressesToJson(addresses: List<ContactMailAddress>): String =
-            json.stringify(mailAddressesSerializer, addresses)
+            json.encodeToString(mailAddressesSerializer, addresses)
 
         @TypeConverter
         fun jsonToContactMailAddresses(jsonString: String): List<ContactMailAddress> =
-            json.parse(mailAddressesSerializer, jsonString)
+            json.decodeFromString(mailAddressesSerializer, jsonString)
 
-        private val phoneNumberSerializer = ArrayListSerializer(ContactPhoneNumber.serializer())
+        private val phoneNumberSerializer = ListSerializer(ContactPhoneNumber.serializer())
         @TypeConverter
         fun phoneNumbersToJson(addresses: List<ContactPhoneNumber>): String =
-            json.stringify(phoneNumberSerializer, addresses)
+            json.encodeToString(phoneNumberSerializer, addresses)
 
         @TypeConverter
         fun jsonToPhoneNumbers(jsonString: String): List<ContactPhoneNumber> =
-            json.parse(phoneNumberSerializer, jsonString)
+            json.decodeFromString(phoneNumberSerializer, jsonString)
 
-        private val socialIdSerializer = ArrayListSerializer(ContactSocialId.serializer())
+        private val socialIdSerializer = ListSerializer(ContactSocialId.serializer())
         @TypeConverter
         fun socialIdsToJson(addresses: List<ContactSocialId>): String =
-            json.stringify(socialIdSerializer, addresses)
+            json.encodeToString(socialIdSerializer, addresses)
 
         @TypeConverter
         fun jsonToSocialIds(jsonString: String): List<ContactSocialId> =
-            json.parse(socialIdSerializer, jsonString)
+            json.decodeFromString(socialIdSerializer, jsonString)
     }
 }

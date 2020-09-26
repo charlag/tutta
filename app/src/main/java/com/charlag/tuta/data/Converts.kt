@@ -9,37 +9,40 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.toBase64
-import kotlinx.serialization.internal.*
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.nullable
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import kotlinx.serialization.serializer
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.*
 import kotlin.collections.HashMap
 
-val json = Json(JsonConfiguration.Stable)
+val json = Json {}
 
 class TutanotaConverters {
 
     @TypeConverter
     fun mailAddressToString(mailAddress: MailAddressEntity): String {
-        return json.stringify(MailAddressEntity.serializer(), mailAddress)
+        return json.encodeToString(MailAddressEntity.serializer(), mailAddress)
     }
 
     @TypeConverter
     fun stringToMailAddress(string: String): MailAddressEntity {
-        return json.parse(MailAddressEntity.serializer(), string)
+        return json.decodeFromString(MailAddressEntity.serializer(), string)
     }
 
-    val mailAddressListSerializer = ArrayListSerializer(MailAddressEntity.serializer())
+    val mailAddressListSerializer = ListSerializer(MailAddressEntity.serializer())
 
     @TypeConverter
     fun mailAddressListToString(mailAddresses: List<MailAddressEntity>): String {
-        return json.stringify(mailAddressListSerializer, mailAddresses)
+        return json.encodeToString(mailAddressListSerializer, mailAddresses)
     }
 
     @TypeConverter
     fun stringToMailAddressess(string: String): List<MailAddressEntity> {
-        return json.parse(mailAddressListSerializer, string)
+        return json.decodeFromString(mailAddressListSerializer, string)
     }
 
     @TypeConverter
@@ -58,10 +61,10 @@ class TutanotaConverters {
     @TypeConverter
     fun stringToIdTuple(string: String?): IdTuple? {
         string ?: return null
-        val array = json.parseJson(string).jsonArray
+        val array = json.parseToJsonElement(string).jsonArray
         return IdTuple(
-            GeneratedId(array[0].primitive.content),
-            GeneratedId(array[1].primitive.content)
+            GeneratedId(array[0].jsonPrimitive.content),
+            GeneratedId(array[1].jsonPrimitive.content)
         )
     }
 
@@ -76,28 +79,28 @@ class TutanotaConverters {
 
     @TypeConverter
     fun stringToIdTupleList(string: String): List<IdTuple> {
-        return json.parseJson(string).jsonArray
+        return json.parseToJsonElement(string).jsonArray
             .map { jsontuple ->
                 IdTuple(
-                    GeneratedId(jsontuple.jsonArray[0].primitive.content),
-                    GeneratedId(jsontuple.jsonArray[1].primitive.content)
+                    GeneratedId(jsontuple.jsonArray[0].jsonPrimitive.content),
+                    GeneratedId(jsontuple.jsonArray[1].jsonPrimitive.content)
                 )
             }
     }
 
-    private val ivsSerializer = HashMapSerializer(String.serializer(), String.serializer().nullable)
+    private val ivsSerializer = MapSerializer<String, String?>(String.serializer(), String.serializer().nullable)
 
     @TypeConverter
     fun finalIvsToString(ivs: Map<String, ByteArray?>?): String? {
         ivs ?: return null
         return ivs.mapValuesTo(HashMap()) { (k, v) -> v?.toBase64() }
-            .let { json.stringify(ivsSerializer, it) }
+            .let { json.encodeToString(ivsSerializer, it) }
     }
 
     @TypeConverter
     fun stringToFinalIvs(string: String?): Map<String, ByteArray?>? {
         string ?: return null
-        return json.parse(ivsSerializer, string).mapValues { (_, v) -> v?.let(::base64ToBytes) }
+        return json.decodeFromString(ivsSerializer, string).mapValues { (_, v) -> v?.let(::base64ToBytes) }
     }
 
     @TypeConverter

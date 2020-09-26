@@ -18,19 +18,7 @@ android {
 
 kotlin {
     android()
-    js()
-// This was used in the build.gradle before, it's not clear if we'll need it now
-//    js {
-//        compileKotlinJs {
-//            kotlinOptions {
-//                metaInfo = true
-//                sourceMap = true
-//                sourceMapEmbedSources = "always"
-//                moduleKind = "umd"
-//                target = "v5"
-//            }
-//        }
-//    }
+//    js()
 
     sourceSets {
         val ktor_version: String by rootProject.extra
@@ -40,12 +28,13 @@ kotlin {
             kotlin.srcDir("$buildDir/generated/source/kotlin")
             dependencies {
                 implementation(kotlin("stdlib-common"))
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$serialization_version")
+//                implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$serialization_version")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version")
                 implementation("io.ktor:ktor-client-core:$ktor_version")
                 implementation("io.ktor:ktor-client-json:$ktor_version")
                 api("io.ktor:ktor-client-logging:$ktor_version")
                 implementation("io.ktor:ktor-client-websockets:$ktor_version")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9")
 
             }
         }
@@ -63,7 +52,7 @@ kotlin {
                 api("io.ktor:ktor-client-okhttp:$ktor_version")
                 implementation("io.ktor:ktor-client-serialization-jvm:$ktor_version")
                 implementation("at.favre.lib:bcrypt:0.8.0")
-                implementation("org.jetbrains.kotlin:kotlin-reflect:1.3.61")
+                implementation("org.jetbrains.kotlin:kotlin-reflect:1.4.0")
                 api("io.ktor:ktor-client-logging-jvm:$ktor_version")
                 api("io.ktor:ktor-client-logging:$ktor_version")
                 implementation("org.lz4:lz4-java:1.7.1")
@@ -77,24 +66,24 @@ kotlin {
                 implementation("junit:junit:4.12")
             }
         }
-        val jsMain by getting {
-            dependencies {
-                implementation(kotlin("stdlib-js"))
-                api("io.ktor:ktor-client-core:$ktor_version")
-                api("io.ktor:ktor-client-js:$ktor_version")
-                api("io.ktor:ktor-client-core-js:$ktor_version")
-                api("io.ktor:ktor-client-json-js:$ktor_version")
-                implementation("io.ktor:ktor-client-serialization-js:$ktor_version")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$serialization_version")
-                api("io.ktor:ktor-client-logging-js:$ktor_version")
-
-            }
-        }
-        val jsTest by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-test-js")
-            }
-        }
+//        val jsMain by getting {
+//            dependencies {
+//                implementation(kotlin("stdlib-js"))
+//                api("io.ktor:ktor-client-core:$ktor_version")
+//                api("io.ktor:ktor-client-js:$ktor_version")
+//                api("io.ktor:ktor-client-core-js:$ktor_version")
+//                api("io.ktor:ktor-client-json-js:$ktor_version")
+//                implementation("io.ktor:ktor-client-serialization-js:$ktor_version")
+//                implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$serialization_version")
+//                api("io.ktor:ktor-client-logging-js:$ktor_version")
+//
+//            }
+//        }
+//        val jsTest by getting {
+//            dependencies {
+//                implementation("org.jetbrains.kotlin:kotlin-test-js")
+//            }
+//        }
     }
 }
 

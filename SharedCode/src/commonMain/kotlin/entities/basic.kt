@@ -1,10 +1,18 @@
 package com.charlag.tuta.entities
 
-import kotlinx.serialization.*
-import kotlinx.serialization.internal.*
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Serializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.nullable
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 
-object IvSerializer : KSerializer<Map<String, ByteArray?>> by HashMapSerializer(
+object IvSerializer : KSerializer<Map<String, ByteArray?>> by MapSerializer(
     String.serializer(),
     ByteArraySerializer.nullable
 )
@@ -30,8 +38,8 @@ data class Date(val millis: Long)
 
 @Serializer(forClass = Date::class)
 object DateSerializer : KSerializer<Date> {
-    override fun serialize(encoder: Encoder, obj: Date) {
-        encoder.encodeLong(obj.millis)
+    override fun serialize(encoder: Encoder, value: Date) {
+        encoder.encodeLong(value.millis)
     }
 
     override fun deserialize(decoder: Decoder): Date {
@@ -41,9 +49,9 @@ object DateSerializer : KSerializer<Date> {
 
 @Serializer(forClass = ByteArray::class)
 object ByteArraySerializer : KSerializer<ByteArray> {
-    override val descriptor: SerialDescriptor = SerialClassDescImpl("ByteArray")
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ByteArray")
 
-    override fun serialize(encoder: Encoder, obj: ByteArray) {
+    override fun serialize(encoder: Encoder, value: ByteArray) {
         error("Should not be invoked")
     }
 

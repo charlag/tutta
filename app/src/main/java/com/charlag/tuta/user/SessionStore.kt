@@ -58,7 +58,7 @@ class SharedPrefSessionStore(
         set(value) = prefs.edit().putString(LAST_USER_KEY, value?.asString()).apply()
 
     override fun saveSessionData(credentials: Credentials) {
-        val jsonString = json.stringify(Credentials.serializer(), credentials)
+        val jsonString = json.encodeToString(Credentials.serializer(), credentials)
         credentialsPref[credentials.userId.asString()] = jsonString
     }
 
@@ -72,7 +72,7 @@ class SharedPrefSessionStore(
         return credentialsPref[userId.asString()]?.let { parseCrdentials(it) }
     }
 
-    private fun parseCrdentials(it: String) = json.parse(Credentials.serializer(), it)
+    private fun parseCrdentials(it: String) = json.decodeFromString(Credentials.serializer(), it)
 
     override fun removeSessionData(userId: Id) {
         credentialsPref.edit().remove(userId.asString()).apply()

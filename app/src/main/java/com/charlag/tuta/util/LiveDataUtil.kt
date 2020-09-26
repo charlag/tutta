@@ -85,6 +85,6 @@ inline fun <T> MutableLiveData<T>.mutate(block: (T?) -> T) {
     this.value = block(this.value)
 }
 
-inline fun <T> FilledMutableLiveData<T>.mutate(block: (T) -> T) {
+inline fun <T> FilledMutableLiveData<T>.mutateFilled(block: (T) -> T) {
     this.value = block(this.value)
 }

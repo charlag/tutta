@@ -7,6 +7,7 @@ import com.charlag.tuta.entities.sys.BucketPermission
 import com.charlag.tuta.entities.sys.Permission
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 class SessionKeyResolver(
     private val cryptor: Cryptor,
@@ -137,5 +138,5 @@ class SessionKeyResolver(
     }
 
     private fun Any?.stringOrJsonContent() =
-        this as? String ?: (this as? JsonElement)?.contentOrNull
+        this as? String ?: (this as? JsonElement)?.jsonPrimitive?.contentOrNull
 }

@@ -55,15 +55,16 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version")
 
-    implementation("androidx.appcompat:appcompat:1.1.0")
-    implementation("com.google.android.material:material:1.0.0")
-    implementation("androidx.constraintlayout:constraintlayout:1.1.3")
+    implementation("androidx.appcompat:appcompat:1.2.0")
+    implementation("com.google.android.material:material:1.2.1")
+    implementation("androidx.constraintlayout:constraintlayout:2.0.1")
     implementation("androidx.recyclerview:recyclerview:1.1.0")
     implementation("androidx.recyclerview:recyclerview-selection:1.0.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version")
+//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version")
 
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version")
@@ -72,8 +73,8 @@ dependencies {
 
     implementation("androidx.biometric:biometric:1.0.1")
 
-    implementation("androidx.fragment:fragment-ktx:1.2.1")
-    implementation("androidx.paging:paging-runtime-ktx:2.1.1")
+    implementation("androidx.fragment:fragment-ktx:1.2.5")
+    implementation("androidx.paging:paging-runtime-ktx:2.1.2")
 
     implementation("net.zetetic:android-database-sqlcipher:4.3.0@aar")
 
@@ -87,6 +88,6 @@ dependencies {
 
     testImplementation("junit:junit:4.12")
 
-    androidTestImplementation("androidx.test.ext:junit:1.1.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
+    androidTestImplementation("androidx.test.ext:junit:1.1.2")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.3.0")
 }

@@ -41,7 +41,7 @@ class InstanceMapper(
                     map[fieldName] == null
                 ) {
                     // We must give aggregates an IDs
-                    JsonLiteral(generateAggregateId())
+                    JsonPrimitive(generateAggregateId())
                 } else if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE
                     && fieldName == ID_FIELD_NAME
                 ) {
@@ -82,16 +82,16 @@ class InstanceMapper(
                     }
                     AssociationType.LIST_ELEMENT_ASSOCIATION -> when (assocModel.cardinality) {
                         Cardinality.Any -> (value as List<List<String>>).map { idTuple ->
-                            JsonArray((idTuple).map(::JsonLiteral))
+                            JsonArray((idTuple).map(::JsonPrimitive))
                         }.let(::JsonArray)
                         Cardinality.One,
                         Cardinality.ZeroOrOne -> // null is checked above
-                            JsonArray((value as List<String>).map(::JsonLiteral)).let(::JsonArray)
+                            JsonArray((value as List<String>).map { JsonPrimitive(it) }).let(::JsonArray)
                     }
 
                     else -> when (value) {
-                        is String -> JsonLiteral(value)
-                        is List<*> -> JsonArray(value.map { JsonLiteral(value as String) })
+                        is String -> JsonPrimitive(value)
+                        is List<*> -> JsonArray(value.map { JsonPrimitive(value as String) })
                         else -> error("Unknown association value")
                     }
                 }
@@ -117,7 +117,9 @@ class InstanceMapper(
                 if (typeModel.type == MetamodelType.LIST_ELEMENT_TYPE
                     && fieldName == ID_FIELD_NAME
                 ) {
-                    listOf(fieldValue.jsonArray[0].content, fieldValue.jsonArray[1].content)
+                    listOf(fieldValue.jsonArray[0].jsonPrimitive.content,
+                        fieldValue.jsonArray[1].jsonPrimitive.content
+                    )
                 } else {
                     decryptValue(fieldName, valueModel, fieldValue, sessionKey, finalIvs)
                 }
@@ -156,9 +158,9 @@ class InstanceMapper(
                     }
                     AssociationType.ELEMENT_ASSOCIATION,
                     AssociationType.LIST_ASSOCIATION -> when (assocModel.cardinality) {
-                        Cardinality.One -> value.contentOrNull
+                        Cardinality.One -> value.jsonPrimitive.contentOrNull
                             ?: error("association $fieldName is null even though it's cardinality One")
-                        Cardinality.ZeroOrOne -> value.contentOrNull
+                        Cardinality.ZeroOrOne -> value.jsonPrimitive.contentOrNull
                         Cardinality.Any -> error("Cannot have ANY element association")
                     }
                     AssociationType.LIST_ELEMENT_ASSOCIATION -> when (assocModel.cardinality) {
@@ -179,7 +181,7 @@ class InstanceMapper(
     }
 
     private fun JsonElement.asIdTuple(): List<String> {
-        return listOf(jsonArray[0].content, jsonArray[1].content)
+        return listOf(jsonArray[0].jsonPrimitive.content, jsonArray[1].jsonPrimitive.content)
     }
 
     private suspend fun encryptValue(
@@ -201,21 +203,21 @@ class InstanceMapper(
         } else if (valueModel.encrypted) {
             if (iv != null && iv.isEmpty()) {
                 // We use empty byte array to indicate that it's final default value
-                return JsonLiteral("")
+                return JsonPrimitive("")
             }
             val bytes = if (valueModel.type === ValueType.BytesType) value as ByteArray
             else valueToString(value, valueModel).toBytes()
-            return JsonLiteral(
+            return JsonPrimitive(
                 cryptor.aesEncrypt(
                     bytes,
                     iv ?: cryptor.generateIV(),
                     sessionKey!!,
-                    /*usePadding=*/true,
-                    /*useMac=*/true
+                    usePadding = true,
+                    useMac = true
                 ).toBase64()
             )
         } else {
-            return JsonLiteral(valueToString(value, valueModel))
+            return JsonPrimitive(valueToString(value, valueModel))
         }
     }
 
@@ -226,14 +228,14 @@ class InstanceMapper(
         sessionKey: ByteArray?,
         finalIvs: MutableMap<String, ByteArray?>
     ): Any? {
-        return if (encryptedValue.isNull) {
+        return if (encryptedValue is JsonNull) {
             if (valueModel.cardinality === Cardinality.ZeroOrOne) {
                 null
             } else {
                 error("Value $name is null")
             }
         } else if (valueModel.encrypted) {
-            val bytes = base64ToBytes(encryptedValue.primitive.content)
+            val bytes = base64ToBytes(encryptedValue.jsonPrimitive.content)
 
             val decryptedBytes =
                 if (bytes.isEmpty()) {
@@ -256,7 +258,7 @@ class InstanceMapper(
                 else -> valueFromString(bytesToString(decryptedBytes), valueModel)
             }
         } else {
-            valueFromString(encryptedValue.primitive.content, valueModel)
+            valueFromString(encryptedValue.jsonPrimitive.content, valueModel)
         }
     }
 

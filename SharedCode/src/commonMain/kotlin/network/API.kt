@@ -1,27 +1,31 @@
 package com.charlag.tuta.network
 
-import com.charlag.tuta.*
+import com.charlag.tuta.CryptoException
+import com.charlag.tuta.Cryptor
+import com.charlag.tuta.bytesToString
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.sys.*
+import com.charlag.tuta.generateIV
 import com.charlag.tuta.network.mapping.InstanceMapper
 import com.charlag.tuta.network.mapping.NestedMapper
-import io.ktor.client.HttpClient
-import io.ktor.client.features.feature
-import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.logging.Logging
-import io.ktor.client.features.websocket.wss
+import io.ktor.client.*
+import io.ktor.client.features.*
+import io.ktor.client.features.json.*
+import io.ktor.client.features.logging.*
+import io.ktor.client.features.websocket.*
 import io.ktor.client.request.*
-import io.ktor.http.HttpMethod
-import io.ktor.http.Url
+import io.ktor.http.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.*
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.reflect.KClass
 
+@OptIn(InternalSerializationApi::class)
 class API(
     private val httpClient: HttpClient,
     val baseUrl: String,
@@ -31,7 +35,7 @@ class API(
     val keyResolver: SessionKeyResolver,
     val wsUrl: String
 ) : SessionKeyLoader {
-    private val json = Json(JsonConfiguration.Stable)
+    private val json = Json {  }
     private val jsonSerializer = httpClient.feature(JsonFeature)!!.serializer
 
     suspend fun <T : Entity> serviceRequest(
@@ -50,7 +54,7 @@ class API(
                 url(serviceUrl(app, name))
                 addQueryParams(queryParams)
                 if (serializedEntity != null) {
-                    parameter("_body", json.stringify(JsonObjectSerializer, serializedEntity))
+                    parameter("_body", json.encodeToString(JsonObject.serializer(), serializedEntity))
                 }
             }!!.let { deserializeEntitity(it, responseClass, sk) }
         } else {
@@ -78,13 +82,13 @@ class API(
             httpClient.get<ByteArray> {
                 commonHeaders()
                 url(address)
-                parameter("_body", json.stringify(JsonObjectSerializer, serializedEntity))
+                parameter("_body", json.encodeToString(JsonObject.serializer(), serializedEntity))
             }
         } else {
             httpClient.post<ByteArray>() {
                 commonHeaders()
                 url(address)
-                body = json.stringify(JsonObjectSerializer, serializedEntity)
+                body = json.encodeToString(JsonObject.serializer(), serializedEntity)
             }
         }.let { data ->
             if (sessionKey != null) {
@@ -253,7 +257,7 @@ class API(
             url(address)
             body = jsonSerializer.write(serializedEntity)
         }
-        return response["generatedId"]?.contentOrNull?.let(::GeneratedId)
+        return response["generatedId"]?.jsonPrimitive?.contentOrNull?.let(::GeneratedId)
     }
 
     suspend fun <T : Entity> updateEntity(entity: T) {
@@ -315,7 +319,7 @@ class API(
                         val (type, value) = frameString.split(";")
                         val wsEvent = when (type) {
                             "entityUpdate" -> {
-                                val jsonElement = json.parseJson(value).jsonObject
+                                val jsonElement = json.parseToJsonElement(value).jsonObject
                                 val data =
                                     deserializeEntitity(jsonElement, WebsocketEntityData::class)
                                 WSEvent.EntityUpdate(
@@ -323,7 +327,7 @@ class API(
                                 )
                             }
                             "unreadCounterUpdate" -> {
-                                val jsonElement = json.parseJson(value).jsonObject
+                                val jsonElement = json.parseToJsonElement(value).jsonObject
                                 val data =
                                     deserializeEntitity(jsonElement, WebsocketCounterData::class)
                                 WSEvent.CounterUpdate(data)
@@ -371,7 +375,7 @@ class API(
     }
 
     private fun HttpRequestBuilder.commonHeaders() {
-        header("cv", "3.59.16")
+        header("cv", "3.76.9")
         sessionDataProvider.accessToken?.let {
             header("accessToken", it)
         }

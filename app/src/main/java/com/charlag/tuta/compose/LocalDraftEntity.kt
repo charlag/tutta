@@ -5,7 +5,7 @@ import com.charlag.tuta.ConversationType
 import com.charlag.tuta.RecipientInfo
 import com.charlag.tuta.data.json
 import com.charlag.tuta.entities.IdTuple
-import kotlinx.serialization.internal.ArrayListSerializer
+import kotlinx.serialization.builtins.ListSerializer
 
 @Entity
 @TypeConverters(LocalDraftConverters::class)
@@ -34,23 +34,23 @@ data class LocalDraftEntity(
 )
 
 class LocalDraftConverters {
-    val recipientListSerializer = ArrayListSerializer(RecipientInfo.serializer())
+    val recipientListSerializer = ListSerializer(RecipientInfo.serializer())
 
     @TypeConverter
     fun recipientinfosToJson(infos: List<RecipientInfo>): String =
-        json.stringify(recipientListSerializer, infos)
+        json.encodeToString(recipientListSerializer, infos)
 
     @TypeConverter
     fun jsonToRecipientInfos(jsonString: String): List<RecipientInfo> =
-        json.parse(recipientListSerializer, jsonString)
+        json.decodeFromString(recipientListSerializer, jsonString)
 
-    val fileReferenceListSerializer = ArrayListSerializer(FileReference.serializer())
+    val fileReferenceListSerializer = ListSerializer(FileReference.serializer())
 
     @TypeConverter
     fun fileRefsToJson(infos: List<FileReference>): String =
-        json.stringify(fileReferenceListSerializer, infos)
+        json.encodeToString(fileReferenceListSerializer, infos)
 
     @TypeConverter
     fun jsonToFileRefs(jsonString: String): List<FileReference> =
-        json.parse(fileReferenceListSerializer, jsonString)
+        json.decodeFromString(fileReferenceListSerializer, jsonString)
 }
