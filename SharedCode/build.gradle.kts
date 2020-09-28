@@ -18,6 +18,7 @@ android {
 
 kotlin {
     android()
+    linuxX64()
 //    js()
 
     sourceSets {
@@ -66,32 +67,13 @@ kotlin {
                 implementation("junit:junit:4.12")
             }
         }
-//        val jsMain by getting {
-//            dependencies {
-//                implementation(kotlin("stdlib-js"))
-//                api("io.ktor:ktor-client-core:$ktor_version")
-//                api("io.ktor:ktor-client-js:$ktor_version")
-//                api("io.ktor:ktor-client-core-js:$ktor_version")
-//                api("io.ktor:ktor-client-json-js:$ktor_version")
-//                implementation("io.ktor:ktor-client-serialization-js:$ktor_version")
-//                implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$serialization_version")
-//                api("io.ktor:ktor-client-logging-js:$ktor_version")
-//
-//            }
-//        }
-//        val jsTest by getting {
-//            dependencies {
-//                implementation("org.jetbrains.kotlin:kotlin-test-js")
-//            }
-//        }
-        val linuxMain by getting {
+        val linuxX64Main by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-serialization-native:$ktor_version")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:$serialization_version")
-                api("io.ktor:ktor-client-core-native:$ktor_version")
-                api("io.ktor:ktor-client-json-native:$ktor_version")
+                api("io.ktor:ktor-client-core-linuxx64:$ktor_version")
                 api("io.ktor:ktor-client-curl:$ktor_version")
-                api("io.ktor:ktor-client-logging-native:$ktor_version")
+                api("io.ktor:ktor-client-json-linuxx64:$ktor_version")
+                api("io.ktor:ktor-client-logging-linuxx64:$ktor_version")
+                api("io.ktor:ktor-client-serialization-linuxx64:$ktor_version")
             }
         }
     }

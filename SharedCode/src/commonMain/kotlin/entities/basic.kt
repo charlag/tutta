@@ -18,10 +18,10 @@ object IvSerializer : KSerializer<Map<String, ByteArray?>> by MapSerializer(
 )
 
 @Serializable
-abstract class Entity(
+abstract class Entity {
     @Serializable(with = IvSerializer::class)
     var finalIvs: Map<String, ByteArray?>? = null
-)
+}
 
 @Serializable
 abstract class ElementEntity : Entity() {

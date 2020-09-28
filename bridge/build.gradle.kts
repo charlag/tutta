@@ -21,9 +21,6 @@ kotlin {
         val linuxMain by getting {
             dependencies {
                 implementation(project(":SharedCode"))
-
-                val ktor_version = "1.3.0"
-
             }
         }
     }

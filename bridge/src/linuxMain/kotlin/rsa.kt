@@ -48,7 +48,7 @@ fun hexToPrivateKey(hex: String): PrivateKey {
     return arrayToPrivateKey(hexToKeyArray(hex))
 }
 
-var CValuesRef<BIGNUM>.byteNum: Int
+val CValuesRef<BIGNUM>.byteNum: Int
     // define BN_num_bytes(a) ((BN_num_bits(a)+7)/8)
     get() = (BN_num_bits(this) + 7) / 8
 

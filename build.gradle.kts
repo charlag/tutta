@@ -3,7 +3,7 @@
 val kotlin_version = "1.4.0"
 
 buildscript {
-    val kotlin_version by rootProject.extra("1.4.0")
+    val kotlin_version by rootProject.extra("1.4.10")
     rootProject.apply {
         extra["ktor_version"] = "1.4.1"
         extra["coroutines_version"] = "1.3.9"
@@ -35,5 +35,7 @@ allprojects {
     repositories {
         google()
         jcenter()
+        maven("https://dl.bintray.com/kotlin/kotlinx")
+        maven("https://dl.bintray.com/kotlin/ktor")
     }
 }
