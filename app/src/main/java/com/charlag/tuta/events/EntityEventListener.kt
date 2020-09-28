@@ -96,6 +96,10 @@ class EntityEventListener @Inject constructor(
             // Start consuming events right away so that we don't miss any
             val realtimeEvents =
                 api.getEvents(userId = user._id!!.asString()).consumeAsFlow()
+                    .catch { e ->
+                        Log.e(TAG, "Even during ws", e)
+                        throw e
+                    }
                     .onEach { update ->
                         if (update is API.WSEvent.CounterUpdate) {
                             processCounterUpdate(update)

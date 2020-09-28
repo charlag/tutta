@@ -120,11 +120,11 @@ public final class LocalNotificationsFacade {
 
             NotificationCompat.Builder notificationBuilder =
                     new NotificationCompat.Builder(context, EMAIL_NOTIFICATION_CHANNEL_ID)
-                            .setLights(context.getResources().getColor(R.color.colorPrimary), 1000, 1000);
+                            .setLights(context.getResources().getColor(R.color.white), 1000, 1000);
             ArrayList<String> addresses = new ArrayList<>();
             addresses.add(notificationInfo.getAddress());
             notificationBuilder.setContentTitle(title)
-                    .setColor(context.getResources().getColor(R.color.colorPrimary))
+                    .setColor(context.getResources().getColor(R.color.white))
                     .setContentText(notificationContent(notificationInfo.getAddress()))
                     .setNumber(counterPerAlias.counter)
                     .setSmallIcon(R.drawable.ic_inbox_black_24dp)
@@ -169,7 +169,7 @@ public final class LocalNotificationsFacade {
                 .setSmallIcon(R.drawable.ic_inbox_black_24dp)
                 .setGroup(NOTIFICATION_EMAIL_GROUP)
                 .setGroupSummary(true)
-                .setColor(context.getResources().getColor(R.color.colorPrimary))
+                .setColor(context.getResources().getColor(R.color.white))
                 .setNumber(summaryCounter)
                 .setStyle(inboxStyle)
                 .setContentIntent(intentOpenMailbox(notificationInfo, true))
@@ -292,7 +292,7 @@ public final class LocalNotificationsFacade {
                         .setContentTitle("Reminder")
                         .setContentText(contentText)
                         .setDefaults(NotificationCompat.DEFAULT_ALL)
-                        .setColor(context.getResources().getColor(R.color.colorPrimary))
+                        .setColor(context.getResources().getColor(R.color.white))
                         .setContentIntent(openCalendarIntent(context, intent))
                         .setAutoCancel(true)
                         .build());

@@ -89,7 +89,7 @@
                             android:inputType="textPassword" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                         android:id="@+id/loginButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -100,7 +100,9 @@
                         app:layout_constraintBottom_toTopOf="@id/statusLabel"
                         app:layout_constraintLeft_toLeftOf="parent"
                         app:layout_constraintRight_toRightOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/passwordFieldLayout" />
+                        app:layout_constraintTop_toBottomOf="@id/passwordFieldLayout"
+                        app:backgroundTint="@color/colorAccent"
+                        android:textColor="@color/white"/>
 
                 <TextView
                         android:id="@+id/statusLabel"

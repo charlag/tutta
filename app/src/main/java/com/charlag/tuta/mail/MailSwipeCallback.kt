@@ -21,7 +21,7 @@ class MailSwipeCallback(
         color = context.getColor(R.color.blue_20)
     }
     private val fgPaint = Paint().apply {
-        color = context.getColor(R.color.colorPrimary)
+        color = context.getColor(R.color.white)
     }
     private val trashIcon = context.getDrawable(R.drawable.ic_delete_black_24dp)!!.apply {
         setTint(Color.WHITE)
