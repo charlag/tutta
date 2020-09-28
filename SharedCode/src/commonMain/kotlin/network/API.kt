@@ -5,6 +5,7 @@ import com.charlag.tuta.Cryptor
 import com.charlag.tuta.bytesToString
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.sys.*
+import com.charlag.tuta.entities.tutanota.MailTypeInfo
 import com.charlag.tuta.generateIV
 import com.charlag.tuta.network.mapping.InstanceMapper
 import com.charlag.tuta.network.mapping.NestedMapper
@@ -304,8 +305,10 @@ class API(
         GlobalScope.launch {
             try {
                 httpClient.wss(wsUrl, {
-                    url.parameters["modelVersions"] = "49.36"
-                    url.parameters["clientVersion"] = "3.59.7"
+                    val sysModelVersion = UserTypeInfo.typemodel.version
+                    val tutanotaModelVersion = MailTypeInfo.typemodel.version
+                    url.parameters["modelVersions"] = "$sysModelVersion.$tutanotaModelVersion"
+                    url.parameters["clientVersion"] = CLIENT_VERSION
                     url.parameters["userId"] = userId
                     sessionDataProvider.accessToken?.let { token ->
                         url.parameters["accessToken"] = token
@@ -375,7 +378,7 @@ class API(
     }
 
     private fun HttpRequestBuilder.commonHeaders() {
-        header("cv", "3.76.9")
+        header("cv", CLIENT_VERSION)
         sessionDataProvider.accessToken?.let {
             header("accessToken", it)
         }
@@ -425,5 +428,11 @@ class API(
         @Suppress("UNCHECKED_CAST")
         return NestedMapper()
             .unmap(serializer, processedMap)
+    }
+
+    private companion object {
+        /** Fake but we try to match official client */
+        private const val CLIENT_VERSION = "3.76.9"
+
     }
 }

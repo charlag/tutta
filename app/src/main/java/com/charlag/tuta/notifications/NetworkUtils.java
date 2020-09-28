@@ -1,7 +1,5 @@
 package com.charlag.tuta.notifications;
 
-import com.charlag.tuta.BuildConfig;
-
 import java.net.HttpURLConnection;
 
 public class NetworkUtils {
