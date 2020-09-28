@@ -192,8 +192,7 @@ class InstanceMapper(
         iv: ByteArray?
     ): JsonPrimitive {
         if (value == null) {
-            if (name == ID_FIELD_NAME
-                || name == "_permissions"
+            if (name.startsWith("_")
                 || valueModel.cardinality == Cardinality.ZeroOrOne
             ) {
                 return JsonNull
