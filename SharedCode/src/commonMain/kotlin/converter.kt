@@ -153,7 +153,6 @@ private val BASE64_EXT_ENCODE = charArrayOf(
  * @param base64 The base64 string.
  * @return The base64Ext string.
  */
-@UseExperimental(ExperimentalStdlibApi::class)
 fun base64ToBase64Ext(base64: String): String {
     val replaced = base64.dropLastWhile { it == '=' }
     val extChars = CharArray(replaced.length)

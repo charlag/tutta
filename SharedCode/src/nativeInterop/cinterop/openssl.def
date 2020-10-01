@@ -1,0 +1,13 @@
+headers = openssl/conf.h openssl/evp.h openssl/err.h string.h openssl/rsa.h openssl/rand.h openssl/hmac.h openssl/bio.h openssl/buffer.h
+headerFilter = openssl/**
+linkerOpts.linux = -L/usr/lib -L/usr/lib64 -L/usr/lib/x86_64-linux-gnu -lcrypto
+
+---
+
+static inline int bio_flush(BIO *b) {
+  return BIO_flush(b);
+}
+
+static inline void bio_get_mem_ptr(BIO *b, BUF_MEM **pp) {
+  BIO_get_mem_ptr(b, pp);
+}

@@ -73,7 +73,6 @@ private const val BCRYPT_ROUNDS = 8
 suspend fun Cryptor.generateKeyFromPassphrase(passphrase: String, salt: ByteArray): ByteArray {
     val passphraseBytes = sha256hash(passphrase.toByteArray())
 
-
     return bcrypt(BCRYPT_ROUNDS, passphraseBytes, salt)
         .sliceArray(0 until 16)
 }

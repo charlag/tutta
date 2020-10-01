@@ -19,6 +19,7 @@ import io.ktor.http.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.*
@@ -26,7 +27,7 @@ import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.reflect.KClass
 
-@OptIn(InternalSerializationApi::class)
+@OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 class API(
     private val httpClient: HttpClient,
     val baseUrl: String,

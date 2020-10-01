@@ -18,7 +18,14 @@ android {
 
 kotlin {
     android()
-    linuxX64()
+    linuxX64 {
+        compilations["main"].cinterops {
+            val openssl by creating {
+                packageName("org.openssl")
+                includeDirs.headerFilterOnly("/usr/include")
+            }
+        }
+    }
 //    js()
 
     sourceSets {
@@ -36,7 +43,6 @@ kotlin {
                 api("io.ktor:ktor-client-logging:$ktor_version")
                 implementation("io.ktor:ktor-client-websockets:$ktor_version")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9")
-
             }
         }
 
