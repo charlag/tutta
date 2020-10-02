@@ -175,7 +175,7 @@ class MailFacade(
     }
 
     suspend fun sendDraft(
-        user: User, draft: Mail, recipientInfos: List<RecipientInfo>, language: String
+        @Suppress("UNUSED_PARAMETER") user: User, draft: Mail, recipientInfos: List<RecipientInfo>, language: String
     ) {
         // We don't need a user currently but we'll need them for external secure mails
         val bucketKey = cryptor.aes128RandomKey()
@@ -264,7 +264,7 @@ class MailFacade(
     }
 
     suspend fun getEnabledMailAddresses(
-        user: User,
+        @Suppress("UNUSED_PARAMETER") user: User,
         userGroupInfo: GroupInfo,
         mailGroup: Group
     ): List<String> {

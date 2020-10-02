@@ -179,6 +179,7 @@ data class CustomId(val stringData: String) : Id() {
 }
 
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 data class IdTuple(val listId: Id, val elementId: Id) {
     @Serializer(forClass = IdTuple::class)
     companion object :

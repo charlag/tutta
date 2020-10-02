@@ -2,6 +2,7 @@ package com.charlag.tuta
 
 import com.charlag.tuta.openssl.AES
 import com.charlag.tuta.openssl.AES.AES_KEY_LENGTH_BYTES
+import com.charlag.tuta.openssl.toOpenssl
 import kotlinx.cinterop.*
 import org.openssl.*
 
@@ -76,14 +77,16 @@ actual class Cryptor {
      * Asymmetric encryption using RSA public key
      */
     actual suspend fun rsaEncrypt(value: ByteArray, publicKey: PublicKey): ByteArray {
-        TODO()
+        val key = publicKey.toOpenssl()
+        return com.charlag.tuta.openssl.rsaEncrypt(value, key)
     }
 
     /**
      * Asymmetric decryption using RSA private key
      */
     actual suspend fun rsaDecrypt(value: ByteArray, privateKey: PrivateKey): ByteArray {
-        TODO()
+        val key = privateKey.toOpenssl()
+        return com.charlag.tuta.openssl.rsaDecrypt(value, key)
     }
 
     actual fun generateRandomData(byteSize: Int): ByteArray {
@@ -145,7 +148,7 @@ actual class Cryptor {
     private fun hmac256(key: ByteArray, data: ByteArray): ByteArray {
         val ctx = HMAC_CTX_new()
         try {
-            val output = ByteArray(256)
+            val output = ByteArray(32) // 256 bit = 32 byte
             HMAC(
                 evp_md = EVP_sha256(),
                 key = key.refTo(0),

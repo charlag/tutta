@@ -9,4 +9,5 @@ expect fun ByteArray.toBase64(): String
 expect fun bytesToString(bytes: ByteArray): String
 expect fun String.toBytes(): ByteArray
 
+expect fun hexToPrivateKey(hex: String): PrivateKey
 expect fun hexToPublicKey(hex: String): PublicKey

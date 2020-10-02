@@ -21,7 +21,7 @@ class FileFacade(
     private val keyResolver: SessionKeyResolver
 ) {
     suspend fun downloadFile(file: File): DataFile {
-        val id = requireNotNull(file._id) { "File has no id" }
+        requireNotNull(file._id) { "File has no id" }
         val sessionKey = keyResolver.resolveSessionKey(
             typemodelMap.getValue(File::class.noReflectionName).typemodel,
             file._ownerEncSessionKey,

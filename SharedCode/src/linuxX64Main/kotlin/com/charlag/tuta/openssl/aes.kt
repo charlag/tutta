@@ -11,7 +11,6 @@ object AES {
         usePadding: Boolean
     ): ByteArray {
         val ctx = EVP_CIPHER_CTX_new() ?: error("failed to init evp context")
-        if (!usePadding) EVP_CIPHER_CTX_set_padding(ctx, 0)
 
         try {
             var len = 0
@@ -38,11 +37,11 @@ object AES {
             ) {
                 error("Failed to init encrypt")
             }
+            if (!usePadding) EVP_CIPHER_CTX_set_padding(ctx, 0)
 
 
             memScoped {
                 val ciphertextLenVal = alloc<IntVar>()
-                val p = plaintextBytes.pin()
 
                 /*
                  * Provide the message to be encrypted, and obtain the encrypted output.
@@ -90,9 +89,6 @@ object AES {
         usePadding: Boolean
     ): ByteArray {
         val ctx = EVP_CIPHER_CTX_new() ?: error("Error init context in decrypt")
-        // Disable padding if needed
-        if (!usePadding) EVP_CIPHER_CTX_set_padding(ctx, 0)
-
         /*
          * Initialise the decryption operation. IMPORTANT - ensure you use a key
          * and IV size appropriate for your cipher
@@ -108,6 +104,7 @@ object AES {
                 iv.asUByteArray().refTo(0)
             )
         ) error("Error init decrypt")
+        if (!usePadding) EVP_CIPHER_CTX_set_padding(ctx, 0)
 
         try {
             val plaintext = UByteArray(128)
@@ -150,6 +147,6 @@ object AES {
 }
 
 
-private inline fun Int.checkOne(message: () -> String) {
+inline fun Int.checkOne(message: () -> String) {
     if (this != 1) error(message())
 }

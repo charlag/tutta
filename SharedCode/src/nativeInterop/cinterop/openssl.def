@@ -11,3 +11,16 @@ static inline int bio_flush(BIO *b) {
 static inline void bio_get_mem_ptr(BIO *b, BUF_MEM **pp) {
   BIO_get_mem_ptr(b, pp);
 }
+
+static inline int evp_PKEY_CTX_set_rsa_mgf1_md(EVP_PKEY_CTX *ctx, const EVP_MD *md) {
+  return EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, md);
+}
+
+static inline int evp_PKEY_CTX_set_rsa_padding(EVP_PKEY_CTX *ctx, int pad) {
+  return EVP_PKEY_CTX_set_rsa_padding(ctx, pad);
+}
+
+
+static inline int evp_PKEY_CTX_set_rsa_oaep_md(EVP_PKEY_CTX *ctx, const EVP_MD *md) {
+  return EVP_PKEY_CTX_set_rsa_oaep_md(ctx, md);
+}

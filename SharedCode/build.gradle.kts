@@ -29,6 +29,11 @@ kotlin {
 //    js()
 
     sourceSets {
+        all {
+            languageSettings.useExperimentalAnnotation("kotlinx.serialization.InternalSerializationApi")
+            languageSettings.useExperimentalAnnotation("kotlinx.serialization.ExperimentalSerializationApi")
+        }
+
         val ktor_version: String by rootProject.extra
         val serialization_version: String by rootProject.extra
 

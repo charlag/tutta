@@ -1,6 +1,7 @@
 import com.charlag.tuta.network.mapping.NestedMapper
 import com.charlag.tuta.entities.ByteArraySerializer
 import com.charlag.tuta.entities.Entity
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlin.test.Ignore
@@ -21,7 +22,7 @@ data class NestedContainer(
 )
 
 @Ignore // failing because deserialization is buggy with inheritance
-@OptIn(InternalSerializationApi::class)
+@OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 internal class NestedMapperTest {
     val mapper = NestedMapper()
 

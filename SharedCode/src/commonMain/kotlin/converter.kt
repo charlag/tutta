@@ -25,7 +25,7 @@ fun bytesToHex(bytes: ByteArray): String {
         hexChars[j * 2] = hexArray[v ushr 4]
         hexChars[j * 2 + 1] = hexArray[v and 0x0F]
     }
-    return String(hexChars)
+    return hexChars.concatToString()
 }
 
 

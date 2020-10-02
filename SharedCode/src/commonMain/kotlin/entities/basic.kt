@@ -1,5 +1,6 @@
 package com.charlag.tuta.entities
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Serializer
@@ -36,6 +37,7 @@ abstract class ListElementEntity : Entity() {
 data class Date(val millis: Long)
 
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = Date::class)
 object DateSerializer : KSerializer<Date> {
     override fun serialize(encoder: Encoder, value: Date) {
@@ -47,6 +49,7 @@ object DateSerializer : KSerializer<Date> {
     }
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = ByteArray::class)
 object ByteArraySerializer : KSerializer<ByteArray> {
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ByteArray")
