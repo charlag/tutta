@@ -147,6 +147,7 @@ object AES {
 }
 
 
-inline fun Int.checkOne(message: () -> String) {
+inline fun Int.checkOne(message: () -> String): Int {
     if (this != 1) error(message())
+    return this
 }

@@ -74,15 +74,19 @@ class RealLoginController(
     ) {
         // This is back-and-forth because we need to load user using authenticated API so we create
         // the component here first to get such an API
+
+        // Stage 1: get user id/accessToken
         val (userId, passpharseKey, accessToken) =
             loginFacade.createSession(mailAddress, passphrase, secondFactorCallback)
         this.userComponent?.let { cancelSession(it) }
         val userComponent = makeUserComponent(userId, passphrase)
         init(userComponent, accessToken)
+        // Stage 2: get user
         val user = userComponent.api().loadElementEntity<User>(userId)
         val userGroupKey =
             loginFacade.getUserGroupKey(user, passpharseKey)
         sessionStore.lastUser = userId
+        // stage 3: set user and load everything else
         initSession(SessionData(user, accessToken, userGroupKey), userComponent)
 
         val encPassphrase = cryptor.encryptString(passphrase, deviceKey)

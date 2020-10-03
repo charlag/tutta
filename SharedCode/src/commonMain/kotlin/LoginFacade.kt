@@ -6,9 +6,9 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.sys.*
 import com.charlag.tuta.network.API
-import io.ktor.client.features.ClientRequestException
-import io.ktor.http.HttpMethod
-import kotlin.Exception
+import io.ktor.client.features.*
+import io.ktor.http.*
+import kotlinx.serialization.Serializable
 
 class SessionData(
     val user: User,
@@ -16,11 +16,32 @@ class SessionData(
     val userGroupKey: ByteArray
 )
 
+@Serializable
 data class CreateSessionResult(
     val userId: Id,
     val passphraseKey: ByteArray,
     val accessToken: String
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as CreateSessionResult
+
+        if (userId != other.userId) return false
+        if (!passphraseKey.contentEquals(other.passphraseKey)) return false
+        if (accessToken != other.accessToken) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = userId.hashCode()
+        result = 31 * result + passphraseKey.contentHashCode()
+        result = 31 * result + accessToken.hashCode()
+        return result
+    }
+}
 
 typealias SecondFactorCallback = (sessionId: IdTuple) -> Unit
 

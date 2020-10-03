@@ -249,20 +249,24 @@ open class GenerateModels : DefaultTask() {
 
             // Generate typeInfos list
             val entityTYpe = ClassName.bestGuess("com.charlag.tuta.entities.Entity")
-            FileSpec.builder("com.charlag.tuta.entities.${modelName}", "TypeInfos")
+            // Use Z in the beginning of the file name so that the generated class is loaded
+            // after all entities. This is a hack for JS/Native backends which have such
+            // embarrassing issues.
+            FileSpec.builder("com.charlag.tuta.entities.${modelName}", "ZTypeInfos")
                 .addProperty(
                     PropertySpec.builder(
-                        "typeInfo", LIST.parameterizedBy(
+                        "typeInfo", MAP.parameterizedBy(
+                            STRING,
                             ClassName.bestGuess("com.charlag.tuta.entities.TypeInfo")
                                 .parameterizedBy(WildcardTypeName.producerOf(entityTYpe))
                         )
                     )
                         .initializer(
                             """
-                        listOf(
-${model.keys.joinToString { "${it}TypeInfo" }}                        
-                        )
-                    """.trimIndent()
+                        buildMap {
+${model.keys.joinToString("\n") { "put(\"${it}\", ${it}TypeInfo)" }}                        
+                        }
+                    """
                         )
                         .build()
                 )
@@ -294,9 +298,9 @@ ${model.keys.joinToString { "${it}TypeInfo" }}
                                            rootId = "${type["rootId"] as String}",
                                            values = mapOf(
                                            ${
-                (type["values"] as Map<String, Map<String, Any>>).entries.joinToString { (k, v) ->
-                    val valueBlock = CodeBlock.of(
-                        """
+                    (type["values"] as Map<String, Map<String, Any>>).entries.joinToString { (k, v) ->
+                        val valueBlock = CodeBlock.of(
+                            """
                                                 Value(
                                                     type = ${"ValueType.${v["type"] as String}Type"},
                                                     cardinality = ${v["cardinality"]},
@@ -305,16 +309,16 @@ ${model.keys.joinToString { "${it}TypeInfo" }}
                                                 )
                                                 
                                             """.trimIndent()
-                    )
-                    "\"$k\" to $valueBlock"
-                }
+                        )
+                        "\"$k\" to $valueBlock"
+                    }
                 }
                                             ),
                                            associations = mapOf(${
-                (type["associations"] as Map<String, Map<String, Any>>)
-                    .entries.joinToString(separator = ",\n") { (k, v) ->
-                        val assocBlock = CodeBlock.of(
-                            """
+                    (type["associations"] as Map<String, Map<String, Any>>)
+                        .entries.joinToString(separator = ",\n") { (k, v) ->
+                            val assocBlock = CodeBlock.of(
+                                """
                                 Association(
                                     type = AssociationType.${v["type"]},
                                     cardinality = ${v["cardinality"]},
@@ -323,9 +327,9 @@ ${model.keys.joinToString { "${it}TypeInfo" }}
                                     external = ${if (v["external"] == true) "true" else false}
                                 )
                             """.trimIndent()
-                        )
-                        "\"$k\" to $assocBlock"
-                    }
+                            )
+                            "\"$k\" to $assocBlock"
+                        }
                 }),
                                            version = ${(type["version"] as String).toLong()}
                                        ),

@@ -32,6 +32,7 @@ kotlin {
         all {
             languageSettings.useExperimentalAnnotation("kotlinx.serialization.InternalSerializationApi")
             languageSettings.useExperimentalAnnotation("kotlinx.serialization.ExperimentalSerializationApi")
+            languageSettings.useExperimentalAnnotation("kotlin.ExperimentalStdlibApi")
         }
 
         val ktor_version: String by rootProject.extra
@@ -47,7 +48,7 @@ kotlin {
                 implementation("io.ktor:ktor-client-json:$ktor_version")
                 api("io.ktor:ktor-client-logging:$ktor_version")
                 implementation("io.ktor:ktor-client-websockets:$ktor_version")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9-native-mt")
             }
         }
 
@@ -85,6 +86,7 @@ kotlin {
                 api("io.ktor:ktor-client-json-linuxx64:$ktor_version")
                 api("io.ktor:ktor-client-logging-linuxx64:$ktor_version")
                 api("io.ktor:ktor-client-serialization-linuxx64:$ktor_version")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9-native-mt-2")
             }
         }
     }
@@ -96,7 +98,7 @@ tasks.register("copyJsFiles", Copy::class) {
 }
 
 
-tasks.register<GenerateModels>("generateModelClasses") {
+val generateModels = tasks.register<GenerateModels>("generateModelClasses") {
     modelsFile = File("metadata/models.json")
     outputDir = File("$buildDir/generated/source/kotlin")
 

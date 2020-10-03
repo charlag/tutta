@@ -70,7 +70,7 @@ actual class Cryptor {
      * Decrypt RSA with symmetric encryption
      */
     actual suspend fun decryptRsaKey(value: ByteArray, key: ByteArray): PrivateKey {
-        TODO()
+        return hexToPrivateKey(bytesToHex(aesDecrypt(value, key, true).data))
     }
 
     /**

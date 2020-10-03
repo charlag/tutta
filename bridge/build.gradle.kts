@@ -17,6 +17,9 @@ kotlin {
                 implementation(project(":SharedCode"))
             }
         }
+        all {
+            languageSettings.enableLanguageFeature("InlineClasses")
+        }
     }
 
 }
