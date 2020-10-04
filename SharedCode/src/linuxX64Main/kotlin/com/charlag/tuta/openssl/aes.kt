@@ -17,7 +17,8 @@ object AES {
 
             val keyBytes = key.asUByteArray()
             val ivBytes = iv.asUByteArray()
-            val ciphertextBytes = UByteArray(128)
+            // Plaintext + padding
+            val ciphertextBytes = UByteArray(plaintext.size + 16)
             val plaintextBytes = plaintext.toUByteArray()
 
             /*
@@ -84,7 +85,8 @@ object AES {
 
 
     fun decrypt(
-        ciphertext: ByteArray, key: ByteArray,
+        ciphertext: ByteArray,
+        key: ByteArray,
         iv: ByteArray,
         usePadding: Boolean
     ): ByteArray {
@@ -93,8 +95,7 @@ object AES {
          * Initialise the decryption operation. IMPORTANT - ensure you use a key
          * and IV size appropriate for your cipher
          * In this example we are using 256 bit com.charlag.tuta.openssl.AES (i.e. a 256 bit key). The
-         * IV size for *most* modes is the same as the block size. For com.charlag.tuta.openssl.AES this
-         * is 128 bits
+         * IV size for *most* modes is the same as the block size. For AES this is 128 bits
          */
         if (1 != EVP_DecryptInit_ex(
                 ctx,
@@ -107,36 +108,55 @@ object AES {
         if (!usePadding) EVP_CIPHER_CTX_set_padding(ctx, 0)
 
         try {
-            val plaintext = UByteArray(128)
-            var plaintext_len = 0
+            // AES does not change the size but it might be padded to make a full 16 byte block. If
+            // it's exact multiplier it will get a full padding block.
+            // It is very important to have big enough buffer here as OpenSSL will just silently
+            // corrupt our memory otherwise
+            val plaintextGuessedLength = ciphertext.size + 16
+            val plaintext = UByteArray(plaintextGuessedLength)
+            val plaintextPin = plaintext.pin()
+            var plaintextActualLen = 0
 
+            val ciphtertextPin = ciphertext.pin()
             memScoped {
                 val outLenVal = alloc<IntVar>()
+                val lenPin = outLenVal.pin()
 
                 /*
                  * Provide the message to be decrypted, and obtain the plaintext output.
                  * EVP_DecryptUpdate can be called multiple times if necessary.
                  */
+                val ciphertextU = ciphertext.asUByteArray()
                 if (1 != EVP_DecryptUpdate(
                         ctx,
                         plaintext.refTo(0),
                         outLenVal.ptr,
-                        ciphertext.asUByteArray().refTo(0),
-                        ciphertext.size
+                        ciphertextU.refTo(0),
+                        ciphertextU.size
                     )
-                ) error("Error during decryptUpdate")
+                ) {
+                    error("Error during decryptUpdate")
+                }
 
-                plaintext_len = outLenVal.value
-
+                plaintextActualLen = outLenVal.value
                 /*
                  * Finalise the decryption. Further plaintext bytes may be written at
                  * this stage.
                  */
-                if (1 != EVP_DecryptFinal_ex(ctx, plaintext.refTo(outLenVal.value), outLenVal.ptr))
+                if (1 != EVP_DecryptFinal_ex(
+                        ctx,
+                        plaintext.refTo(outLenVal.value),
+                        outLenVal.ptr
+                    )
+                ) {
                     error("Error during final")
-                plaintext_len += outLenVal.value;
+                }
+                plaintextActualLen += outLenVal.value;
+                lenPin.unpin()
             }
-            return plaintext.toByteArray().copyOfRange(0, plaintext_len)
+            plaintextPin.unpin()
+            ciphtertextPin.unpin()
+            return plaintext.toByteArray().copyOfRange(0, plaintextActualLen)
         } finally {
             EVP_CIPHER_CTX_free(ctx)
         }
