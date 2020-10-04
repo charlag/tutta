@@ -16,7 +16,7 @@ fun Path.exists(): Boolean {
 inline class FileHandle(val fd: Int)
 
 inline fun <T> useFile(path: Path, modes: FileOpenMask, lambda: (FileHandle) -> T): T {
-    val fd = open(path.value, modes.value, S_IRWXU).check(::isPositive) {
+    val fd = open(path.value, modes.value, S_IRWXU).check(::isNonNegative) {
         error("Could not open file $path: $it, ${errorMessage()}")
     }
     try {
@@ -36,7 +36,7 @@ fun readFile(path: Path): String {
     return useFile(path, FileOpenMask(O_RDONLY)) { handle ->
         val BUF_SIZE = 256
         val buf = ByteArray(BUF_SIZE)
-        val readBytes = read(handle.fd, buf.refTo(0), BUF_SIZE.toULong()).check(::isPositive) {
+        val readBytes = read(handle.fd, buf.refTo(0), BUF_SIZE.toULong()).check(::isNonNegative) {
             error("Could not read file $path: $it, ${errorMessage()}")
         }
         buf.decodeToString(0, readBytes.toInt())
@@ -45,7 +45,7 @@ fun readFile(path: Path): String {
 
 fun isZero(v: Long): Boolean = v == 0L
 
-fun isPositive(v: Long): Boolean = v >= 0
+fun isNonNegative(v: Long): Boolean = v >= 0
 
 inline fun Long.check(predicate: (Long) -> Boolean, handler: (Long) -> Unit): Long {
     if (!predicate(this)) {
@@ -56,7 +56,7 @@ inline fun Long.check(predicate: (Long) -> Boolean, handler: (Long) -> Unit): Lo
 
 fun isZero(v: Int): Boolean = v == 0
 
-fun isPositive(v: Int): Boolean = v >= 0
+fun isNonNegative(v: Int): Boolean = v >= 0
 
 inline fun Int.check(predicate: (Int) -> Boolean, handler: (Int) -> Unit): Int {
     if (!predicate(this)) {
@@ -68,7 +68,7 @@ inline fun Int.check(predicate: (Int) -> Boolean, handler: (Int) -> Unit): Int {
 fun writeFile(path: Path, content: String) {
     useFile(path, FileOpenMask(O_RDWR) + O_CREAT + O_TRUNC) { handle ->
         val buf = content.toBytes()
-        write(handle.fd, buf.refTo(0), buf.size.toULong()).check(::isPositive) {
+        write(handle.fd, buf.refTo(0), buf.size.toULong()).check(::isNonNegative) {
             error("Could not write file $path: $it, ${errorMessage()}")
         }
     }

@@ -8,6 +8,8 @@ import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailBox
 import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.entities.tutanota.MailboxGroupRoot
+import com.charlag.tuta.imap.ImapServer
+import com.charlag.tuta.imap.MailLoaderImpl
 import com.charlag.tuta.network.API
 import com.charlag.tuta.network.SessionKeyResolver
 import com.charlag.tuta.network.UserSessionDataProvider
@@ -21,10 +23,18 @@ fun main() {
     Platform.isMemoryLeakCheckerActive = false
 
     val dependencyDump = DependencyDump()
+
     runBlocking {
         login(dependencyDump)
         println("Logged in!")
-        loadMails(dependencyDump)
+
+        val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController)
+//        val mailLoader = FakeMailLoader()
+        val server = ImapServer(mailLoader)
+
+//        loadMails(dependencyDump)
+        runBridgeServer(server)
+
     }
 }
 
@@ -51,7 +61,7 @@ suspend fun newSession(dependencyDump: DependencyDump): CreateSessionResult {
     print("Password: ")
     val password = readLine() ?: ""
 
-    val credentials =dependencyDump.loginFacade.createSession(
+    val credentials = dependencyDump.loginFacade.createSession(
         email,
         password,
         onSecondFactorPending = { error("Does not support 2FA yet") }

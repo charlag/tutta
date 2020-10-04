@@ -37,5 +37,6 @@ allprojects {
         jcenter()
         maven("https://dl.bintray.com/kotlin/kotlinx")
         maven("https://dl.bintray.com/kotlin/ktor")
+        maven("https://dl.bintray.com/hotkeytlt/maven")
     }
 }
