@@ -1,5 +1,7 @@
 package com.charlag.tuta
 
+import com.charlag.tuta.entities.GeneratedId
+
 fun base64ToBase64Url(base64: String): String =
     base64.replace('+', '-').replace('/', '_').replace("=", "")
 
@@ -161,4 +163,48 @@ fun base64ToBase64Ext(base64: String): String {
         extChars[index] = BASE64_EXT_ENCODE[lookupIndex]
     }
     return extChars.concatToString()
+}
+
+/**
+ * Converts a Base64Ext string to a Base64 string and appends the padding if needed.
+ * @param base64ext The base64Ext string
+ * @returns The base64 string
+ */
+fun base64ExtToBase64(base64ext: String): String {
+    val base64 = StringBuilder()
+    base64ext.forEachIndexed { i, c ->
+        val index = BASE64_EXT_LOOKUP[c.toInt()]
+        base64.append(BASE64_ENCODE[index])
+    }
+    val padding = when {
+        base64.length % 4 == 2 -> "=="
+        base64.length % 4 == 3 -> "="
+        else -> ""
+    }
+    return base64.toString() + padding
+}
+
+
+/**
+ * Extracts the timestamp from a GeneratedId
+ * @param base64Ext The id as base64Ext
+ * @returns The timestamp of the GeneratedId
+ */
+// TODO: is broken now, it overflows
+fun generatedIdToTimestamp(id: GeneratedId): Long {
+    val base64 = base64ExtToBase64(id.asString())
+    val decodedB64 = base64ToBytes(base64)
+    println(decodedB64.joinToString())
+    var numberResult = 0L
+    // Timestamp is in the first 42 bits
+    for (i in (0..4)) {
+        // We "shift" each number by 8 bits to the left: numberResult << 8
+        numberResult = numberResult shl 8
+        numberResult += decodedB64[i]
+    }
+    // We need to shift the whole number to the left by 2 bits (because 42 bits is encoded in 6 bytes)
+    numberResult = numberResult shl 2
+    // We take only last two highest bits from the last byte
+    numberResult += decodedB64[5].toInt() ushr 6 // >>>
+    return numberResult
 }
