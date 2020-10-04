@@ -43,8 +43,13 @@ fun runBridgeServer(server: ImapServer) {
                 while (true) {
                     val received = readString(pinned, commFd) ?: break
                     print("C: $received")
-                    val response = server.respondTo(received)
-                    sendImapResponse(commFd, response)
+                    try {
+                        val response = server.respondTo(received)
+                        sendImapResponse(commFd, response)
+                    } catch (e: Throwable) {
+                        println("Request failed with $e")
+                        sendImapResponse(commFd, listOf("BAD ERROR"))
+                    }
                 }
             }
             println("closed $commFd")

@@ -1,6 +1,8 @@
 package com.charlag.tuta.imap
 
 import com.charlag.tuta.MailFolderType
+import com.charlag.tuta.entities.GeneratedId
+import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
@@ -17,9 +19,6 @@ class ImapServer(private val mailLoader: MailLoader) {
         val messageParts = message.dropLast(2).split(' ', limit = 3)
         val (tag, command) = messageParts
         val args = messageParts.getOrElse(2) { "" }
-
-        val headers =
-            "To: user1@127.0.0.1\r\nFrom: user1 <user1@127.0.0.1>\r\nSubject: Testing to self\r\nMessage-ID: <6c8ab0be-3757-34c3-3e17-8290ed54f6ae@127.0.0.1>\r\nDate: Sat, 3 Oct 2020 19:35:33 +0200\r\nContent-Type: text/plain; charset=utf-8; format=flowed"
 
         return when (command) {
             "CAPABILITY" -> {
@@ -74,8 +73,19 @@ class ImapServer(private val mailLoader: MailLoader) {
             "UID" -> {
                 // for UID FETCH and UID SEARCH, same as normal commands but with UID instead of
                 // sequence numbers
-                if (args == "FETCH") {
+                if (args.startsWith("FETCH ")) {
+                    val fetchCommand = this.parseUidFetch(args.substring("FETCH ".length))
+                    val folder = currentFolder ?: return listOf("$tag NO INBOX SELECTED")
+
+                    val elementId = this.uidIndex[fetchCommand.uid.toInt()]
+                        ?: return listOf("$tag NO UNKNOWN UID ${fetchCommand.uid}")
+                    val id = IdTuple(folder.mails, elementId)
+                    val mail = this.mailLoader.mail(id)
                     val body = "Hello this is a TEST"
+                    val headers = makeHeaders(
+                        mail,
+                        listOf("FROM", "TO", "CC", "BCC", "REPLY-TO", "DATE", "CONTENT-TYPE")
+                    )
                     listOf(
                         "* 1 FETCH (UID 1 BODY[] {${headers.toBytes().size + 2 + body.toBytes().size + 2}}",
                         headers,
@@ -96,7 +106,7 @@ class ImapServer(private val mailLoader: MailLoader) {
     }
 
     private fun respondToFetch(args: String, tag: String, command: String): List<String> {
-        val fetchCommand = this.fetchParser(args)
+        val fetchCommand = this.parseFetch(args)
         val idParam = fetchCommand.idParam
         println("fetchCommand $fetchCommand")
         val folder = this.currentFolder ?: return listOf("$tag NO NO FOLDER SELECTED")
@@ -116,33 +126,22 @@ class ImapServer(private val mailLoader: MailLoader) {
                         "INTERNALDATE" -> response.append(" INTERNALDATE \"17-Jul-1996 02:44:25 -0700\"")
                         // TODO
                         "RFC822.SIZE" -> response.append(" RFC822.SIZE 9")
-                        "UID" -> response.append(" UID ${mail.getId().elementId.asString()}")
+                        "UID" -> response.append(" UID ${mailToUid(mail)}")
                         else -> println("I don't know attr ${fetchAttr.value}")
                     }
                     is FetchAttr.Parametrized -> when (fetchAttr.value) {
                         "BODY", "BODY.PEEK" -> {
-                            val section = fetchAttr.sectionSpec.section
+                            val sectionSpec = fetchAttr.sectionSpec
+                            if (sectionSpec == null) {
+                                error("I don't fetch lists without spec yet!")
+                            }
+                            val section = sectionSpec.section
                             if (section != "HEADER.FIELDS") {
                                 println("I don't know section $section")
                             } else {
-                                val headers = StringBuilder()
-                                for (field in fetchAttr.sectionSpec.fields) {
-                                    when (field) {
-                                        "TO" -> {
-                                            val r = mail.toRecipients.firstOrNull() ?: continue
-                                            headers.append("To: ${r.address}\r\n")
-                                        }
-                                        "FROM" -> headers.append("From: ${mail.sender.address}\r\n")
-                                        "SUBJECT" -> headers.append("Subject: ${mail.subject}\r\n")
-                                        "MESSAGE-ID" -> headers.append("Message-Id: <${mail.getId().elementId.asString()}@tutanota.com>\r\n")
-                                        // TODO
-                                        "DATE" -> headers.append("Date: \"17-Jul-1996 02:44:25 -0700\"\r\n")
-                                        // TODO
-                                        "CONTENT-TYPE" -> headers.append("Content-Type: text/plain; charset=utf-8; format=flowed\r\n")
-                                    }
-                                }
+                                val headers = makeHeaders(mail, sectionSpec.fields)
                                 val length = headers.toString().toBytes().size
-                                val fields = fetchAttr.sectionSpec.fields.joinToString(" ")
+                                val fields = sectionSpec.fields.joinToString(" ")
                                 response.append(" BODY[${section} (${fields})] {${length}}\r\n")
                                 response.append(headers)
                             }
@@ -156,10 +155,52 @@ class ImapServer(private val mailLoader: MailLoader) {
         return responses + success(tag, command)
     }
 
+    private fun makeHeaders(mail: Mail, headerNames: Collection<String>): String {
+        val headers = StringBuilder()
+        for (field in headerNames) {
+            makeUpHeader(mail, field)?.let {
+                headers.append(it)
+                headers.append("\r\n")
+            }
+        }
+        return headers.toString()
+    }
+
+    private fun makeUpHeader(mail: Mail, header: String): String? {
+        return when (header) {
+            "TO" -> {
+                val r = mail.toRecipients.firstOrNull() ?: return null
+                return "To: ${r.address}"
+            }
+            "FROM" -> return "From: ${mail.sender.address}"
+            "SUBJECT" -> return "Subject: ${mail.subject}"
+            "MESSAGE-ID" -> return "Message-Id: <${mail.getId().elementId.asString()}@tutanota.com>"
+            // TODO
+            "DATE" -> return "Date: \"17-Jul-1996 02:44:25 -0700\""
+            // TODO
+            "CONTENT-TYPE" -> return "Content-Type: text/plain; charset=utf-8; format=flowed"
+            else -> {
+                println("Unknown header: $header")
+                return null
+            }
+        }
+    }
+
     fun success(tag: String, command: String) = "$tag OK $command COMPLETED"
 
 
-    private val fetchParser = fetchCommandParser().asFunction()
+    private val parseFetch = fetchCommandParser().build()
+    private val parseUidFetch = uidFetchParser().build()
+
+    private val uidIndex = mutableMapOf<Int, Id>()
+
+    private fun mailToUid(mail: Mail): Int {
+        // UIDs must be increasing and must be 32bit
+        // We are takng a second now. We should change this and probably persist.
+        val uid = (mail.receivedDate.millis / 1000).toInt()
+        uidIndex[uid] = mail.getId().elementId
+        return uid
+    }
 }
 
 

@@ -6,6 +6,20 @@ package com.charlag.tuta.imap
 import kotlin.math.max
 import kotlin.math.min
 
+@Suppress("UNUSED_PARAMETER")
+private fun log(parser: String, at: ParserContext?) {
+    // Uncomment if you need verbose logging for parsers. Should probably use lambdas instead?
+
+//    if (at != null) {
+//        val char = if (at.position == at.iteratee.lastIndex) ""
+//        else at.iteratee[at.position + 1].toString()
+//
+//        println("$parser at ${at.position + 1} '${char}'")
+//    } else {
+//        println(parser)
+//    }
+}
+
 class ParserError(message: String) : Error(message)
 
 /**
@@ -33,15 +47,35 @@ class ParserContext(var iteratee: String) {
 typealias Parser<T> = (ParserContext) -> T
 
 /**
- * Converts function which accepts contexts into a function which accepts a string
+ * Converts function which accepts contexts into a function which accepts a string and check that
+ * the whole input was consumed.
  */
-fun <T> Parser<T>.asFunction(): ((String) -> T) = { s -> this(ParserContext(s)) }
+fun <T> Parser<T>.build(): ((String) -> T) = { s ->
+    val parserContext = ParserContext(s)
+    this(parserContext).also {
+        if (parserContext.hasNext()) {
+            throw ParserError("Did not consume the whole input, ${parserContext.position} out of ${parserContext.iteratee.length}")
+        }
+    }
+}
 
 /**
  * Transform parser into another parser. Do [mapper] on the result of parsing.
  */
 fun <T, R> Parser<T>.map(mapper: (T) -> R): Parser<R> {
     return { iterator -> mapper(this(iterator)) }
+}
+
+fun <T> Parser<T>.named(name: String): Parser<T> = { iterator ->
+    log("> $name", iterator)
+    try {
+        val result = this(iterator)
+        log("< $name $result", iterator)
+        result
+    } catch (e: Throwable) {
+        log("! $name $e", iterator)
+        throw e
+    }
 }
 
 fun <T, R> mapParser(parser: Parser<T>, mapper: (T) -> R): Parser<R> {
@@ -53,6 +87,7 @@ fun <T, R> mapParser(parser: Parser<T>, mapper: (T) -> R): Parser<R> {
  */
 fun characterParser(character: Char): Parser<Char> {
     return { iterator ->
+        log("character $character", iterator)
         if (!iterator.hasNext()) {
             throw ParserError("No more input, wanted to parse $character")
         }
@@ -63,13 +98,14 @@ fun characterParser(character: Char): Parser<Char> {
         } else {
             val sliceStart = max(iterator.position - 10, 0)
             val sliceEnd = min(iterator.position + 10, iterator.iteratee.length - 1)
+            log("failed character $character", iterator)
             throw ParserError(
-                "expected character $character got $value near ${
+                "expected character '$character' got '$value' near '${
                     iterator.iteratee.substring(
                         sliceStart,
                         sliceEnd
                     )
-                }"
+                }', slice: ($sliceStart, $sliceEnd), char at: ${iterator.position + 1}"
             )
         }
     }
@@ -80,6 +116,7 @@ fun characterParser(character: Char): Parser<Char> {
  */
 fun <T> zeroOrMoreParser(anotherParser: Parser<T>): Parser<List<T>> {
     return { iterator ->
+        log("zeroOrMore $anotherParser", iterator)
         val result = mutableListOf<T>()
         try {
             var parseResult = anotherParser(iterator)
@@ -88,6 +125,7 @@ fun <T> zeroOrMoreParser(anotherParser: Parser<T>): Parser<List<T>> {
                 parseResult = anotherParser(iterator)
             }
         } catch (e: ParserError) {
+            log("zeroOrMoreStopped $anotherParser", iterator)
         }
         result
     }
@@ -98,6 +136,7 @@ fun <T> zeroOrMoreParser(anotherParser: Parser<T>): Parser<List<T>> {
  */
 fun <T> makeOneOrMoreParser(parser: Parser<T>): Parser<List<T>> {
     return mapParser(zeroOrMoreParser(parser), { value ->
+        log("makeOneOrMoreParser $parser", null)
         if (value.isEmpty()) {
             throw ParserError("Expected at least one value, got none")
         }
@@ -110,9 +149,13 @@ fun <T> makeOneOrMoreParser(parser: Parser<T>): Parser<List<T>> {
  */
 fun <T> Parser<T>.optional(): Parser<T?> {
     return { iterator ->
+        log("optional", iterator)
+        val position = iterator.position
         try {
             this(iterator)
         } catch (e: ParserError) {
+            log("optional failed, backtracking to ${iterator.position}", iterator)
+            iterator.position = position
             null
         }
     }
@@ -124,12 +167,14 @@ fun <T> Parser<T>.optional(): Parser<T?> {
  */
 fun <S, T> separatedParser(separatorParser: Parser<S>, valueParser: Parser<T>): Parser<List<T>> {
     return { iterator ->
+        log("separatedParser", iterator)
         val result = mutableListOf<T>()
         result.add(valueParser(iterator))
         while (true) {
             try {
                 separatorParser(iterator)
             } catch (e: ParserError) {
+                log("separatedParser stopped $e", iterator)
                 break
             }
             result.add(valueParser(iterator))
@@ -144,15 +189,18 @@ fun <S, T> separatedParser(separatorParser: Parser<S>, valueParser: Parser<T>): 
  */
 fun <A> eitherParser(parserA: Parser<A>, parserB: Parser<A>): Parser<A> {
     return { iterator ->
+        log("eitherParser", iterator)
         val iteratorPosition = iterator.position
         try {
             parserA(iterator)
         } catch (e: ParserError) {
+            log("eitherParser right $e", iterator)
             iterator.position = iteratorPosition
             parserB(iterator)
         }
     }
 }
+
 infix fun <A> Parser<A>.or(parserB: Parser<A>) = eitherParser(this, parserB)
 
 /**
@@ -174,6 +222,7 @@ operator fun <B> Parser<Unit>.plus(parserB: Parser<B>): Parser<B> = { iterator -
  * Parses [this] first and then [parserB] and throws away its result.
  */
 operator fun <B> Parser<B>.plus(parserB: Parser<Unit>): Parser<B> = { iterator ->
+    log("plus", iterator)
     val result = this(iterator)
     parserB(iterator)
     result
@@ -192,6 +241,7 @@ operator fun <A, B> Parser<A>.plus(parserB: Parser<B>): Parser<Pair<A, B>> = { i
  */
 fun oneOfCharactersParser(allowed: Collection<Char>): Parser<Char> {
     return { iterator ->
+        log("oneOfCharactersParser $allowed", iterator)
         if (!iterator.hasNext()) {
             throw ParserError("No more input, could not parse one of $allowed")
         }
@@ -200,6 +250,7 @@ fun oneOfCharactersParser(allowed: Collection<Char>): Parser<Char> {
             iterator.next()
             value
         } else {
+            log("oneOfCharactersParser failed $allowed", iterator)
             throw ParserError("Expected one of $allowed, got $value")
         }
     }
@@ -208,11 +259,14 @@ fun oneOfCharactersParser(allowed: Collection<Char>): Parser<Char> {
 fun digits() = setOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 val numberParser: Parser<Int> =
     mapParser(makeOneOrMoreParser(oneOfCharactersParser(digits()))) { values ->
+        log("numberParser", null)
         values.joinToString(separator = "").toInt()
     }
 
 fun characterInRangeParser(range: CharRange): Parser<Char> = { iterator ->
+    log("characterInRangeParser $range", iterator)
     if (!iterator.hasNext()) {
+        log("characterInRangeParser no more input $range", iterator)
         throw ParserError("No more input, could not parse in $range")
     }
     val value = iterator.peek()
@@ -220,6 +274,7 @@ fun characterInRangeParser(range: CharRange): Parser<Char> = { iterator ->
         iterator.next()
         value
     } else {
-        throw ParserError("Expected one in $range, got $value")
+        log("characterInRangeParser failed $range", iterator)
+        throw ParserError("Expected one in '$range', got '$value', value at ${iterator.position + 1}")
     }
 }
