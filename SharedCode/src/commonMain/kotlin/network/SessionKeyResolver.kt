@@ -2,8 +2,10 @@ package com.charlag.tuta.network
 
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.GeneratedId
+import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.TypeModel
 import com.charlag.tuta.entities.sys.BucketPermission
+import com.charlag.tuta.entities.sys.Group
 import com.charlag.tuta.entities.sys.Permission
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.contentOrNull
@@ -64,7 +66,7 @@ class SessionKeyResolver(
                 ?: error("PubEncBucketKey is not defined for BucketPermission $bucketPermissions")
             publicPermission.bucketEncSessionKey
                 ?: error("BucketEncSessionKey is not defined for $symmetricPermission")
-            val group = loader.loadGroup(bucketPermission.group)
+            val group = getGroup(bucketPermission.group, loader)
             val keypair = group.keys[0]
             // decrypt RSA keys
             val bucketPermissionGroupKey = sessionDataProvider.getGroupKey(group._id!!.asString())
@@ -89,6 +91,14 @@ class SessionKeyResolver(
             )
             return sessionKey
         }
+    }
+
+    // Groups keys do not change now anyway so it should be okay to cache it.
+    // This is not very safe in multi-threading environment, we probably should lock it somehow
+    private val groupCache = mutableMapOf<Id, Group>()
+
+    private suspend fun getGroup(id: Id, loader: SessionKeyLoader): Group {
+        return this.groupCache[id] ?: loader.loadGroup(id).also { groupCache[id] = it }
     }
 
     private suspend fun updateWithSymPermissionKey(

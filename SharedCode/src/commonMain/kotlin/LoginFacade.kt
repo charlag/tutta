@@ -96,7 +96,7 @@ class LoginFacade(
                     if (authGetReturn.secondFactorPending) {
                         continue
                     }
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     if (e is ClientRequestException) {
                         throw e
                     }
