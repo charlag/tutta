@@ -1,7 +1,6 @@
 package com.charlag.tuta.imap
 
 import com.charlag.tuta.MailFolderType
-import com.charlag.tuta.entities.GeneratedId
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.Mail
@@ -17,7 +16,8 @@ class ImapServer(private val mailLoader: MailLoader) {
 
     fun respondTo(message: String): List<String> {
         val messageParts = message.dropLast(2).split(' ', limit = 3)
-        val (tag, command) = messageParts
+        val (tag, commandLower) = messageParts
+        val command = commandLower.toUpperCase()
         val args = messageParts.getOrElse(2) { "" }
 
         return when (command) {
@@ -73,26 +73,35 @@ class ImapServer(private val mailLoader: MailLoader) {
             "UID" -> {
                 // for UID FETCH and UID SEARCH, same as normal commands but with UID instead of
                 // sequence numbers
-                if (args.startsWith("FETCH ")) {
-                    val fetchCommand = this.parseUidFetch(args.substring("FETCH ".length))
-                    val folder = currentFolder ?: return listOf("$tag NO INBOX SELECTED")
+                if (args.startsWith("FETCH ") || args.startsWith("fetch ")) {
+                    val effectiveArgs = args.substring("FETCH ".length)
+                    val fetchCommand = this.parseFetch(effectiveArgs)
+                    if (fetchCommand.idParam is IdParam.Singe) {
+                        val folder = currentFolder ?: return listOf("$tag NO INBOX SELECTED")
+                        val elementId = this.uidIndex[fetchCommand.idParam.id]
+                            ?: return listOf("$tag NO UNKNOWN UID ${fetchCommand.idParam.id}")
 
-                    val elementId = this.uidIndex[fetchCommand.uid.toInt()]
-                        ?: return listOf("$tag NO UNKNOWN UID ${fetchCommand.uid}")
-                    val id = IdTuple(folder.mails, elementId)
-                    val mail = this.mailLoader.mail(id)
-                    val body = "Hello this is a TEST"
-                    val headers = makeHeaders(
-                        mail,
-                        listOf("FROM", "TO", "CC", "BCC", "REPLY-TO", "DATE", "CONTENT-TYPE")
-                    )
-                    listOf(
-                        "* 1 FETCH (UID 1 BODY[] {${headers.toBytes().size + 2 + body.toBytes().size + 2}}",
-                        headers,
-                        body,
-                        ")",
-                        success(tag, "FETCH")
-                    )
+                        val id = IdTuple(folder.mails, elementId)
+                        val mail = this.mailLoader.mail(id)
+                        val body = this.mailLoader.body(mail).let {
+                            it.compressedText ?: it.text
+                        }!!
+                        val headers = makeHeaders(
+                            mail,
+                            listOf("FROM", "TO", "CC", "BCC", "REPLY-TO", "DATE", "CONTENT-TYPE")
+                        )
+                        // TODO: respond to what is requeted
+                        listOf(
+                            "* 1 FETCH (UID 1 BODY[] {${headers.toBytes().size + 2 + body.toBytes().size + 2}}",
+                            headers,
+                            body,
+                            ")",
+                            success(tag, "FETCH")
+                        )
+                    } else {
+                        respondToFetch(effectiveArgs, tag, command)
+                    }
+
                 } else {
                     listOf("$tag BAD $command $args")
                 }
@@ -110,14 +119,17 @@ class ImapServer(private val mailLoader: MailLoader) {
         val idParam = fetchCommand.idParam
         println("fetchCommand $fetchCommand")
         val folder = this.currentFolder ?: return listOf("$tag NO NO FOLDER SELECTED")
-        val toFetch = when (idParam) {
-            is IdParam.Singe -> idParam.id..idParam.id
-            is IdParam.Range -> idParam.startId..idParam.endId
-        }
+//        val toFetch = when (idParam) {
+//            is IdParam.Singe -> idParam.id..idParam.id
+//            is IdParam.ClosedRange -> idParam.startId..idParam.endId
+//            // TODO
+//            is IdParam.OpenRange -> idParam.startId..idParam.startId
+//        }
+
         val mails = this.mailLoader.mails(folder)
         // TODO: rewrite most of the following
         val responses: List<String> = mails.mapIndexed { i: Int, mail: Mail ->
-            val response = StringBuilder("* ${i + 1} FETCH (")
+            val response = StringBuilder("* ${i + 1} FETCH (UID ${mailToUid(mail)} ")
             for (fetchAttr in fetchCommand.field) {
                 when (fetchAttr) {
                     is FetchAttr.Simple -> when (fetchAttr.value) {
@@ -126,15 +138,15 @@ class ImapServer(private val mailLoader: MailLoader) {
                         "INTERNALDATE" -> response.append(" INTERNALDATE \"17-Jul-1996 02:44:25 -0700\"")
                         // TODO
                         "RFC822.SIZE" -> response.append(" RFC822.SIZE 9")
-                        "UID" -> response.append(" UID ${mailToUid(mail)}")
+                        "UID" -> {
+                            // ignore, we always append it
+                        }
                         else -> println("I don't know attr ${fetchAttr.value}")
                     }
                     is FetchAttr.Parametrized -> when (fetchAttr.value) {
                         "BODY", "BODY.PEEK" -> {
                             val sectionSpec = fetchAttr.sectionSpec
-                            if (sectionSpec == null) {
-                                error("I don't fetch lists without spec yet!")
-                            }
+                                ?: error("I don't fetch lists without spec yet!")
                             val section = sectionSpec.section
                             if (section != "HEADER.FIELDS") {
                                 println("I don't know section $section")
@@ -178,7 +190,7 @@ class ImapServer(private val mailLoader: MailLoader) {
             // TODO
             "DATE" -> return "Date: \"17-Jul-1996 02:44:25 -0700\""
             // TODO
-            "CONTENT-TYPE" -> return "Content-Type: text/plain; charset=utf-8; format=flowed"
+            "CONTENT-TYPE" -> return "Content-Type: text/html; charset=utf-8"
             else -> {
                 println("Unknown header: $header")
                 return null
@@ -190,7 +202,6 @@ class ImapServer(private val mailLoader: MailLoader) {
 
 
     private val parseFetch = fetchCommandParser().build()
-    private val parseUidFetch = uidFetchParser().build()
 
     private val uidIndex = mutableMapOf<Int, Id>()
 

@@ -7,6 +7,8 @@ import platform.posix.*
 const val PORT = 2143
 
 fun runBridgeServer(server: ImapServer) {
+    // Ignore wild SIGPIPEs, we get return code anyway
+    signal(SIGPIPE, SIG_IGN);
     init_sockets()
 
     memScoped {

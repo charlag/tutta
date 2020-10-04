@@ -61,7 +61,8 @@ fun fetchAttrsParser(): Parser<List<FetchAttr>> = separatedParser(
 
 sealed class IdParam {
     data class Singe(val id: Int) : IdParam()
-    data class Range(val startId: Int, val endId: Int) : IdParam()
+    data class ClosedRange(val startId: Int, val endId: Int) : IdParam()
+    data class OpenRange(val startId: Int) : IdParam()
 }
 
 data class FetchRequest(
@@ -75,10 +76,13 @@ data class UidFetchRequest(
 )
 
 fun idParser(): Parser<IdParam> {
+    val openRangeParser =
+        (numberParser + characterParser(':').throwAway() + characterParser('*').throwAway())
+            .map { start -> IdParam.OpenRange(start) }.named("OpenRange")
     val idRangeParser = (numberParser + characterParser(':').throwAway() + numberParser)
-        .map { (start, end) -> IdParam.Range(start, end) }.named("idRangeParser")
-    val idSingleParser = numberParser.map(IdParam::Singe).named("idSingleParser")
-    return (idRangeParser or idSingleParser).named("idParser")
+        .map { (start, end) -> IdParam.ClosedRange(start, end) }.named("closedRange")
+    val idSingleParser = numberParser.map(IdParam::Singe).named("single")
+    return (openRangeParser or idRangeParser or idSingleParser).named("idParser")
 }
 
 fun fetchAttrListParser(): Parser<List<FetchAttr>> =
@@ -93,8 +97,3 @@ fun fetchCommandParser(): Parser<FetchRequest> =
     }.named("fetchCommand")
 
 private fun anyFetchAttrsParser() = (fetchAttrListParser() or fetchAttrParser().map { listOf(it) })
-
-fun uidFetchParser(): Parser<UidFetchRequest> =
-    (fetchAttrNameParser() + characterParser(' ').throwAway() + anyFetchAttrsParser()).map { (uid, attrs) ->
-        UidFetchRequest(uid, attrs)
-    }.named("uidFetch")
