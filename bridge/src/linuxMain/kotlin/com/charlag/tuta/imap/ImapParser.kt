@@ -59,6 +59,7 @@ fun fetchAttrsParser(): Parser<List<FetchAttr>> = separatedParser(
     valueParser = fetchAttrParser()
 )
 
+// TODO: support sequence of IDs like "1588598392,1588598417,1589270478"
 sealed class IdParam {
     data class Singe(val id: Int) : IdParam()
     data class ClosedRange(val startId: Int, val endId: Int) : IdParam()
@@ -67,12 +68,7 @@ sealed class IdParam {
 
 data class FetchRequest(
     val idParam: IdParam,
-    val field: List<FetchAttr>,
-)
-
-data class UidFetchRequest(
-    val uid: String,
-    val field: List<FetchAttr>,
+    val attrs: List<FetchAttr>,
 )
 
 fun idParser(): Parser<IdParam> {

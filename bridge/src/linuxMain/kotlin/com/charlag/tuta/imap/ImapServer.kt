@@ -42,12 +42,12 @@ class ImapServer(private val mailLoader: MailLoader) {
                         val inbox = this.mailLoader.folders()
                             .first { it.folderType == MailFolderType.INBOX.value }
                         this.currentFolder = inbox
-                        val inboxMails = this.mailLoader.mails(inbox)
                         listOf(
-                            """* ${inboxMails.size} EXISTS""",
+                            """* ${mailLoader.numberOfMailsFor(inbox)} EXISTS""",
                             """* 0 RECENT""",
 //                            """* OK [UNSEEN 1] Message 1 is first unseen""",
-                            """* OK [UIDVALIDITY 3857529045] UIDs valid""",
+                            // we user valid UIDs always
+                            """* OK [UIDVALIDITY 1] UIDs valid""",
                             """* FLAGS (\Answered \Flagged \Deleted \Seen)""",
                             """* OK [PERMANENTFLAGS (\Deleted \Seen \*)] Limited""",
                             """$tag OK [READ-WRITE] $command completed""",
@@ -60,7 +60,7 @@ class ImapServer(private val mailLoader: MailLoader) {
             }
             "NOOP" -> listOf(success(tag, command))
             "FETCH" -> {
-                respondToFetch(args, tag, command)
+                handleFetch(args, tag, command)
 //                // get some email details
 //                listOf(
 //                    // FETCH 1:1 (UID FLAGS INTERNALDATE RFC822.SIZE BODY.PEEK[HEADER.FIELDS (DATE FROM SENDER SUBJECT TO CC MESSAGE-ID REFERENCES CONTENT-TYPE CONTENT-DESCRIPTION IN-REPLY-TO REPLY-TO LINES LIST-POST X-LABEL)])
@@ -76,32 +76,31 @@ class ImapServer(private val mailLoader: MailLoader) {
                 if (args.startsWith("FETCH ") || args.startsWith("fetch ")) {
                     val effectiveArgs = args.substring("FETCH ".length)
                     val fetchCommand = this.parseFetch(effectiveArgs)
-                    if (fetchCommand.idParam is IdParam.Singe) {
-                        val folder = currentFolder ?: return listOf("$tag NO INBOX SELECTED")
-                        val elementId = this.uidIndex[fetchCommand.idParam.id]
-                            ?: return listOf("$tag NO UNKNOWN UID ${fetchCommand.idParam.id}")
+                    val selectedFolder =
+                        currentFolder ?: return listOf("$tag NO INBOX SELECTED")
 
-                        val id = IdTuple(folder.mails, elementId)
-                        val mail = this.mailLoader.mail(id)
-                        val body = this.mailLoader.body(mail).let {
-                            it.compressedText ?: it.text
-                        }!!
-                        val headers = makeHeaders(
-                            mail,
-                            listOf("FROM", "TO", "CC", "BCC", "REPLY-TO", "DATE", "CONTENT-TYPE")
+                    val idParam = fetchCommand.idParam
+                    val mails = when (idParam) {
+                        is IdParam.Singe -> {
+                            val mail = mailLoader.mailByUid(selectedFolder, idParam.id)
+                                ?: return listOf("$tag NO EMAIL FOUND")
+                            listOf(mail)
+                        }
+                        is IdParam.OpenRange -> mailLoader.mailsByUid(
+                            selectedFolder,
+                            idParam.startId,
+                            null
                         )
-                        // TODO: respond to what is requeted
-                        listOf(
-                            "* 1 FETCH (UID 1 BODY[] {${headers.toBytes().size + 2 + body.toBytes().size + 2}}",
-                            headers,
-                            body,
-                            ")",
-                            success(tag, "FETCH")
+                        is IdParam.ClosedRange -> mailLoader.mailsByUid(
+                            selectedFolder,
+                            idParam.startId,
+                            idParam.endId
                         )
-                    } else {
-                        respondToFetch(effectiveArgs, tag, command)
                     }
-
+                    respondToFetch(mails, fetchCommand.attrs) + success(
+                        tag,
+                        "UID FETCH"
+                    )
                 } else {
                     listOf("$tag BAD $command $args")
                 }
@@ -114,57 +113,134 @@ class ImapServer(private val mailLoader: MailLoader) {
         }
     }
 
-    private fun respondToFetch(args: String, tag: String, command: String): List<String> {
+    private fun handleFetch(args: String, tag: String, command: String): List<String> {
         val fetchCommand = this.parseFetch(args)
         val idParam = fetchCommand.idParam
         println("fetchCommand $fetchCommand")
         val folder = this.currentFolder ?: return listOf("$tag NO NO FOLDER SELECTED")
-//        val toFetch = when (idParam) {
-//            is IdParam.Singe -> idParam.id..idParam.id
-//            is IdParam.ClosedRange -> idParam.startId..idParam.endId
-//            // TODO
-//            is IdParam.OpenRange -> idParam.startId..idParam.startId
-//        }
+        val mails = when (idParam) {
+            is IdParam.Singe -> {
+                val mail = mailLoader.mailBySeq(folder, idParam.id)
+                    ?: return listOf("$tag NO EMAIL FOUND")
+                listOf(mail)
+            }
+            is IdParam.OpenRange -> mailLoader.mailsBySeq(
+                folder,
+                idParam.startId,
+                null
+            )
+            is IdParam.ClosedRange -> mailLoader.mailsBySeq(
+                folder,
+                idParam.startId,
+                idParam.endId
+            )
+        }
+        return respondToFetch(mails, fetchCommand.attrs) + success(tag, command)
+    }
 
-        val mails = this.mailLoader.mails(folder)
-        // TODO: rewrite most of the following
-        val responses: List<String> = mails.mapIndexed { i: Int, mail: Mail ->
-            val response = StringBuilder("* ${i + 1} FETCH (UID ${mailToUid(mail)} ")
-            for (fetchAttr in fetchCommand.field) {
-                when (fetchAttr) {
-                    is FetchAttr.Simple -> when (fetchAttr.value) {
-                        "FLAGS" -> response.append(if (mail.unread) " FLAGS ()" else " FLAGS (\\Seen)")
-                        // TODO
-                        "INTERNALDATE" -> response.append(" INTERNALDATE \"17-Jul-1996 02:44:25 -0700\"")
-                        // TODO
-                        "RFC822.SIZE" -> response.append(" RFC822.SIZE 9")
-                        "UID" -> {
-                            // ignore, we always append it
+    private fun respondToFetch(mails: List<Mail>, attrs: List<FetchAttr>): List<String> {
+        return mails.mapIndexed { i: Int, mail: Mail ->
+            val response = StringBuilder("* ${i + 1} FETCH (")
+
+            val parts =
+                sequenceOf(FetchPartResponse.Simple("UID", mailLoader.uid(mail).toString())) +
+                        (attrs.asSequence()
+                            .map { fetchAttr -> fetchPart(fetchAttr, mail) }
+                            .filterNotNull())
+            val partsResponse = parts.joinToString(" ") { r ->
+                when (r) {
+                    is FetchPartResponse.Simple -> "${r.name} ${r.value}"
+                    is FetchPartResponse.Data -> {
+                        val bytesLength = r.value.toBytes().size
+                        if (bytesLength != r.value.length) {
+                            println("Size differs for ${r.value.take(20)}")
                         }
-                        else -> println("I don't know attr ${fetchAttr.value}")
-                    }
-                    is FetchAttr.Parametrized -> when (fetchAttr.value) {
-                        "BODY", "BODY.PEEK" -> {
-                            val sectionSpec = fetchAttr.sectionSpec
-                                ?: error("I don't fetch lists without spec yet!")
-                            val section = sectionSpec.section
-                            if (section != "HEADER.FIELDS") {
-                                println("I don't know section $section")
-                            } else {
-                                val headers = makeHeaders(mail, sectionSpec.fields)
-                                val length = headers.toString().toBytes().size
-                                val fields = sectionSpec.fields.joinToString(" ")
-                                response.append(" BODY[${section} (${fields})] {${length}}\r\n")
-                                response.append(headers)
-                            }
-                        }
+                        "${r.name} {$bytesLength}\r\n${r.value}"
                     }
                 }
             }
+            response.append(partsResponse)
             response.append(')')
             response.toString()
         }
-        return responses + success(tag, command)
+    }
+
+    private fun fetchPart(fetchAttr: FetchAttr, mail: Mail): FetchPartResponse? {
+        return when (fetchAttr) {
+            is FetchAttr.Simple -> when (fetchAttr.value) {
+                "FLAGS" -> if (mail.unread) {
+                    FetchPartResponse.Simple(fetchAttr.value, "()")
+                } else {
+                    FetchPartResponse.Simple(fetchAttr.value, "(\\Seen)")
+                }
+                // TODO
+                "INTERNALDATE" ->
+                    FetchPartResponse.Simple(fetchAttr.value, "\"17-Jul-1996 02:44:25 -0700\"")
+                // TODO
+                "RFC822.SIZE" -> FetchPartResponse.Simple(fetchAttr.value, "9")
+                "UID" -> null // ignore, we always append it
+                else -> {
+                    println("I don't know attr ${fetchAttr.value}")
+                    null
+                }
+            }
+            is FetchAttr.Parametrized -> when (fetchAttr.value) {
+                "BODY", "BODY.PEEK" -> {
+                    val sectionSpec = fetchAttr.sectionSpec
+                        ?: error("I don't fetch lists without spec yet!")
+                    return when (sectionSpec.section) {
+                        // All headers
+                        "HEADER" -> {
+                            val headers = makeHeaders(mail, headerNames)
+                            FetchPartResponse.Data("BODY[HEADER]", headers)
+                        }
+                        // Some headers
+                        "HEADER.FIELDS" -> {
+                            val headers = makeHeaders(mail, sectionSpec.fields)
+                            val fields = sectionSpec.fields.joinToString(" ")
+                            FetchPartResponse.Data("BODY[HEADER.FIELDS ($fields)]", headers)
+                        }
+                        // The whole body
+                        null -> {
+                            val body = this.mailLoader.body(mail).let {
+                                it.compressedText ?: it.text
+                            }!!
+                            val headers = makeHeaders(
+                                mail,
+                                headerNames
+                            )
+                            FetchPartResponse.Data("BODY[]", headers + body)
+                        }
+                        else -> {
+                            println("I don't know $fetchAttr")
+                            null
+                        }
+                    }
+                }
+                else -> {
+                    println("I don't konw $fetchAttr")
+                    null
+                }
+            }
+        }
+    }
+
+    private val headerNames = setOf(
+        "FROM",
+        "TO",
+        "CC",
+        "BCC",
+        "REPLY-TO",
+        "DATE",
+        "CONTENT-TYPE",
+        "SUBJECT",
+        "MESSAGE-ID",
+        "IN-REPLY-TO"
+    )
+
+    private sealed class FetchPartResponse {
+        data class Simple(val name: String, val value: String) : FetchPartResponse()
+        data class Data(val name: String, val value: String) : FetchPartResponse()
     }
 
     private fun makeHeaders(mail: Mail, headerNames: Collection<String>): String {
@@ -175,14 +251,37 @@ class ImapServer(private val mailLoader: MailLoader) {
                 headers.append("\r\n")
             }
         }
-        return headers.toString()
+        // >Subsetting does not exclude the [RFC-2822] delimiting blank line between the header and
+        // >the body; the blank line is included in all header fetches, except in the case of
+        // >a message which has no body and no blank line.
+        //
+        // https://tools.ietf.org/html/rfc3501#section-6.4.5
+        //
+        // It seems like some mails clients (like mutt) *really* want this newlineq.
+        return headers.append("\r\n").toString()
     }
 
     private fun makeUpHeader(mail: Mail, header: String): String? {
-        return when (header) {
+        val normalizedHeader = header.toUpperCase()
+        if (header in neverSupportedHeadres || header in temporarilyNotAvailableHeaders) {
+            return null
+        }
+        return when (normalizedHeader) {
             "TO" -> {
                 val r = mail.toRecipients.firstOrNull() ?: return null
                 return "To: ${r.address}"
+            }
+            "CC" -> {
+                val cc = mail.ccRecipients.firstOrNull() ?: return null
+                return "Cc: ${cc.address}"
+            }
+            "BCC" -> {
+                val bcc = mail.bccRecipients.firstOrNull() ?: return null
+                return "Bcc: ${bcc.address}"
+            }
+            "REPLY-TO" -> {
+                val replyTo = mail.replyTos.firstOrNull() ?: return null
+                return "Reply-To: ${replyTo.address}"
             }
             "FROM" -> return "From: ${mail.sender.address}"
             "SUBJECT" -> return "Subject: ${mail.subject}"
@@ -201,18 +300,11 @@ class ImapServer(private val mailLoader: MailLoader) {
     fun success(tag: String, command: String) = "$tag OK $command COMPLETED"
 
 
-    private val parseFetch = fetchCommandParser().build()
+    private val parseFetch: (String) -> FetchRequest = fetchCommandParser().build()
 
-    private val uidIndex = mutableMapOf<Int, Id>()
-
-    private fun mailToUid(mail: Mail): Int {
-        // UIDs must be increasing and must be 32bit
-        // We are takng a second now. We should change this and probably persist.
-        val uid = (mail.receivedDate.millis / 1000).toInt()
-        uidIndex[uid] = mail.getId().elementId
-        return uid
-    }
 }
 
+private val neverSupportedHeadres = setOf("Priority", "X-Priority", "Newsgroups")
+private val temporarilyNotAvailableHeaders = setOf("References", "In-Reply-To")
 
-private fun Mail.getId(): IdTuple = this._id ?: error("No id! $this")
+fun Mail.getId(): IdTuple = this._id ?: error("No id! $this")
