@@ -8,9 +8,9 @@ buildscript {
         extra["ktor_version"] = "1.4.1"
         extra["coroutines_version"] = "1.3.9"
         extra["serialization_version"] = "1.0.0-RC2"
-        extra["android_compileSdkVersion"] = 28
+        extra["android_compileSdkVersion"] = 29
         extra["android_minSdkVersion"] = 24
-        extra["android_targetSdkVersion"] = 28
+        extra["android_targetSdkVersion"] = 29
     }
 
     repositories {
