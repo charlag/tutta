@@ -99,10 +99,16 @@ tasks.register("copyJsFiles", Copy::class) {
 
 
 val generateModels = tasks.register<GenerateModels>("generateModelClasses") {
-    modelsFile = File("metadata/models.json")
+    modelsFile = File("$projectDir/metadata/models.json")
     outputDir = File("$buildDir/generated/source/kotlin")
 
     doLast {
         generate()
     }
+}
+
+// This DSL class KotlinCompile is the only common thing between different Kotlin compile tasks
+// There is probably a better way to do this
+tasks.matching { it is org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*> }.forEach {
+    it.dependsOn(generateModels)
 }
