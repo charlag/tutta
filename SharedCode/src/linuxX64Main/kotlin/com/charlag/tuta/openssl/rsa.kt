@@ -46,7 +46,7 @@ fun rsaEncrypt(plaintext: ByteArray, key: CPointer<RSA>): ByteArray {
                 plaintext.size.toULong()
             ) <= 0
         ) {
-            ERR_print_errors_fp(stdout)
+//            ERR_print_errors_fp(stdout)
             error("Could not do encryption")
         }
     }
@@ -96,7 +96,7 @@ fun rsaDecrypt(ciphertext: ByteArray, key: CPointer<RSA>): ByteArray {
                 ciphertext.size.toULong()
             ) <= 0
         ) {
-            ERR_print_errors_fp(stdout)
+//            ERR_print_errors_fp(stdout)
             error("Could not determine buffer size for decryption")
         }
         println("buffer size is  ${rsaDecryptedBuffer.size} and it should be ${outlen.value}")
@@ -115,7 +115,7 @@ fun rsaDecrypt(ciphertext: ByteArray, key: CPointer<RSA>): ByteArray {
             ciphertextLength
         )
         if (decResult <= 0) {
-            ERR_print_errors_fp(stdout)
+//            ERR_print_errors_fp(stdout)
             error("Could not do decryption")
         }
         println("after decryption outLen in ${outlen.value}")
