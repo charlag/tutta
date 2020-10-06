@@ -1,11 +1,16 @@
 package com.charlag.tuta.imap
 
 import com.charlag.tuta.MailFolderType
-import com.charlag.tuta.entities.Id
+import com.charlag.tuta.entities.Date
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.toBytes
+import com.charlag.tuta.toRFC3501
+import com.charlag.tuta.toRFC822
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 class ImapServer(private val mailLoader: MailLoader) {
     private var currentFolder: MailFolder? = null
@@ -173,9 +178,10 @@ class ImapServer(private val mailLoader: MailLoader) {
                 } else {
                     FetchPartResponse.Simple(fetchAttr.value, "(\\Seen)")
                 }
-                // TODO
-                "INTERNALDATE" ->
-                    FetchPartResponse.Simple(fetchAttr.value, "\"17-Jul-1996 02:44:25 -0700\"")
+                "INTERNALDATE" -> {
+                    val date = mail.receivedDate.toRFC3501()
+                    FetchPartResponse.Simple(fetchAttr.value, date)
+                }
                 // TODO
                 "RFC822.SIZE" -> FetchPartResponse.Simple(fetchAttr.value, "9")
                 "UID" -> null // ignore, we always append it
@@ -286,8 +292,10 @@ class ImapServer(private val mailLoader: MailLoader) {
             "FROM" -> return "From: ${mail.sender.address}"
             "SUBJECT" -> return "Subject: ${mail.subject}"
             "MESSAGE-ID" -> return "Message-Id: <${mail.getId().elementId.asString()}@tutanota.com>"
-            // TODO
-            "DATE" -> return "Date: \"17-Jul-1996 02:44:25 -0700\""
+            "DATE" -> {
+                val date = mail.receivedDate.toRFC822()
+                return "Date: $date"
+            }
             // TODO
             "CONTENT-TYPE" -> return "Content-Type: text/html; charset=utf-8"
             else -> {
@@ -306,5 +314,15 @@ class ImapServer(private val mailLoader: MailLoader) {
 
 private val neverSupportedHeadres = setOf("Priority", "X-Priority", "Newsgroups")
 private val temporarilyNotAvailableHeaders = setOf("References", "In-Reply-To")
+
+private fun Date.toInstant() = Instant.fromEpochMilliseconds(this.millis)
+
+private fun Date.toRFC822(): String = this.toInstant()
+    .toLocalDateTime(TimeZone.currentSystemDefault())
+    .toRFC822()
+
+private fun Date.toRFC3501(): String =
+    this.toInstant().toLocalDateTime(TimeZone.currentSystemDefault())
+        .toRFC3501()
 
 fun Mail.getId(): IdTuple = this._id ?: error("No id! $this")
