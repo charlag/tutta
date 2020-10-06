@@ -25,21 +25,20 @@ fun main() {
     val dependencyDump = DependencyDump()
 
     runBlocking {
-        login(dependencyDump)
+        val user = login(dependencyDump)
         println("Logged in!")
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController)
 //        val mailLoader = FakeMailLoader()
         val server = ImapServer(mailLoader)
 
-//        loadMails(dependencyDump)
+        loadMails(dependencyDump)
         runBridgeServer(server)
-
     }
 }
 
 
-suspend fun login(dependencyDump: DependencyDump) {
+suspend fun login(dependencyDump: DependencyDump): User {
     val createSessionResult = tryToLoadCredentials() ?: newSession(dependencyDump)
     dependencyDump.sessionDataProvider.setAccessToken(createSessionResult.accessToken)
     val user = dependencyDump.api.loadElementEntity<User>(createSessionResult.userId)
@@ -53,6 +52,7 @@ suspend fun login(dependencyDump: DependencyDump) {
         )
     )
     dependencyDump.userController.user = user
+    return user
 }
 
 suspend fun newSession(dependencyDump: DependencyDump): CreateSessionResult {
@@ -76,6 +76,8 @@ class DependencyDump {
             level = LogLevel.INFO
         }
         // TODO: websockets?
+        // Current ooptions for native are CIO and curl. CIO doesn't support SSL connections.
+        // ktor doesn't handle updates. libcurl doesn't handle 'ws://' scheme.
     }
     val cryptor = Cryptor()
 
@@ -123,4 +125,4 @@ private suspend fun loadMails(dependencyDump: DependencyDump) {
 }
 
 private const val REST_PATH = "https://mail.tutanota.com/rest/"
-private const val WS_PATH = "wss://mail.tutanota.com/event/"
+private const val WS_PATH = "https://mail.tutanota.com/event"

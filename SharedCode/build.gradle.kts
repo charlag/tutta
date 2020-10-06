@@ -86,6 +86,8 @@ kotlin {
                 api("io.ktor:ktor-client-json-linuxx64:$ktor_version")
                 api("io.ktor:ktor-client-logging-linuxx64:$ktor_version")
                 api("io.ktor:ktor-client-serialization-linuxx64:$ktor_version")
+                // See notes where httpClient is created on why it's not possible to use websockets
+//                implementation("io.ktor:ktor-client-websockets:$ktor_version")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9-native-mt-2")
             }
         }

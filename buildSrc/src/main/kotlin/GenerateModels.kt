@@ -268,6 +268,7 @@ ${model.keys.joinToString("\n") { "put(\"${it}\", ${it}TypeInfo)" }}
                         }
                     """
                         )
+                        .addAnnotation(ClassName.bestGuess("kotlin.native.concurrent.SharedImmutable"))
                         .build()
                 )
                 .build()
@@ -285,6 +286,7 @@ ${model.keys.joinToString("\n") { "put(\"${it}\", ${it}TypeInfo)" }}
             ClassName.bestGuess("com.charlag.tuta.entities.TypeInfo")
                 .parameterizedBy(ClassName.bestGuess("com.charlag.tuta.entities.${modelName}.${typeName}"))
         )
+            .addAnnotation(ClassName.bestGuess("kotlin.native.concurrent.SharedImmutable"))
             .initializer(
                 """
                                     TypeInfo(
