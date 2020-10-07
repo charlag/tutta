@@ -86,10 +86,11 @@ class ImapServer(private val mailLoader: MailLoader) {
 
                     val idParam = fetchCommand.idParam
                     val mails = when (idParam) {
-                        is IdParam.Singe -> {
-                            val mail = mailLoader.mailByUid(selectedFolder, idParam.id)
-                                ?: return listOf("$tag NO EMAIL FOUND")
-                            listOf(mail)
+                        is IdParam.IdSet -> {
+                            idParam.ids.map {
+                                mailLoader.mailByUid(selectedFolder, it)
+                                    ?: return listOf("$tag NO EMAIL FOUND")
+                            }
                         }
                         is IdParam.OpenRange -> mailLoader.mailsByUid(
                             selectedFolder,
@@ -124,10 +125,11 @@ class ImapServer(private val mailLoader: MailLoader) {
         println("fetchCommand $fetchCommand")
         val folder = this.currentFolder ?: return listOf("$tag NO NO FOLDER SELECTED")
         val mails = when (idParam) {
-            is IdParam.Singe -> {
-                val mail = mailLoader.mailBySeq(folder, idParam.id)
-                    ?: return listOf("$tag NO EMAIL FOUND")
-                listOf(mail)
+            is IdParam.IdSet -> {
+                idParam.ids.map {
+                    mailLoader.mailByUid(folder, it)
+                        ?: return listOf("$tag NO EMAIL FOUND")
+                }
             }
             is IdParam.OpenRange -> mailLoader.mailsBySeq(
                 folder,

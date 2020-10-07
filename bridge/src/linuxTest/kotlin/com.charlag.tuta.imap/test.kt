@@ -78,7 +78,7 @@ class ParserTests {
         val parser = fetchCommandParser().build()
         assertEquals(
             FetchRequest(
-                IdParam.Range(1, 1),
+                IdParam.ClosedRange(1, 1),
                 listOf(
                     FetchAttr.Simple("UID"),
                     FetchAttr.Simple("RFC822.SIZE"),
@@ -100,7 +100,7 @@ class ParserTests {
         val parser = fetchCommandParser().build()
         assertEquals(
             FetchRequest(
-                IdParam.Singe(0),
+                IdParam.IdSet(listOf(0)),
                 listOf(
                     FetchAttr.Parametrized(
                         "BODY.PEEK",
@@ -110,6 +110,54 @@ class ParserTests {
                 ),
             ),
             parser("0 BODY.PEEK[]")
+        )
+    }
+
+    @Test
+    fun testSingleIdFetchSpec() {
+        val parser = fetchCommandParser().build()
+        assertEquals(
+            FetchRequest(
+                IdParam.IdSet(listOf(0)),
+                listOf(FetchAttr.Simple("RFC8222.SIZE")),
+            ),
+            parser("0 RFC8222.SIZE")
+        )
+    }
+
+    @Test
+    fun testOpenRangeIdFetchSpec() {
+        val parser = fetchCommandParser().build()
+        assertEquals(
+            FetchRequest(
+                IdParam.OpenRange(1),
+                listOf(FetchAttr.Simple("RFC8222.SIZE")),
+            ),
+            parser("1:* RFC8222.SIZE")
+        )
+    }
+
+    @Test
+    fun testClosedRangeIdFetchSpec() {
+        val parser = fetchCommandParser().build()
+        assertEquals(
+            FetchRequest(
+                IdParam.ClosedRange(1, 5),
+                listOf(FetchAttr.Simple("RFC8222.SIZE")),
+            ),
+            parser("1:5 RFC8222.SIZE")
+        )
+    }
+
+    @Test
+    fun testSetIdFetchSpec() {
+        val parser = fetchCommandParser().build()
+        assertEquals(
+            FetchRequest(
+                IdParam.IdSet(listOf(0, 2, 3)),
+                listOf(FetchAttr.Simple("RFC8222.SIZE")),
+            ),
+            parser("0,2,3 RFC8222.SIZE")
         )
     }
 }
