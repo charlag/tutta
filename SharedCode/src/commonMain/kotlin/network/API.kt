@@ -394,7 +394,6 @@ class API(
         responseClass: KClass<R>
     ): R? {
         val address = Url(baseUrl + path)
-
         return httpClient.get<JsonObject?> {
             commonHeaders()
             entityHeaders(instanceMapper.getTypeModelByClass(responseClass))
@@ -434,6 +433,5 @@ class API(
     private companion object {
         /** Fake but we try to match official client */
         private const val CLIENT_VERSION = "3.76.9"
-
     }
 }

@@ -9,6 +9,11 @@ kotlin {
                 linkerOpts("-L/usr/lib64")
             }
         }
+        compilations["main"].cinterops {
+            val sqlite by creating {
+                packageName("org.sqlite")
+            }
+        }
     }
 
     sourceSets {

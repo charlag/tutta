@@ -16,9 +16,7 @@ import kotlinx.serialization.modules.SerializersModule
  * This class maps is a "serial format" in a two-pass serialization mechanism. It serializes things
  * into maps and lists
  */
-@InternalSerializationApi
-@ExperimentalSerializationApi
-internal class NestedMapper : SerialFormat {
+class NestedMapper : SerialFormat {
 
     override val serializersModule: SerializersModule = EmptySerializersModule
 
@@ -35,7 +33,6 @@ internal class NestedMapper : SerialFormat {
         return MapperStructureInput(map).decodeSerializableValue(deserializer)
     }
 
-    @InternalSerializationApi
     private abstract inner class Mapperinput(val obj: Any?) : NamedValueDecoder() {
         override fun composeName(parentName: String, childName: String): String = childName
 
@@ -242,7 +239,8 @@ internal class NestedMapper : SerialFormat {
     }
 
     @InternalSerializationApi
-    private inner class MapperListOutput(val andAfter: (List<Any?>) -> Unit) : TaggedEncoder<Int>() {
+    private inner class MapperListOutput(val andAfter: (List<Any?>) -> Unit) :
+        TaggedEncoder<Int>() {
 
         val items = mutableListOf<Any?>()
 

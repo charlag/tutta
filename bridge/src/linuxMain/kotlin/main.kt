@@ -1,8 +1,5 @@
 import com.charlag.tryToLoadCredentials
 import com.charlag.tuta.*
-import com.charlag.tuta.entities.GENERATED_MAX_ID
-import com.charlag.tuta.entities.sys.Group
-import com.charlag.tuta.entities.sys.GroupInfo
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailBox
@@ -15,9 +12,15 @@ import com.charlag.tuta.network.SessionKeyResolver
 import com.charlag.tuta.network.UserSessionDataProvider
 import com.charlag.tuta.network.makeHttpClient
 import com.charlag.tuta.network.mapping.InstanceMapper
+import com.charlag.tuta.posix.Path
+import com.charlag.tuta.posix.exists
+import com.charlag.tuta.util.timestmpToGeneratedId
 import com.charlag.writeCredentials
 import io.ktor.client.features.logging.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Clock
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 fun main() {
     Platform.isMemoryLeakCheckerActive = false
@@ -25,20 +28,46 @@ fun main() {
     val dependencyDump = DependencyDump()
 
     runBlocking {
-        val user = login(dependencyDump)
+        val pwKey = login(dependencyDump)
         println("Logged in!")
 
-        val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController)
+        val dbBath = "mail.db"
+        val dbExists = Path(dbBath).exists()
+        val db = Db(dbBath)
+        val mailDb = MailDb(db, dependencyDump.instanceMapper, pwKey)
+        if (!dbExists) {
+            println("Doing initial sync")
+            val size = initialSync(pwKey, mailDb, dependencyDump)
+            println("Finished initial sync with $size mails")
+        }
+
+        val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController, mailDb)
 //        val mailLoader = FakeMailLoader()
         val server = ImapServer(mailLoader)
 
-        loadMails(dependencyDump)
         runBridgeServer(server)
     }
 }
 
+private suspend fun initialSync(key: ByteArray, db: MailDb, dependencyDump: DependencyDump): Int {
+    val inbox = getInbox(dependencyDump)
+    val dateStart = Clock.System.now().minus(14.toDuration(DurationUnit.DAYS))
+    println("Downloading emails since $dateStart")
+    val startMs = dateStart.toEpochMilliseconds()
+    val startId = timestmpToGeneratedId(startMs, 0)
+    val mails = dependencyDump.api.loadRangeInBetween(Mail::class, inbox.mails, startId)
+    println("Downloaded mails ${mails.size}")
+    for (mail in mails) {
+        val uid = (mail.receivedDate.millis / 1000).toInt()
+        db.writeSingle(uid, mail)
+    }
+    return mails.size
+}
 
-suspend fun login(dependencyDump: DependencyDump): User {
+/**
+ * @return passphraseKey
+ */
+suspend fun login(dependencyDump: DependencyDump): ByteArray {
     val createSessionResult = tryToLoadCredentials() ?: newSession(dependencyDump)
     dependencyDump.sessionDataProvider.setAccessToken(createSessionResult.accessToken)
     val user = dependencyDump.api.loadElementEntity<User>(createSessionResult.userId)
@@ -52,7 +81,7 @@ suspend fun login(dependencyDump: DependencyDump): User {
         )
     )
     dependencyDump.userController.user = user
-    return user
+    return createSessionResult.passphraseKey
 }
 
 suspend fun newSession(dependencyDump: DependencyDump): CreateSessionResult {
@@ -102,26 +131,16 @@ class UserController {
     var user: User? = null
 }
 
-private suspend fun loadMails(dependencyDump: DependencyDump) {
+private suspend fun getInbox(dependencyDump: DependencyDump): MailFolder {
     val user = dependencyDump.userController.user ?: error("Not logged in!")
     val mailMembership = user.memberships.first { it.groupType == GroupType.Mail.value }
-    val mailGroup = dependencyDump.api.loadElementEntity<Group>(mailMembership.group)
-    val userGroupInfo =
-        dependencyDump.api.loadListElementEntity<GroupInfo>(user.userGroup.groupInfo)
-
-    val mailAddresses =
-        dependencyDump.mailFacade.getEnabledMailAddresses(user, userGroupInfo, mailGroup)
-    println("Mail addresses: $mailAddresses")
 
     val groupRoot = dependencyDump.api
         .loadElementEntity<MailboxGroupRoot>(mailMembership.group)
     val mailbox = dependencyDump.api.loadElementEntity<MailBox>(groupRoot.mailbox)
     val folders = dependencyDump.api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
     val inbox = folders.first { it.folderType == MailFolderType.INBOX.value }
-    val mails = dependencyDump.api.loadRange(Mail::class, inbox.mails, GENERATED_MAX_ID, 40, true)
-    mails.forEach {
-        println("${it.sender.name} ${it.sender.address} ${it.subject}")
-    }
+    return inbox
 }
 
 private const val REST_PATH = "https://mail.tutanota.com/rest/"

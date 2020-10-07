@@ -2,7 +2,7 @@ package com.charlag.tuta.imap
 
 import UserController
 import com.charlag.tuta.GroupType
-import com.charlag.tuta.entities.GENERATED_MAX_ID
+import com.charlag.tuta.MailDb
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.network.API
@@ -16,9 +16,9 @@ import kotlinx.coroutines.runBlocking
  */
 class MailLoaderImpl(
     private val api: API,
-    private val userController: UserController
+    private val userController: UserController,
+    private val mailsDb: MailDb,
 ) : MailLoader {
-    private val mailsByList = mutableMapOf<MailFolder, List<Mail>>()
     private val uidIndex = mutableMapOf<Int, Id>()
     private var cachedFolders: List<MailFolder>? = null
 
@@ -31,7 +31,7 @@ class MailLoaderImpl(
     }
 
     override fun numberOfMailsFor(folder: MailFolder): Int {
-        return getMailsFor(folder).size
+        return mailsDb.count() //getMailsFor(folder).size
     }
 
     override fun folders(): List<MailFolder> {
@@ -48,13 +48,8 @@ class MailLoaderImpl(
      * This is a stub impl which only loads last emails.
      */
     private fun getMailsFor(folder: MailFolder): List<Mail> {
-        return mailsByList.getOrPut(folder) {
-            runBlocking {
-                api.loadRange(Mail::class, folder.mails, GENERATED_MAX_ID, 40, true).reversed()
-            }.apply {
-                forEach { uid(it) }
-            }
-        }
+        // read all for now
+        return mailsDb.readMultiple(fromUid = 0, toUid = null)
     }
 
     override fun mailBySeq(folder: MailFolder, seq: Int): Mail? {
@@ -62,9 +57,7 @@ class MailLoaderImpl(
     }
 
     override fun mailByUid(folder: MailFolder, uid: Int): Mail? {
-        return uidToId(uid)?.let { id ->
-            getMailsFor(folder).find { it.getId().elementId == id }
-        }
+        return mailsDb.readSingle(uid)
     }
 
     override fun mailsBySeq(folder: MailFolder, start: Int, end: Int?): List<Mail> {
@@ -74,16 +67,7 @@ class MailLoaderImpl(
     }
 
     override fun mailsByUid(folder: MailFolder, startUid: Int, endUid: Int?): List<Mail> {
-        val mails = getMailsFor(folder)
-        // We want to take everything in startUid < items < endUid
-        // skip lower than lowest uid
-        val lower = mails.asSequence().dropWhile { uid(it) < startUid }
-        return if (endUid == null) {
-            lower.toList()
-        } else {
-            // take while lower than highest uid
-            lower.takeWhile { uid(it) < endUid }.toList()
-        }
+        return mailsDb.readMultiple(startUid, endUid)
     }
 
     private fun uidToId(uid: Int): Id? {
