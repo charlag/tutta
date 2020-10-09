@@ -25,6 +25,10 @@ private fun runImapServer(imapServerFactory: () -> ImapServer) {
     memScoped {
         val listenFd = socket(AF_INET, SOCK_STREAM, 0)
             .check({ it != -1 }) { error("socket failed: ${errorMessage()}") }
+        // We set it to reuse port for now
+        val enabled = alloc<IntVar>()
+        enabled.value = 1
+        setsockopt(listenFd, SOL_SOCKET, SO_REUSEPORT, enabled.ptr, sizeOf<IntVar>().convert())
 
         val serverAddr = alloc<sockaddr_in> {
             zeroOut()
@@ -53,40 +57,39 @@ private fun runImapServer(imapServerFactory: () -> ImapServer) {
 }
 
 private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapServer) {
-    Worker.start()
-        .execute(
-            TransferMode.SAFE,
-            { (commFd to imapServerFactory.freeze()) }) { (commFd, imapSeverF) ->
-            val imapSever = imapSeverF()
-            val buffer = ByteArray(1024)
-            buffer.usePinned { pinned ->
-                try {
-                    sendImapResponse(commFd, imapSever.newConnection())
-                } catch (e: IOException) {
-                    println("Could not send initial response $e")
-                }
+    Worker.start().execute(
+        TransferMode.SAFE,
+        { (commFd to imapServerFactory.freeze()) }) { (commFd, imapSeverF) ->
+        val imapSever = imapSeverF()
+        val buffer = ByteArray(1024)
+        buffer.usePinned { pinned ->
+            try {
+                sendImapResponse(commFd, imapSever.newConnection())
+            } catch (e: IOException) {
+                println("Could not send initial response $e")
+            }
 
-                while (true) {
-                    val received = try {
-                        readString(pinned, commFd) ?: break
-                    } catch (e: IOException) {
-                        println("Could not read from the input $e")
-                        break
-                    }
-                    print("C: $received")
-                    try {
-                        val response = imapSever.respondTo(received)
-                        sendImapResponse(commFd, response)
-                    } catch (e: IOException) {
-                        println("Could not write response: $e")
-                    } catch (e: Throwable) {
-                        println("Request failed with ${e.printStackTrace()}")
-                        sendImapResponse(commFd, listOf("BAD ERROR"))
-                    }
+            while (true) {
+                val received = try {
+                    readString(pinned, commFd) ?: break
+                } catch (e: IOException) {
+                    println("Could not read from the input $e")
+                    break
+                }
+                print("C: $received")
+                try {
+                    val response = imapSever.respondTo(received)
+                    sendImapResponse(commFd, response)
+                } catch (e: IOException) {
+                    println("Could not write response: $e")
+                } catch (e: Throwable) {
+                    println("Request failed with ${e.printStackTrace()}")
+                    sendImapResponse(commFd, listOf("BAD ERROR"))
                 }
             }
-            println("closed $commFd")
         }
+        println("closed $commFd")
+    }
 }
 
 private fun runSmtpServer() {

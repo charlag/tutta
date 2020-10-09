@@ -56,15 +56,7 @@ class ImapServer(private val mailLoader: MailLoader) {
                 if (delimiter == "") {
                     val folders = mailLoader.folders()
                     val folderResponses = folders.mapNotNull { folder ->
-                        val name = when (folder.folderType) {
-                            MailFolderType.INBOX.value -> "INBOX"
-                            MailFolderType.SENT.value -> "SENT"
-                            MailFolderType.DRAFT.value -> "DRAFTS"
-                            MailFolderType.ARCHIVE.value -> "ARCHIVE"
-                            MailFolderType.SPAM.value -> "SPAM"
-                            MailFolderType.TRASH.value -> "TRASH"
-                            else -> error("Unknown folder type ${folder.folderType}")
-                        }
+                        val name = folder.imapName
                         if (pattern == "*" || name.contains(pattern, ignoreCase = true)) {
                             "* LIST (\\HasNoChildren) \"#\" \"$name\""
                         } else {
@@ -79,29 +71,21 @@ class ImapServer(private val mailLoader: MailLoader) {
             "SELECT", "EXAMINE" -> {
                 // SELECT and EXAMINE do the same thing - show info about mailbox - but EXAMINE does
                 // not reset RECENT flag nor does any other changes
-                when {
-                    args.isEmpty() -> {
-                        listOf("* BAD NO ARGS FOR SELECT")
-                    }
-                    args == "\"INBOX\"" || args == "INBOX" -> {
-                        val inbox = this.mailLoader.folders()
-                            .first { it.folderType == MailFolderType.INBOX.value }
-                        this.currentFolder = inbox
-                        listOf(
-                            """* ${mailLoader.numberOfMailsFor(inbox)} EXISTS""",
-                            """* 0 RECENT""",
-//                            """* OK [UNSEEN 1] Message 1 is first unseen""",
-                            // we user valid UIDs always
-                            """* OK [UIDVALIDITY 1] UIDs valid""",
-                            """* FLAGS (\Answered \Flagged \Deleted \Seen)""",
-                            """* OK [PERMANENTFLAGS (\Deleted \Seen \*)] Limited""",
-                            """$tag OK [READ-WRITE] $command completed""",
-                        )
-                    }
-                    else -> {
-                        listOf("* BAD IDK HOW TO $tag $args")
-                    }
+                if (args.isEmpty()) {
+                    return listOf("${tag} BAD NO ARGS FOR SELECT")
                 }
+                val folder = this.getFolderByImapName(args) ?: return listOf("$tag NO such folder")
+                this.currentFolder = folder
+                listOf(
+                    """* ${mailLoader.numberOfMailsFor(folder)} EXISTS""",
+                    """* 0 RECENT""",
+//                            """* OK [UNSEEN 1] Message 1 is first unseen""",
+                    // we user valid UIDs always
+                    """* OK [UIDVALIDITY 1] UIDs valid""",
+                    """* FLAGS (\Answered \Flagged \Deleted \Seen)""",
+                    """* OK [PERMANENTFLAGS (\Deleted \Seen \*)] Limited""",
+                    """$tag OK [READ-WRITE] $command completed""",
+                )
             }
             "NOOP" -> listOf(success(tag, command))
             "FETCH" -> {
@@ -153,8 +137,26 @@ class ImapServer(private val mailLoader: MailLoader) {
                 }
             }
             "LOGOUT" -> listOf(success(tag, command))
-            // TODO
-//            "STATUS" -> listOf()
+            "STATUS" -> {
+                val statusCommand = parseStatus(args)
+                val folder = getFolderByImapName(statusCommand.folder)
+                    ?: return listOf("$tag NO ${statusCommand.folder}")
+                val attrs = statusCommand.attributes.mapNotNull { attr ->
+                    val value = when (attr) {
+                        "MESSAGES" -> this.mailLoader.numberOfMailsFor(folder)
+                        "UNSEEN" -> this.mailLoader.numberOfMailsFor(folder)
+                        // Placeholder
+                        "RECENT" -> 0
+                        "UIDNEXT" -> return@mapNotNull null
+                        else -> return@mapNotNull null
+                    }
+                    "$attr $value"
+                }
+                listOf(
+                    "* STATUS ${statusCommand.folder} (${attrs.joinToString(" ")})",
+                    success(tag, command)
+                )
+            }
             // TODO
             "APPEND" -> {
                 val appendCommand = appendParser.build()(args)
@@ -165,6 +167,12 @@ class ImapServer(private val mailLoader: MailLoader) {
                 println("# unknown command '$command'")
                 listOf("$tag BAD IDK WHAT THIS MEANS $command")
             }
+        }
+    }
+
+    private fun getFolderByImapName(name: String): MailFolder? {
+        return this.mailLoader.folders().find {
+            it.imapName == name || "\"${it.imapName}\"" == name
         }
     }
 
@@ -209,7 +217,7 @@ class ImapServer(private val mailLoader: MailLoader) {
                     is FetchPartResponse.Data -> {
                         val bytesLength = r.value.toBytes().size
                         if (bytesLength != r.value.length) {
-                            println("Size differs for ${r.value.take(20)}")
+                            println("Size differs for ${r.value.take(60)}")
                         }
                         "${r.name} {$bytesLength}\r\n${r.value}"
                     }
@@ -361,7 +369,7 @@ class ImapServer(private val mailLoader: MailLoader) {
 
     private val parseFetch: (String) -> FetchRequest = fetchCommandParser().build()
     private val parseList: (String) -> ListCommand = listCommandParser.build()
-
+    private val parseStatus: (String) -> StatusCommand = statusParser.build()
 }
 
 @SharedImmutable
@@ -381,3 +389,14 @@ private fun Date.toRFC3501(): String =
         .toRFC3501()
 
 fun Mail.getId(): IdTuple = this._id ?: error("No id! $this")
+
+private val MailFolder.imapName
+    get() = when (this.folderType) {
+        MailFolderType.INBOX.value -> "INBOX"
+        MailFolderType.SENT.value -> "SENT"
+        MailFolderType.DRAFT.value -> "DRAFTS"
+        MailFolderType.ARCHIVE.value -> "ARCHIVE"
+        MailFolderType.SPAM.value -> "SPAM"
+        MailFolderType.TRASH.value -> "TRASH"
+        else -> error("Unknown folder type ${this.folderType}")
+    }

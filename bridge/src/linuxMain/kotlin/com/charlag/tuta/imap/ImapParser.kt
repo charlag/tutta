@@ -130,7 +130,21 @@ val appendParser: Parser<AppendCommand>
             characterParser(' ').throwAway() +
             flagsParser +
             characterParser(' ').throwAway() +
-            characterParser('{').throwAway() + numberParser + characterParser('}').throwAway() )
+            characterParser('{').throwAway() + numberParser + characterParser('}').throwAway())
         .map { (folderAndFlags, literalSize) ->
             AppendCommand(folderAndFlags.first, folderAndFlags.second, literalSize)
         }
+
+
+data class StatusCommand(val folder: String, val attributes: List<String>)
+
+val statusParser: Parser<StatusCommand>
+    get() = (makeOneOrMoreParser(characterNotParser(' ')).map { it.joinToString("") } +
+            characterParser(' ').throwAway() +
+            characterParser('(').throwAway() +
+            separatedParser(
+                characterParser(' '),
+                makeOneOrMoreParser(characterInRangeParser('A'..'Z')).map { it.joinToString("") }
+            ) +
+            characterParser(')').throwAway()
+            ).map { (folder, flags) -> StatusCommand(folder, flags) }

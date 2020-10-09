@@ -1,126 +1,33 @@
 package com.charlag.tuta
 
 import com.charlag.tuta.posix.check
+import com.charlag.tuta.posix.errorMessage
 import com.charlag.tuta.posix.isZero
 import kotlinx.cinterop.*
 import org.sqlite.*
+import platform.posix.stat
 
-// TODO; decouple from any concrete type/table.
-class Db(path: String) {
+class SqliteDb(path: String) {
     private val arena = Arena()
     private val db = arena.alloc<CPointerVar<sqlite3>>()
 
     init {
         sqlite3_open(path, db.ptr).check(::isZero) {
-            error("Could not open dv")
+            throw DbException("Could not open dv ${errorMessage()}")
         }
-        execSqliteStatement(
-            db,
-            "CREATE TABLE IF NOT EXISTS Mail(uid INTEGER PRIMARY KEY, data BLOB);"
-        )
     }
 
-    fun write(uid: Int, bytes: ByteArray) {
+    fun exec(sql: String) {
+        this.execSqliteStatement(this.db, sql)
+    }
+
+    fun insert(sql: String, vararg args: Any) {
         memScoped {
-            val zSql = "INSERT INTO Mail(uid, data) VALUES (?, ?)"
-            val statementHandle = allocPointerTo<sqlite3_stmt>()
-            sqlite3_prepare_v2(db.value, zSql, zSql.toBytes().size, statementHandle.ptr, null)
-                .sqlOk("Preparing")
-
-            sqlite3_bind_int(statementHandle.value, 1, uid)
-                .sqlOk("bind 1")
-
-            bytes.usePinned {
-                sqlite3_bind_blob(statementHandle.value, 2, bytes.refTo(0), bytes.size, null)
-                    .sqlOk("bind 2")
-            }
-
-            sqlite3_step(statementHandle.value)
+            val statement = allocStatement(db, sql).apply { bindArgs(args) }
+            sqlite3_step(statement.statement)
                 .check({ it == SQLITE_OK || it == SQLITE_DONE }) {
-                    error("step of $zSql faile: $it")
+                    throw DbException("step of $sql failed: $it ${errorMessage()}")
                 }
-            sqlite3_finalize(statementHandle.value)
-        }
-    }
-
-    fun readSingle(uid: Int): ByteArray? {
-        memScoped {
-            val zSql = "SELECT uid, data FROM Mail WHERE uid = ? LIMIT 1"
-            val statementHandle = allocPointerTo<sqlite3_stmt>()
-            defer { sqlite3_finalize(statementHandle.value) }
-
-            sqlite3_prepare_v2(db.value, zSql, zSql.toBytes().size, statementHandle.ptr, null)
-                .sqlOk("Preparing SELECT")
-            sqlite3_bind_int(statementHandle.value, 1, uid).sqlOk("bind UID")
-
-            when (val code = sqlite3_step(statementHandle.value)) {
-                SQLITE_DONE -> return null
-                SQLITE_ROW -> {
-                }
-                else -> error("Step of '$zSql' failed: $code")
-            }
-            val bytesPtr = sqlite3_column_blob(statementHandle.value, 1)
-            val dataSize = sqlite3_column_bytes(statementHandle.value, 1)
-            return bytesPtr?.readBytes(dataSize)
-        }
-    }
-
-
-    fun readMultiple(fromUid: Int, toId: Int?): List<ByteArray> {
-        memScoped {
-            val statementHandle: CPointerVarOf<CPointer<sqlite3_stmt>>
-            if (toId != null) {
-                val zSql = "SELECT uid, data FROM Mail WHERE UID >= ? AND UID <= ?"
-                statementHandle = allocPointerTo<sqlite3_stmt>()
-                sqlite3_prepare_v2(db.value, zSql, zSql.toBytes().size, statementHandle.ptr, null)
-                    .sqlOk("Preparing")
-                sqlite3_bind_int(statementHandle.value, 1, fromUid)
-                sqlite3_bind_int(statementHandle.value, 2, toId)
-
-            } else {
-                val zSql = "SELECT uid, data FROM Mail WHERE UID >= ?"
-                statementHandle = allocPointerTo<sqlite3_stmt>()
-                sqlite3_prepare_v2(db.value, zSql, zSql.toBytes().size, statementHandle.ptr, null)
-                    .sqlOk("Preparing")
-                sqlite3_bind_int(statementHandle.value, 1, fromUid)
-            }
-            val expandedSql = sqlite3_expanded_sql(statementHandle.value)
-            println("DB: Multiple: ${expandedSql?.toKString()}")
-            sqlite3_free(expandedSql)
-            defer { sqlite3_finalize(statementHandle.value) }
-            sqlite3_bind_int(statementHandle.value, 1, fromUid)
-
-            val result = mutableListOf<ByteArray>()
-            while (true) {
-                when (val code = sqlite3_step(statementHandle.value)) {
-                    SQLITE_DONE -> break
-                    SQLITE_ROW -> {
-                    }
-                    else -> error("Step failed: $code")
-                }
-                val bytesPtr = sqlite3_column_blob(statementHandle.value, 1)
-                val dataSize = sqlite3_column_bytes(statementHandle.value, 1)
-                val readBytes = bytesPtr!!.readBytes(dataSize)
-                result += readBytes
-            }
-            return result
-        }
-    }
-
-    fun count(): Int {
-        memScoped {
-            val zSql = "SELECT COUNT (uid) FROM Mail"
-            val statementHandle = allocPointerTo<sqlite3_stmt>()
-            sqlite3_prepare_v2(db.value, zSql, zSql.toBytes().size, statementHandle.ptr, null)
-                .sqlOk("Preparing")
-            defer { sqlite3_finalize(statementHandle.value) }
-
-            when (val code = sqlite3_step(statementHandle.value)) {
-                SQLITE_ROW, SQLITE_DONE -> {
-                }
-                else -> error("Step of '$zSql' failed: $code")
-            }
-            return sqlite3_column_int(statementHandle.value, 0)
         }
     }
 
@@ -145,6 +52,113 @@ class Db(path: String) {
             }
         }
     }
+
+    fun <T> queryMultiple(query: String, vararg args: Any, transformer: Cursor.() -> T): List<T> {
+        return memScoped {
+            val statement = allocStatement(db, query).apply { bindArgs(args) }
+            val cursor = Cursor(statement.statement)
+            val results = mutableListOf<T>()
+            cursor.iterate {
+                results += transformer(this)
+                true
+            }
+            results
+        }
+    }
+
+
+    fun <T> querySingle(query: String, vararg args: Any, transformer: Cursor.() -> T): T? {
+        return memScoped {
+            val statement = allocStatement(db, query).apply { bindArgs(args) }
+            val cursor = Cursor(statement.statement)
+            var result: T? = null
+            cursor.iterate {
+                result = transformer(this)
+                false
+            }
+            result
+        }
+    }
+
+
+    private inline fun Int.sqlOk(op: String) = check({ it == SQLITE_OK }) {
+        val sqlMessage = errorMessage()
+        throw DbException("$op failed: $it, ${sqlMessage}")
+    }
+
+    private fun errorMessage() = sqlite3_errmsg(db.value)?.toKString()
+
+
+    fun SqlStatement.bindInt(at: Int, value: Int) = sqlite3_bind_int(statement, at, value)
+        .sqlOk("bindInt")
+
+    fun SqlStatement.bindBlob(at: Int, value: ByteArray): Int {
+        // SQLITE_TRANSIENT tells SQLite to make a copy of the data immediately which is something
+        // that we would like to do to avoid memory corruption.
+        return sqlite3_bind_blob(statement, at, value.refTo(0), value.size, SQLITE_TRANSIENT)
+            .sqlOk("bindBlob")
+    }
+
+    fun SqlStatement.bindText(at: Int, value: String): Int {
+        // SQLITE_TRANSIENT tells SQLite to make a copy of the data immediately which is something
+        // that we would like to do to avoid memory corruption.
+        // Fourth argument can be either negative and then text is read up to the first null terminator
+        // or it can be offset where null terminator would occur.
+        return sqlite3_bind_text(statement, at, value, value.toBytes().size, SQLITE_TRANSIENT)
+            .sqlOk("bindText")
+    }
+
+    private fun MemScope.allocStatement(db: CPointerVar<sqlite3>, sql: String): SqlStatement {
+        val statementHandle = allocPointerTo<sqlite3_stmt>()
+        sqlite3_prepare_v2(db.value, sql, sql.toBytes().size, statementHandle.ptr, null)
+            .sqlOk("Preparing")
+        defer { sqlite3_finalize(statementHandle.value) }
+        return SqlStatement(statementHandle.value!!)
+    }
+
+    fun SqlStatement.bindArgs(args: Array<out Any>) {
+        args.forEachIndexed { index, value ->
+            // "The leftmost SQL parameter has an index of 1."
+            val statementIndex = index + 1
+            when (value) {
+                is Int -> bindInt(statementIndex, value)
+                is ByteArray -> bindBlob(statementIndex, value)
+                is String -> bindText(statementIndex, value)
+                else -> throw IllegalArgumentException("Invalid type to bind: ${value::class}")
+            }
+        }
+    }
 }
 
-private inline fun Int.sqlOk(op: String) = check({ it == SQLITE_OK }) { error("$op failed: $it") }
+inline class Cursor(val statement: CPointer<sqlite3_stmt>)
+
+private inline fun Cursor.iterate(block: Cursor.() -> Boolean) {
+    while (true) {
+        when (val code = sqlite3_step(statement)) {
+            SQLITE_DONE -> break
+            SQLITE_ROW -> {
+            }
+            else -> throw DbException("Step failed: $code ${errorMessage()}")
+        }
+        if (!block(this)) {
+            break
+        }
+    }
+}
+
+fun Cursor.readInt(at: Int): Int = sqlite3_column_int(statement, at)
+
+fun Cursor.readBlob(at: Int): ByteArray {
+    val bytesPtr = sqlite3_column_blob(statement, at)
+    val dataSize = sqlite3_column_bytes(statement, at)
+    return bytesPtr!!.readBytes(dataSize)
+}
+
+fun Cursor.readString(at: Int): String {
+    val ptr: CPointer<ByteVar> = sqlite3_column_text(statement, at)!!.reinterpret()
+    return ptr.toKString()
+}
+
+inline class SqlStatement(val statement: CPointer<sqlite3_stmt>)
+
+class DbException(message: String) : Exception(message)

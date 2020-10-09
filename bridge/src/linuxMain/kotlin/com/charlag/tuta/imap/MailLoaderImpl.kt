@@ -21,8 +21,6 @@ class MailLoaderImpl(
     private val userController: UserController,
     private val mailsDb: MailDb,
 ) : MailLoader {
-    private val cachedFolders = AtomicReference<List<MailFolder>?>(null)
-
     override fun uid(mail: Mail): Int {
         // UIDs must be increasing and must be 32bit
         // We are takng a second now. We should change this and probably persist the mapping.
@@ -30,17 +28,19 @@ class MailLoaderImpl(
     }
 
     override fun numberOfMailsFor(folder: MailFolder): Int {
-        return mailsDb.count() //getMailsFor(folder).size
+        return mailsDb.count(folder.mails.asString())
     }
 
+    override fun numberOfUneadFor(folder: MailFolder): Int {
+        // This is a placeholder, we should probably take count form the server or at least ask
+        // database to do this
+        return this.mailsDb.readMultiple(folder.mails.asString(), fromUid = 0, toUid = null)
+            .count { it.unread }
+    }
+
+
     override fun folders(): List<MailFolder> {
-        return cachedFolders.value ?: runBlocking {
-            val user = userController.user ?: error("not logged in")
-            val mailMembership = user.memberships.first { it.groupType == GroupType.Mail.value }
-            val groupRoot = api.loadElementEntity<MailboxGroupRoot>(mailMembership.group)
-            val mailbox = api.loadElementEntity<MailBox>(groupRoot.mailbox)
-            api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
-        }.also { this.cachedFolders.value = it }.freeze()
+        return mailsDb.readFolders()
     }
 
     /**
@@ -48,7 +48,7 @@ class MailLoaderImpl(
      */
     private fun getMailsFor(folder: MailFolder): List<Mail> {
         // read all for now
-        return mailsDb.readMultiple(fromUid = 0, toUid = null)
+        return mailsDb.readMultiple(folder.mails.asString(), fromUid = 0, toUid = null)
     }
 
     override fun mailBySeq(folder: MailFolder, seq: Int): Mail? {
@@ -56,7 +56,7 @@ class MailLoaderImpl(
     }
 
     override fun mailByUid(folder: MailFolder, uid: Int): Mail? {
-        return mailsDb.readSingle(uid)
+        return mailsDb.readSingle(folder.mails.asString(), uid)
     }
 
     override fun mailsBySeq(folder: MailFolder, start: Int, end: Int?): List<Mail> {
@@ -66,7 +66,7 @@ class MailLoaderImpl(
     }
 
     override fun mailsByUid(folder: MailFolder, startUid: Int, endUid: Int?): List<Mail> {
-        return mailsDb.readMultiple(startUid, endUid)
+        return mailsDb.readMultiple(folder.mails.asString(), startUid, endUid)
     }
 
     override fun body(mail: Mail): MailBody {

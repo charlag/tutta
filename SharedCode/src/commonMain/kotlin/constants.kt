@@ -86,7 +86,22 @@ enum class MailFolderType(val value: Long) {
     TRASH(3),
     ARCHIVE(4),
     SPAM(5),
-    DRAFT(6)
+    DRAFT(6);
+
+    companion object {
+        fun fromRaw(raw: Long): MailFolderType {
+            return when (raw) {
+                0L -> CUSTOM
+                1L -> INBOX
+                2L -> SENT
+                3L -> TRASH
+                4L -> ARCHIVE
+                5L -> SPAM
+                6L -> DRAFT
+                else -> throw IllegalArgumentException("Unknown MailFolderType: $raw")
+            }
+        }
+    }
 }
 
 enum class InboxRuleType(val raw: String) {

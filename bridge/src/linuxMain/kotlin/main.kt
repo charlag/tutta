@@ -33,11 +33,11 @@ fun main() {
 
         val dbBath = "mail.db"
         val dbExists = Path(dbBath).exists()
-        val db = Db(dbBath)
+        val db = SqliteDb(dbBath)
         val mailDb = MailDb(db, dependencyDump.instanceMapper, pwKey)
         if (!dbExists) {
             println("Doing initial sync")
-            val size = initialSync(pwKey, mailDb, dependencyDump)
+            val size = initialSync(mailDb, dependencyDump)
             println("Finished initial sync with $size mails")
         }
 
@@ -47,19 +47,31 @@ fun main() {
     }
 }
 
-private suspend fun initialSync(key: ByteArray, db: MailDb, dependencyDump: DependencyDump): Int {
-    val inbox = getInbox(dependencyDump)
+private suspend fun initialSync(db: MailDb, dependencyDump: DependencyDump): Int {
+    // Should probably request in reverse till either some number or the date
+    val folders = getFolders(dependencyDump)
+    db.writeFolders(folders)
+    println("Wrote folders")
+
     val dateStart = Clock.System.now().minus(14.toDuration(DurationUnit.DAYS))
     println("Downloading emails since $dateStart")
     val startMs = dateStart.toEpochMilliseconds()
     val startId = timestmpToGeneratedId(startMs, 0)
-    val mails = dependencyDump.api.loadRangeInBetween(Mail::class, inbox.mails, startId)
-    println("Downloaded mails ${mails.size}")
-    for (mail in mails) {
-        val uid = (mail.receivedDate.millis / 1000).toInt()
-        db.writeSingle(uid, mail)
+    var loaded = 0
+    for (folder in folders) {
+        val mails = dependencyDump.api.loadRangeInBetween(Mail::class, folder.mails, startId)
+        println("Downloaded mails ${mails.size} for ${MailFolderType.fromRaw(folder.folderType)}")
+        for (mail in mails) {
+            val uid = (mail.receivedDate.millis / 1000).toInt()
+            try {
+                db.writeSingle(uid, mail)
+            } catch (e: DbException) {
+                println("Inserting mail $mail w/ uid $uid failed: $e")
+            }
+        }
+        loaded += mails.size
     }
-    return mails.size
+    return loaded
 }
 
 /**
@@ -129,16 +141,14 @@ class UserController {
     var user: User? = null
 }
 
-private suspend fun getInbox(dependencyDump: DependencyDump): MailFolder {
+private suspend fun getFolders(dependencyDump: DependencyDump): List<MailFolder> {
     val user = dependencyDump.userController.user ?: error("Not logged in!")
     val mailMembership = user.memberships.first { it.groupType == GroupType.Mail.value }
 
     val groupRoot = dependencyDump.api
         .loadElementEntity<MailboxGroupRoot>(mailMembership.group)
     val mailbox = dependencyDump.api.loadElementEntity<MailBox>(groupRoot.mailbox)
-    val folders = dependencyDump.api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
-    val inbox = folders.first { it.folderType == MailFolderType.INBOX.value }
-    return inbox
+    return  dependencyDump.api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
 }
 
 private const val REST_PATH = "https://mail.tutanota.com/rest/"

@@ -8,6 +8,7 @@ import com.charlag.tuta.entities.tutanota.MailFolder
 interface MailLoader {
     fun uid(mail: Mail): Int?
     fun numberOfMailsFor(folder: MailFolder): Int
+    fun numberOfUneadFor(folder: MailFolder): Int
     fun folders(): List<MailFolder>
     fun mailBySeq(folder: MailFolder, seq: Int): Mail?
     fun mailByUid(folder: MailFolder, uid: Int): Mail?
