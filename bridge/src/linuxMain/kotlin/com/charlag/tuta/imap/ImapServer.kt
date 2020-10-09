@@ -26,15 +26,19 @@ class ImapServer(private val mailLoader: MailLoader) {
         val readingState = this.readingState
         if (readingState != null) {
             val size = message.toBytes().size
-            println(">> Read $size")
-            readingState.toRead -= size
+            val isEmpty = message == "\r\n"
+            // After data is over, there's an empty line
             if (readingState.toRead > 0) {
+                readingState.toRead -= size
                 return listOf()
-            } else {
+            } else if (isEmpty && readingState.toRead == 0) {
                 this.readingState = null
                 return listOf(success(readingState.tag, "APPEND"))
+            } else {
+                return listOf("* BAD")
             }
         }
+
         val messageParts = message.dropLast(2).split(' ', limit = 3)
         if (messageParts.size < 2) {
             return listOf("* BAD")

@@ -62,9 +62,10 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
         { (commFd to imapServerFactory.freeze()) }) { (commFd, imapSeverF) ->
         val imapSever = imapSeverF()
         val buffer = ByteArray(1024)
+        val tag = "I$commFd"
         buffer.usePinned { pinned ->
             try {
-                sendImapResponse(commFd, imapSever.newConnection())
+                sendImapResponse(tag, commFd, imapSever.newConnection())
             } catch (e: IOException) {
                 println("Could not send initial response $e")
             }
@@ -76,15 +77,15 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
                     println("Could not read from the input $e")
                     break
                 }
-                print("C: $received")
+                print("$tag C: $received")
                 try {
                     val response = imapSever.respondTo(received)
-                    sendImapResponse(commFd, response)
+                    sendImapResponse(tag, commFd, response)
                 } catch (e: IOException) {
                     println("Could not write response: $e")
                 } catch (e: Throwable) {
                     println("Request failed with ${e.printStackTrace()}")
-                    sendImapResponse(commFd, listOf("BAD ERROR"))
+                    sendImapResponse(tag, commFd, listOf("BAD ERROR"))
                 }
             }
         }
@@ -123,10 +124,11 @@ private fun runSmtpServer() {
                     .check({ it != -1 }) { error("read failed: ${errorMessage()}") }
 
                 println("accepted $commFd")
+                val tag = "P$commFd"
 
                 buffer.usePinned { pinned ->
                     try {
-                        sendImapResponse(commFd, server.newConnection())
+                        sendImapResponse(tag, commFd, server.newConnection())
                     } catch (e: IOException) {
                         println("Could not send initial response $e")
                     }
@@ -138,16 +140,16 @@ private fun runSmtpServer() {
                             println("Could not read from the input $e")
                             break
                         }
-                        print("C: $received")
+                        print("$tag C: $received")
                         try {
                             server.respondTo(received)?.let { response ->
-                                sendImapResponse(commFd, listOf(response))
+                                sendImapResponse(tag, commFd, listOf(response))
                             }
                         } catch (e: IOException) {
                             println("Could not write response: $e")
                         } catch (e: Throwable) {
                             println("Request failed with $e")
-                            sendImapResponse(commFd, listOf("500 ERROR"))
+                            sendImapResponse(tag, commFd, listOf("500 ERROR"))
                         }
                     }
                 }
@@ -158,9 +160,9 @@ private fun runSmtpServer() {
     }
 }
 
-private fun sendImapResponse(commFd: Int, response: List<String>) {
+private fun sendImapResponse(tag: String, commFd: Int, response: List<String>) {
     for (s in response) {
-        println("S: ${s.substring(0, min(s.length, 200))}")
+        println("$tag S: ${s.substring(0, min(s.length, 200))}")
         sendString(commFd, s + "\r\n")
     }
 }
