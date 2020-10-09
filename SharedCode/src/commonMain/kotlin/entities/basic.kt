@@ -11,6 +11,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlin.native.concurrent.SharedImmutable
 
 
 object IvSerializer : KSerializer<Map<String, ByteArray?>> by MapSerializer(
@@ -63,7 +64,10 @@ object ByteArraySerializer : KSerializer<ByteArray> {
     }
 }
 
+@SharedImmutable
 const val GENERATED_ID_BYTES_LENGTH = 9
 
+@SharedImmutable
 val GENERATED_MIN_ID = GeneratedId("------------")
+@SharedImmutable
 val GENERATED_MAX_ID = GeneratedId("zzzzzzzzzzzz")

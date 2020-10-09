@@ -94,3 +94,43 @@ fun fetchCommandParser(): Parser<FetchRequest> =
     }.named("fetchCommand")
 
 private fun anyFetchAttrsParser() = (fetchAttrListParser() or fetchAttrParser().map { listOf(it) })
+
+fun characterNotParser(char: Char): Parser<Char> = { context ->
+    context.next().also {
+        if (it == char) throw ParserError("Char not '$char'")
+    }
+}
+
+val quotedStringParser: Parser<String>
+    get() = characterParser('"').throwAway() +
+            zeroOrMoreParser(characterNotParser('"')).map { it.joinToString("") } +
+            characterParser('"').throwAway()
+
+data class ListCommand(val delimiter: String, val pattern: String)
+
+val listCommandParser: Parser<ListCommand>
+    get() = (quotedStringParser + characterParser(' ').throwAway() + quotedStringParser)
+        .map { (delimiter, pattern) -> ListCommand(delimiter, pattern) }
+
+val flagParser: Parser<String>
+    get() = (characterParser('\\').throwAway() +
+            makeOneOrMoreParser(
+                characterInRangeParser('a'..'z') or characterInRangeParser('A'..'Z')
+            ).map { it.joinTo(StringBuilder("\\")).toString() })
+
+val flagsParser: Parser<List<String>>
+    get() = characterParser('(').throwAway() +
+            separatedParser(characterParser(' '), flagParser) +
+            characterParser(')').throwAway()
+
+data class AppendCommand(val targetFolder: String, val flags: List<String>, val literalSize: Int)
+
+val appendParser: Parser<AppendCommand>
+    get() = (makeOneOrMoreParser(characterNotParser(' ')).map { it.joinToString("") } +
+            characterParser(' ').throwAway() +
+            flagsParser +
+            characterParser(' ').throwAway() +
+            characterParser('{').throwAway() + numberParser + characterParser('}').throwAway() )
+        .map { (folderAndFlags, literalSize) ->
+            AppendCommand(folderAndFlags.first, folderAndFlags.second, literalSize)
+        }

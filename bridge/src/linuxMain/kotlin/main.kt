@@ -43,9 +43,7 @@ fun main() {
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController, mailDb)
 //        val mailLoader = FakeMailLoader()
-        val server = ImapServer(mailLoader)
-
-        runBridgeServer(server)
+        runBridgeServer { ImapServer(mailLoader) }
     }
 }
 

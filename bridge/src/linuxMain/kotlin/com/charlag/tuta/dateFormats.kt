@@ -1,6 +1,7 @@
 package com.charlag.tuta
 
 import kotlinx.datetime.*
+import kotlin.native.concurrent.SharedImmutable
 
 /**
  * Formats into date-time format defined by RFC822 (email headers). Looks like:
@@ -95,6 +96,7 @@ private fun DayOfWeek.toRFC822(): String = when (this) {
 private fun LocalDate.toRFC822(): String =
     "${this.dayOfMonth} ${this.month.toRFC822()} ${this.year}"
 
+@SharedImmutable
 private val monthNames = listOf(
     "Jan", "Feb", "Mar", "Apr",
     "May", "Jun", "Jul", "Aug",

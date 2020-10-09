@@ -12,15 +12,33 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+private data class ReadingState(val tag: String, var toRead: Int)
+
 class ImapServer(private val mailLoader: MailLoader) {
     private var currentFolder: MailFolder? = null
+    private var readingState: ReadingState? = null
 
     fun newConnection(): List<String> {
         return listOf("* OK IMAP4rev1 Service Ready")
     }
 
     fun respondTo(message: String): List<String> {
+        val readingState = this.readingState
+        if (readingState != null) {
+            val size = message.toBytes().size
+            println(">> Read $size")
+            readingState.toRead -= size
+            if (readingState.toRead > 0) {
+                return listOf()
+            } else {
+                this.readingState = null
+                return listOf(success(readingState.tag, "APPEND"))
+            }
+        }
         val messageParts = message.dropLast(2).split(' ', limit = 3)
+        if (messageParts.size < 2) {
+            return listOf("* BAD")
+        }
         val (tag, commandLower) = messageParts
         val command = commandLower.toUpperCase()
         val args = messageParts.getOrElse(2) { "" }
@@ -32,9 +50,31 @@ class ImapServer(private val mailLoader: MailLoader) {
             "LOGIN" -> {
                 listOf(success(tag, command))
             }
-            "LIST" -> {
+            "LIST", "LSUB" -> {
                 // In some cases should return hierarchy delimeter
-                listOf("""* LIST (\Noselect) "/" """"", success(tag, command))
+                val (delimiter, pattern) = this.parseList(args)
+                if (delimiter == "") {
+                    val folders = mailLoader.folders()
+                    val folderResponses = folders.mapNotNull { folder ->
+                        val name = when (folder.folderType) {
+                            MailFolderType.INBOX.value -> "INBOX"
+                            MailFolderType.SENT.value -> "SENT"
+                            MailFolderType.DRAFT.value -> "DRAFTS"
+                            MailFolderType.ARCHIVE.value -> "ARCHIVE"
+                            MailFolderType.SPAM.value -> "SPAM"
+                            MailFolderType.TRASH.value -> "TRASH"
+                            else -> error("Unknown folder type ${folder.folderType}")
+                        }
+                        if (pattern == "*" || name.contains(pattern, ignoreCase = true)) {
+                            "* LIST (\\HasNoChildren) \"#\" \"$name\""
+                        } else {
+                            null
+                        }
+                    }
+                    folderResponses + success(tag, command)
+                } else {
+                    listOf(success(tag, command))
+                }
             }
             "SELECT", "EXAMINE" -> {
                 // SELECT and EXAMINE do the same thing - show info about mailbox - but EXAMINE does
@@ -75,6 +115,7 @@ class ImapServer(private val mailLoader: MailLoader) {
 //                    success(tag, command)
 //                )
             }
+            "CREATE" -> listOf(success(tag, command))
             "UID" -> {
                 // for UID FETCH and UID SEARCH, same as normal commands but with UID instead of
                 // sequence numbers
@@ -112,6 +153,14 @@ class ImapServer(private val mailLoader: MailLoader) {
                 }
             }
             "LOGOUT" -> listOf(success(tag, command))
+            // TODO
+//            "STATUS" -> listOf()
+            // TODO
+            "APPEND" -> {
+                val appendCommand = appendParser.build()(args)
+                this.readingState = ReadingState(tag, appendCommand.literalSize)
+                listOf("+")
+            }
             else -> {
                 println("# unknown command '$command'")
                 listOf("$tag BAD IDK WHAT THIS MEANS $command")
@@ -271,7 +320,7 @@ class ImapServer(private val mailLoader: MailLoader) {
 
     private fun makeUpHeader(mail: Mail, header: String): String? {
         val normalizedHeader = header.toUpperCase()
-        if (header in neverSupportedHeadres || header in temporarilyNotAvailableHeaders) {
+        if (header in neverSupportedHeaders || header in temporarilyNotAvailableHeaders) {
             return null
         }
         return when (normalizedHeader) {
@@ -311,10 +360,14 @@ class ImapServer(private val mailLoader: MailLoader) {
 
 
     private val parseFetch: (String) -> FetchRequest = fetchCommandParser().build()
+    private val parseList: (String) -> ListCommand = listCommandParser.build()
 
 }
 
-private val neverSupportedHeadres = setOf("Priority", "X-Priority", "Newsgroups")
+@SharedImmutable
+private val neverSupportedHeaders = setOf("Priority", "X-Priority", "Newsgroups")
+
+@SharedImmutable
 private val temporarilyNotAvailableHeaders = setOf("References", "In-Reply-To")
 
 private fun Date.toInstant() = Instant.fromEpochMilliseconds(this.millis)

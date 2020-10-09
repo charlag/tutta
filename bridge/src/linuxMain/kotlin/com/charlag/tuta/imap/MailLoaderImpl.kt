@@ -7,6 +7,8 @@ import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.network.API
 import kotlinx.coroutines.runBlocking
+import kotlin.native.concurrent.AtomicReference
+import kotlin.native.concurrent.freeze
 
 /**
  * This is a stub implementation which loads only the first batch of emails.
@@ -19,15 +21,12 @@ class MailLoaderImpl(
     private val userController: UserController,
     private val mailsDb: MailDb,
 ) : MailLoader {
-    private val uidIndex = mutableMapOf<Int, Id>()
-    private var cachedFolders: List<MailFolder>? = null
+    private val cachedFolders = AtomicReference<List<MailFolder>?>(null)
 
     override fun uid(mail: Mail): Int {
         // UIDs must be increasing and must be 32bit
         // We are takng a second now. We should change this and probably persist the mapping.
-        val uid = (mail.receivedDate.millis / 1000).toInt()
-        uidIndex[uid] = mail.getId().elementId
-        return uid
+        return (mail.receivedDate.millis / 1000).toInt()
     }
 
     override fun numberOfMailsFor(folder: MailFolder): Int {
@@ -35,13 +34,13 @@ class MailLoaderImpl(
     }
 
     override fun folders(): List<MailFolder> {
-        return cachedFolders ?: runBlocking {
+        return cachedFolders.value ?: runBlocking {
             val user = userController.user ?: error("not logged in")
             val mailMembership = user.memberships.first { it.groupType == GroupType.Mail.value }
             val groupRoot = api.loadElementEntity<MailboxGroupRoot>(mailMembership.group)
             val mailbox = api.loadElementEntity<MailBox>(groupRoot.mailbox)
             api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
-        }.also { this.cachedFolders = it }
+        }.also { this.cachedFolders.value = it }.freeze()
     }
 
     /**
@@ -68,14 +67,6 @@ class MailLoaderImpl(
 
     override fun mailsByUid(folder: MailFolder, startUid: Int, endUid: Int?): List<Mail> {
         return mailsDb.readMultiple(startUid, endUid)
-    }
-
-    private fun uidToId(uid: Int): Id? {
-        val id = uidIndex[uid]
-        if (id == null) {
-            println("Did not find for uid: $uid")
-        }
-        return id
     }
 
     override fun body(mail: Mail): MailBody {

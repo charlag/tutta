@@ -118,13 +118,17 @@ fun <T> zeroOrMoreParser(anotherParser: Parser<T>): Parser<List<T>> {
     return { iterator ->
         log("zeroOrMore $anotherParser", iterator)
         val result = mutableListOf<T>()
+        var state = iterator.position
         try {
             var parseResult = anotherParser(iterator)
+            state = iterator.position
             while (true) {
                 result.add(parseResult)
                 parseResult = anotherParser(iterator)
+                state = iterator.position
             }
         } catch (e: ParserError) {
+            iterator.position = state
             log("zeroOrMoreStopped $anotherParser", iterator)
         }
         result
@@ -228,7 +232,6 @@ operator fun <B> Parser<B>.plus(parserB: Parser<Unit>): Parser<B> = { iterator -
     result
 }
 
-
 /**
  * Parses [this] first and then [parserB] and returns both.
  */
@@ -257,8 +260,8 @@ fun oneOfCharactersParser(allowed: Collection<Char>): Parser<Char> {
 }
 
 fun digits() = setOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
-val numberParser: Parser<Int> =
-    mapParser(makeOneOrMoreParser(oneOfCharactersParser(digits()))) { values ->
+val numberParser: Parser<Int>
+    get() = mapParser(makeOneOrMoreParser(oneOfCharactersParser(digits()))) { values ->
         log("numberParser", null)
         values.joinToString(separator = "").toInt()
     }

@@ -1,6 +1,7 @@
 package com.charlag.tuta
 
 import io.ktor.utils.io.core.toByteArray
+import kotlin.native.concurrent.SharedImmutable
 
 /**
  * Common interface for all cryptographic operations.
@@ -77,6 +78,7 @@ suspend fun Cryptor.generateKeyFromPassphrase(passphrase: String, salt: ByteArra
         .sliceArray(0 until 16)
 }
 
+@SharedImmutable
 val fixedIv: ByteArray = ByteArray(16) { 0x88.toByte() }
 
 suspend fun Cryptor.encryptKey(plaintextKey: ByteArray, encryptionKey: ByteArray): ByteArray {

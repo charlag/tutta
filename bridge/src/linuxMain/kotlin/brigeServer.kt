@@ -1,47 +1,67 @@
 import com.charlag.tuta.zeroOut
 import com.charlag.tuta.imap.ImapServer
+import com.charlag.tuta.imap.SmtpServer
 import com.charlag.tuta.posix.*
 import kotlinx.cinterop.*
 import platform.posix.*
+import kotlin.math.min
+import kotlin.native.concurrent.TransferMode
+import kotlin.native.concurrent.Worker
+import kotlin.native.concurrent.freeze
 
-const val PORT = 2143
+const val IMAP_PORT = 2143
+const val SMTP_PORT = 2125
 
-fun runBridgeServer(server: ImapServer) {
+fun runBridgeServer(imapServerFactory: () -> ImapServer) {
     // Ignore wild SIGPIPEs, we get return code anyway
     signal(SIGPIPE, SIG_IGN)
     init_sockets()
 
-    memScoped {
-        val buffer = ByteArray(1024)
+    runSmtpServer() // Start listening on a different thread
+    runImapServer(imapServerFactory) // Start listening on this thread and dispatch each connection to a new one
+}
 
+private fun runImapServer(imapServerFactory: () -> ImapServer) {
+    memScoped {
         val listenFd = socket(AF_INET, SOCK_STREAM, 0)
             .check({ it != -1 }) { error("socket failed: ${errorMessage()}") }
 
         val serverAddr = alloc<sockaddr_in> {
             zeroOut()
             sin_family = AF_INET.convert()
-            sin_port = posix_htons(PORT.toShort()).convert()
+            sin_port = posix_htons(IMAP_PORT.toShort()).convert()
         }
 
         bind(listenFd, serverAddr.ptr.reinterpret(), sockaddr_in.size.convert())
             .check(::isZero) { error("bind failed: ${errorMessage()}") }
 
-        println("bound $PORT")
+        println("bound $IMAP_PORT")
 
         listen(listenFd, 10)
             .check(::isZero) { error("listen failed: ${errorMessage()}") }
 
-        println("listen $PORT")
+        println("listen $IMAP_PORT")
 
         while (true) {
             val commFd = accept(listenFd, null, null)
                 .check({ it != -1 }) { error("read failed: ${errorMessage()}") }
 
             println("accepted $commFd")
+            runImapConnectionWorker(commFd, imapServerFactory)
+        }
+    }
+}
 
+private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapServer) {
+    Worker.start()
+        .execute(
+            TransferMode.SAFE,
+            { (commFd to imapServerFactory.freeze()) }) { (commFd, imapSeverF) ->
+            val imapSever = imapSeverF()
+            val buffer = ByteArray(1024)
             buffer.usePinned { pinned ->
                 try {
-                    sendImapResponse(commFd, server.newConnection())
+                    sendImapResponse(commFd, imapSever.newConnection())
                 } catch (e: IOException) {
                     println("Could not send initial response $e")
                 }
@@ -55,24 +75,89 @@ fun runBridgeServer(server: ImapServer) {
                     }
                     print("C: $received")
                     try {
-                        val response = server.respondTo(received)
+                        val response = imapSever.respondTo(received)
                         sendImapResponse(commFd, response)
                     } catch (e: IOException) {
                         println("Could not write response: $e")
                     } catch (e: Throwable) {
-                        println("Request failed with $e")
+                        println("Request failed with ${e.printStackTrace()}")
                         sendImapResponse(commFd, listOf("BAD ERROR"))
                     }
                 }
             }
             println("closed $commFd")
         }
+}
+
+private fun runSmtpServer() {
+    Worker.start().execute(TransferMode.SAFE, {}) {
+        memScoped {
+            val buffer = ByteArray(1024)
+
+            val listenFd = socket(AF_INET, SOCK_STREAM, 0)
+                .check({ it != -1 }) { error("socket failed: ${errorMessage()}") }
+
+            val serverAddr = alloc<sockaddr_in> {
+                zeroOut()
+                sin_family = AF_INET.convert()
+                sin_port = posix_htons(SMTP_PORT.toShort()).convert()
+            }
+
+            bind(listenFd, serverAddr.ptr.reinterpret(), sockaddr_in.size.convert())
+                .check(::isZero) { error("bind smtp failed: ${errorMessage()}") }
+
+            println("SMTP: bound $SMTP_PORT")
+
+            listen(listenFd, 10)
+                .check(::isZero) { error("listen failed: ${errorMessage()}") }
+
+            println("SMTP: listen $SMTP_PORT")
+
+            val server = SmtpServer()
+
+            while (true) {
+                val commFd = accept(listenFd, null, null)
+                    .check({ it != -1 }) { error("read failed: ${errorMessage()}") }
+
+                println("accepted $commFd")
+
+                buffer.usePinned { pinned ->
+                    try {
+                        sendImapResponse(commFd, server.newConnection())
+                    } catch (e: IOException) {
+                        println("Could not send initial response $e")
+                    }
+
+                    while (true) {
+                        val received = try {
+                            readString(pinned, commFd) ?: break
+                        } catch (e: IOException) {
+                            println("Could not read from the input $e")
+                            break
+                        }
+                        print("C: $received")
+                        try {
+                            server.respondTo(received)?.let { response ->
+                                sendImapResponse(commFd, listOf(response))
+                            }
+                        } catch (e: IOException) {
+                            println("Could not write response: $e")
+                        } catch (e: Throwable) {
+                            println("Request failed with $e")
+                            sendImapResponse(commFd, listOf("500 ERROR"))
+                        }
+                    }
+                }
+                println("closed $commFd")
+                break
+            }
+        }
     }
 }
 
 private fun sendImapResponse(commFd: Int, response: List<String>) {
     for (s in response) {
-        println("S: $s")
+        println("S: ${s.substring(0, min(s.length, 200))}")
         sendString(commFd, s + "\r\n")
     }
 }
