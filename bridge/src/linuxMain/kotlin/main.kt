@@ -2,9 +2,6 @@ import com.charlag.tryToLoadCredentials
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.entities.tutanota.Mail
-import com.charlag.tuta.entities.tutanota.MailBox
-import com.charlag.tuta.entities.tutanota.MailFolder
-import com.charlag.tuta.entities.tutanota.MailboxGroupRoot
 import com.charlag.tuta.imap.ImapServer
 import com.charlag.tuta.imap.MailLoaderImpl
 import com.charlag.tuta.network.API
@@ -14,13 +11,11 @@ import com.charlag.tuta.network.makeHttpClient
 import com.charlag.tuta.network.mapping.InstanceMapper
 import com.charlag.tuta.posix.Path
 import com.charlag.tuta.posix.exists
-import com.charlag.tuta.util.timestmpToGeneratedId
 import com.charlag.writeCredentials
 import io.ktor.client.features.logging.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Clock
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
+import kotlin.native.concurrent.AtomicReference
+import kotlin.native.concurrent.freeze
 
 fun main() {
     Platform.isMemoryLeakCheckerActive = false
@@ -35,11 +30,8 @@ fun main() {
         val dbExists = Path(dbBath).exists()
         val db = SqliteDb(dbBath)
         val mailDb = MailDb(db, dependencyDump.instanceMapper, pwKey)
-        if (!dbExists) {
-            println("Doing initial sync")
-            val size = initialSync(mailDb, dependencyDump)
-            println("Finished initial sync with $size mails")
-        }
+        val syncHandler = SyncHandler(dependencyDump.api, mailDb, dependencyDump.userController)
+        syncHandler.sync(!dbExists)
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController, mailDb)
 //        val mailLoader = FakeMailLoader()
@@ -47,32 +39,6 @@ fun main() {
     }
 }
 
-private suspend fun initialSync(db: MailDb, dependencyDump: DependencyDump): Int {
-    // Should probably request in reverse till either some number or the date
-    val folders = getFolders(dependencyDump)
-    db.writeFolders(folders)
-    println("Wrote folders")
-
-    val dateStart = Clock.System.now().minus(14.toDuration(DurationUnit.DAYS))
-    println("Downloading emails since $dateStart")
-    val startMs = dateStart.toEpochMilliseconds()
-    val startId = timestmpToGeneratedId(startMs, 0)
-    var loaded = 0
-    for (folder in folders) {
-        val mails = dependencyDump.api.loadRangeInBetween(Mail::class, folder.mails, startId)
-        println("Downloaded mails ${mails.size} for ${MailFolderType.fromRaw(folder.folderType)}")
-        for (mail in mails) {
-            val uid = (mail.receivedDate.millis / 1000).toInt()
-            try {
-                db.writeSingle(uid, mail)
-            } catch (e: DbException) {
-                println("Inserting mail $mail w/ uid $uid failed: $e")
-            }
-        }
-        loaded += mails.size
-    }
-    return loaded
-}
 
 /**
  * @return passphraseKey
@@ -138,18 +104,15 @@ class DependencyDump {
 }
 
 class UserController {
-    var user: User? = null
-}
-
-private suspend fun getFolders(dependencyDump: DependencyDump): List<MailFolder> {
-    val user = dependencyDump.userController.user ?: error("Not logged in!")
-    val mailMembership = user.memberships.first { it.groupType == GroupType.Mail.value }
-
-    val groupRoot = dependencyDump.api
-        .loadElementEntity<MailboxGroupRoot>(mailMembership.group)
-    val mailbox = dependencyDump.api.loadElementEntity<MailBox>(groupRoot.mailbox)
-    return  dependencyDump.api.loadAll(MailFolder::class, mailbox.systemFolders!!.folders)
+    private val _user: AtomicReference<User?> = AtomicReference(null)
+    var user: User?
+        get() = _user.value
+        set(value) {
+            _user.value = value.freeze()
+        }
 }
 
 private const val REST_PATH = "https://mail.tutanota.com/rest/"
 private const val WS_PATH = "https://mail.tutanota.com/event"
+
+fun Mail.deriveHackyUid() = (receivedDate.millis / 1000).toInt()

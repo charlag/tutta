@@ -174,7 +174,7 @@ class API(
     }
 
     suspend fun <T : ListElementEntity> loadRange(
-        klass: KClass<T>, listId: Id, start: Id, count: Int, reverse: Boolean
+        klass: KClass<T>, listId: Id, start: Id, count: Int, newToOld: Boolean
     ): List<T> {
         val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(klass)
         if (typeModel.type != MetamodelType.LIST_ELEMENT_TYPE)
@@ -184,7 +184,7 @@ class API(
             entityHeaders(typeModel)
             parameter("start", start.asString())
             parameter("count", count)
-            parameter("reverse", reverse.toString())
+            parameter("reverse", newToOld.toString())
             url(baseUrl + "${model}/${typeModel.name.toLowerCase()}/${listId.asString()}")
         }.mapNotNull {
             try {

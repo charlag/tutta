@@ -1,6 +1,7 @@
 package com.charlag.tuta
 
 import com.charlag.tuta.entities.Entity
+import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.TypeInfo
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
@@ -45,14 +46,18 @@ class MailDb(
 
     fun writeFolders(folders: List<MailFolder>) {
         for (folder in folders) {
-            sqliteDb.insert(
-                "INSERT INTO Folder(elementId, listId, mailListId, data) VALUES (?, ?, ?, ?)",
-                folder._id!!.elementId.asString(),
-                folder._id!!.listId.asString(),
-                folder.mails.asString(),
-                folder.serialize(MailFolderTypeInfo)
-            )
+            writeFolder(folder)
         }
+    }
+
+    fun writeFolder(folder: MailFolder) {
+        sqliteDb.insert(
+            "INSERT OR REPLACE INTO Folder(elementId, listId, mailListId, data) VALUES (?, ?, ?, ?)",
+            folder._id!!.elementId.asString(),
+            folder._id!!.listId.asString(),
+            folder.mails.asString(),
+            folder.serialize(MailFolderTypeInfo)
+        )
     }
 
     fun readFolders(): List<MailFolder> {
@@ -63,7 +68,7 @@ class MailDb(
 
     fun writeSingle(uid: Int, mail: Mail) {
         return sqliteDb.insert(
-            "INSERT INTO Mail(uid, elementId, listId, data) VALUES (?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO Mail(uid, elementId, listId, data) VALUES (?, ?, ?, ?)",
             uid,
             mail.getId().elementId.asString(),
             mail.getId().listId.asString(),
@@ -110,6 +115,14 @@ class MailDb(
         ) {
             readInt(0)
         }!!
+    }
+
+    fun deleteMail(id: IdTuple) {
+        sqliteDb.exec("DELETE FROM Mail WHERE listId = '${id.listId.asString()}' AND elementId = '${id.elementId.asString()}'")
+    }
+
+    fun deleteFolder(id: IdTuple) {
+        sqliteDb.exec("DELETE FROM Folder WHERE listId = '${id.listId.asString()}' AND elementId = '${id.elementId.asString()}'")
     }
 
     private inline fun <reified T : Entity> T.serialize(typeInfo: TypeInfo<T>): ByteArray {

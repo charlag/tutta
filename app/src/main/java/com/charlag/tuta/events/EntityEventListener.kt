@@ -196,10 +196,10 @@ class EntityEventListener @Inject constructor(
                 if (typeInfo.klass !in includedEntities) continue
 
                 when (entityUpdate.operation) {
-                    OPERATION_CREATE, OPERATION_UPDATE -> {
+                    EntityOperation.CREATE, EntityOperation.UPDATE -> {
                         downloadAndInsert(typeInfo, entityUpdate)
                     }
-                    OPERATION_DELETE -> {
+                    EntityOperation.DELETE -> {
                         when (typeInfo.klass) {
                             Mail::class -> mailRepository
                                 .onMailDeleted(GeneratedId(entityUpdate.instanceId))
@@ -262,7 +262,3 @@ class EntityEventListener @Inject constructor(
         )
     }
 }
-
-const val OPERATION_CREATE = 0L
-const val OPERATION_UPDATE = 1L
-const val OPERATION_DELETE = 2L
