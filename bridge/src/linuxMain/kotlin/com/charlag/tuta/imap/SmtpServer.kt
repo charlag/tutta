@@ -77,6 +77,9 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
             val toRecipients = to.map { resolveMailAddress(it) }
             val ccRecipients = cc.map { resolveMailAddress(it) }
             val bccRecipients = bcc.map { resolveMailAddress(it) }
+            val allRecipients = toRecipients + ccRecipients + bccRecipients
+            val confidential = allRecipients.all { it.type == RecipientType.INTENRAL }
+
             val user = userController.user!!
             val draft = mailFacade.createDraft(
                 user = user,
@@ -90,22 +93,21 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
                 conversationType = ConversationType.NEW,
                 previousMessageId = null,
                 files = listOf(),
-                confidential = true,
+                confidential = confidential,
                 replyTos = listOf()
             )
             println("Created draft, sending...")
-            val allRecipients = toRecipients + ccRecipients + bccRecipients
             mailFacade.sendDraft(user, draft, allRecipients, "en")
             println("Email sent!")
         }
     }
 
-    private fun resolveMailAddress(mailAddress: MailAddress): RecipientInfo {
-        // TODO: resolve recipients
+    private suspend fun resolveMailAddress(mailAddress: MailAddress): RecipientInfo {
+        val type = mailFacade.resolveRecipient(mailAddress.address)
         return RecipientInfo(
             name = mailAddress.name,
             mailAddress = mailAddress.address,
-            RecipientType.INTENRAL
+            type = type,
         )
     }
 }

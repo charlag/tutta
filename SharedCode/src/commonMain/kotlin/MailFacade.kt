@@ -287,7 +287,7 @@ class MailFacade(
     suspend fun resolveRecipient(mailAddress: String): RecipientType {
         return try {
             api.serviceRequest(
-                "sys", "publickeyservice", HttpMethod.Get, PublicKeyData(null, mailAddress),
+                "sys", "publickeyservice", HttpMethod.Get, PublicKeyData(mailAddress = mailAddress),
                 PublicKeyReturn::class
             )
             RecipientType.INTENRAL

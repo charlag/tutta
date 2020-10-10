@@ -158,7 +158,6 @@ private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
                     }
                 }
                 println("closed $commFd")
-                break
             }
         }
     }
