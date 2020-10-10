@@ -1,23 +1,23 @@
-# Unnamed Tutanota client
+# Unnamed Tutanota client(s)
 
-This is unofficial mail client for encrypted service Tutanota.
+This is a number unofficial mail client for encrypted service Tutanota.
+
+ * Android client
+ * Desktop translator/bridge from Tutanota API to IMAP/SMTP
 
 ## Current state
 
 Currently it's alpha-quality so use at your own risk. It may eat your glue and steal your dog.
 There is no support from Tutanota team and no one guarantees your safety when using this.
 
-The project started as a Kotlin Multiplatform experiment but quickly focused on Android client.
-A lot of important code (auth, api, parsing/mapping) is still multiplatform and theoretically it's
-possible to develop another platform further, also some code which resides in Android part currently
-can be extracted into the common part.
+The project started as a Kotlin Multiplatform experiment but quickly focused on Android client
+initially. JS/web project was  abandoned because of the poor tooling. It was fixed since then and
+it's possible to start with it again.
 
-JS/web project is currently abandoned because of the poor support on the Kotlin side: bundling
-is not automatic, hooking up sourcemaps is nontrivial. It might be that I did some things wrong but
-examples are few and between. Quality of generated JS is also quite poor so until promised compiler 
-backend rewrite comes it's not feasible to touch it.
+Bridge has some basic viewing of emails and sending of plain emails. No support for attachments or
+operations (like move, read) yet. Has some kind of offline cache.
 
-## Goals
+## Goals for Android
 
 **Goals**:
  - see how far we can get with low effort
@@ -80,6 +80,26 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [ ] Full-text search
  - [ ] Sharing contacts with system?
  - [ ] UI can be reused with different backends?
+ 
+## TODO for bridge
+ - [x] Support for Linux
+ - [ ] Support for macOS
+ - [ ] Support for Windows
+ - [x] Loading of emails and bodies
+ - [ ] Loading of attachments
+ - [x] Different folders
+ - [ ] Subfolders
+ - [ ] Creating folders
+ - [x] Sync (initial, after startup, scheduled)
+ - [ ] Realtime sync via websockets (blocked by ws support on native)
+ - [x] Sending encrypted
+ - [x] Sending unencrypted
+ - [ ] All recipient fields
+ - [ ] Sending attachments 
+ - [ ] Marking as read/unread
+ - [ ] Moving mails
+ - [ ] Storing credentials in keychain
+ - [ ] Reading/writing async
 
 ## License
 GPL-3.0-or-later of course
