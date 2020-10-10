@@ -22,15 +22,7 @@ class SyncHandler(
     private val mailDb: MailDb,
     private val userController: UserController
 ) {
-    suspend fun sync(initial: Boolean) {
-        if (initial) {
-            initialSync()
-        } else {
-            resync()
-        }
-    }
-
-    private suspend fun initialSync() {
+    suspend fun initialSync() {
         log("Initial sync")
 
         // Should probably request in reverse till either some number or the date
@@ -59,7 +51,7 @@ class SyncHandler(
         log("Synced $loaded mails")
     }
 
-    private suspend fun resync() {
+    suspend fun resync() {
         log("Resync")
         val lastId = loadLastEntityEventBatchId()?.let { GeneratedId(it) }
         val mailMembership =

@@ -14,7 +14,7 @@ sealed class FetchAttr {
     data class Parametrized(
         val value: String,
         val sectionSpec: SectionSpec?,
-        val range: LongRange?
+        val range: Pair<Int, Int>?
     ) : FetchAttr()
 }
 
@@ -44,14 +44,27 @@ fun sectionParser(): Parser<SectionSpec?> =
     (emptySectionParser() or nonemptySectionParser())
         .named("sectionParser")
 
+
+// "BODY.PEEK" section ["<" number "." nz-number ">"]
+val fetchPartialParser: Parser<Pair<Int, Int>>
+    get() = characterParser('<').throwAway() +
+            numberParser +
+            characterParser('.').throwAway() +
+            numberParser +
+            characterParser('>').throwAway()
+
 private fun fetchAttrParser(): Parser<FetchAttr> =
-    (fetchAttrNameParser() + sectionParser().optional()).map { (name, section) ->
-        if (section == null) {
-            FetchAttr.Simple(name)
-        } else {
-            FetchAttr.Parametrized(name, section, null)
-        }
-    }.named("fetchAttrParser")
+    (fetchAttrNameParser() +
+            sectionParser().optional() +
+            fetchPartialParser.optional()
+            ).map { (nameAndSection, partial) ->
+            val (name, section) = nameAndSection
+            if (section == null) {
+                FetchAttr.Simple(name)
+            } else {
+                FetchAttr.Parametrized(name, section, partial)
+            }
+        }.named("fetchAttrParser")
 
 // UID FLAGS RFC822.SIZE BODY.PEEK[HEADER.FIELDS (DATE FROM SENDER SUBJECT TO CC REPLY-TO)]
 fun fetchAttrsParser(): Parser<List<FetchAttr>> = separatedParser(
@@ -59,7 +72,6 @@ fun fetchAttrsParser(): Parser<List<FetchAttr>> = separatedParser(
     valueParser = fetchAttrParser()
 )
 
-// TODO: support sequence of IDs like "1588598392,1588598417,1589270478"
 sealed class IdParam {
     data class IdSet(val ids: List<Int>) : IdParam()
     data class ClosedRange(val startId: Int, val endId: Int) : IdParam()
@@ -109,10 +121,14 @@ val quotedStringParser: Parser<String>
             zeroOrMoreParser(characterNotParser('"')).map { it.joinToString("") } +
             characterParser('"').throwAway()
 
+val quotedOrUnquotedStringParser: Parser<String>
+    get() = quotedStringParser or
+            oneOrMoreParser(characterNotParser(' ')).map { it.joinToString("") }
+
 data class ListCommand(val delimiter: String, val pattern: String)
 
 val listCommandParser: Parser<ListCommand>
-    get() = (quotedStringParser + characterParser(' ').throwAway() + quotedStringParser)
+    get() = (quotedOrUnquotedStringParser + characterParser(' ').throwAway() + quotedOrUnquotedStringParser)
         .map { (delimiter, pattern) -> ListCommand(delimiter, pattern) }
 
 val flagParser: Parser<String>

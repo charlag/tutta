@@ -14,9 +14,10 @@ import com.charlag.tuta.posix.Path
 import com.charlag.tuta.posix.exists
 import com.charlag.writeCredentials
 import io.ktor.client.features.logging.*
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlin.native.concurrent.AtomicReference
 import kotlin.native.concurrent.freeze
+import kotlin.time.minutes
 
 fun main() {
     Platform.isMemoryLeakCheckerActive = false
@@ -32,16 +33,20 @@ fun main() {
         val db = SqliteDb(dbBath)
         val mailDb = MailDb(db, dependencyDump.instanceMapper, pwKey)
         val syncHandler = SyncHandler(dependencyDump.api, mailDb, dependencyDump.userController)
-        syncHandler.sync(!dbExists)
+        if (!dbExists) syncHandler.initialSync() else syncHandler.resync()
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController, mailDb)
 //        val mailLoader = FakeMailLoader()
         runBridgeServer(
-            imapServerFactory = { ImapServer(mailLoader) },
+            imapServerFactory = { ImapServer(mailLoader, syncHandler) },
             smtpServerFactory = {
                 SmtpServer(dependencyDump.mailFacade, dependencyDump.userController)
             }
         )
+        while (true) {
+            delay(5.minutes)
+            syncHandler.resync()
+        }
     }
 }
 

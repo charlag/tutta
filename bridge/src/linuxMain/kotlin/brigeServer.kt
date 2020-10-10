@@ -2,6 +2,7 @@ import com.charlag.tuta.imap.ImapServer
 import com.charlag.tuta.imap.SmtpServer
 import com.charlag.tuta.posix.*
 import com.charlag.tuta.zeroOut
+import io.ktor.client.engine.curl.*
 import kotlinx.cinterop.*
 import platform.posix.*
 import kotlin.math.min
@@ -22,41 +23,46 @@ fun runBridgeServer(imapServerFactory: () -> ImapServer, smtpServerFactory: () -
 }
 
 private fun runImapServer(imapServerFactory: () -> ImapServer) {
-    memScoped {
-        val listenFd = socket(AF_INET, SOCK_STREAM, 0)
-            .check({ it != -1 }) { error("socket failed: ${errorMessage()}") }
-        // We set it to reuse port for now
-        val enabled = alloc<IntVar>()
-        enabled.value = 1
-        setsockopt(listenFd, SOL_SOCKET, SO_REUSEPORT, enabled.ptr, sizeOf<IntVar>().convert())
+    // Spins up a new worker with acceptor loop, then spins up a new worker per connection
+    Worker.start().execute(TransferMode.SAFE, { imapServerFactory.freeze() }) { serverFactory ->
+        memScoped {
+            val listenFd = socket(AF_INET, SOCK_STREAM, 0)
+                .check({ it != -1 }) { error("socket failed: ${errorMessage()}") }
+            // We set it to reuse port for now
+            val enabled = alloc<IntVar>()
+            enabled.value = 1
+            setsockopt(listenFd, SOL_SOCKET, SO_REUSEPORT, enabled.ptr, sizeOf<IntVar>().convert())
 
-        val serverAddr = alloc<sockaddr_in> {
-            zeroOut()
-            sin_family = AF_INET.convert()
-            sin_port = posix_htons(IMAP_PORT.toShort()).convert()
-        }
+            val serverAddr = alloc<sockaddr_in> {
+                zeroOut()
+                sin_family = AF_INET.convert()
+                sin_port = posix_htons(IMAP_PORT.toShort()).convert()
+            }
 
-        bind(listenFd, serverAddr.ptr.reinterpret(), sockaddr_in.size.convert())
-            .check(::isZero) { error("bind failed: ${errorMessage()}") }
+            bind(listenFd, serverAddr.ptr.reinterpret(), sockaddr_in.size.convert())
+                .check(::isZero) { error("bind failed: ${errorMessage()}") }
 
-        println("bound $IMAP_PORT")
+            println("bound $IMAP_PORT")
 
-        listen(listenFd, 10)
-            .check(::isZero) { error("listen failed: ${errorMessage()}") }
+            listen(listenFd, 10)
+                .check(::isZero) { error("listen failed: ${errorMessage()}") }
 
-        println("listen $IMAP_PORT")
+            println("listen $IMAP_PORT")
 
-        while (true) {
-            val commFd = accept(listenFd, null, null)
-                .check({ it != -1 }) { error("read failed: ${errorMessage()}") }
+            while (true) {
+                val commFd = accept(listenFd, null, null)
+                    .check({ it != -1 }) { error("read failed: ${errorMessage()}") }
 
-            println("accepted $commFd")
-            runImapConnectionWorker(commFd, imapServerFactory)
+                println("accepted $commFd")
+                runImapConnectionWorker(commFd, serverFactory)
+            }
         }
     }
 }
 
 private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapServer) {
+    // We don't anticipate concurrent SMTP connections so it just spins up one worker which
+    // both accepts and handles connections.
     Worker.start().execute(
         TransferMode.SAFE,
         { (commFd to imapServerFactory.freeze()) }) { (commFd, imapSeverF) ->

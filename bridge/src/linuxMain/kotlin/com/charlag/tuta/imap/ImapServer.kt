@@ -1,20 +1,18 @@
 package com.charlag.tuta.imap
 
-import com.charlag.tuta.MailFolderType
+import com.charlag.tuta.*
 import com.charlag.tuta.entities.Date
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
-import com.charlag.tuta.toBytes
-import com.charlag.tuta.toRFC3501
-import com.charlag.tuta.toRFC822
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 private data class ReadingState(val tag: String, var toRead: Int)
 
-class ImapServer(private val mailLoader: MailLoader) {
+class ImapServer(private val mailLoader: MailLoader, private val syncHandler: SyncHandler) {
     private var currentFolder: MailFolder? = null
     private var readingState: ReadingState? = null
 
@@ -26,7 +24,7 @@ class ImapServer(private val mailLoader: MailLoader) {
         val readingState = this.readingState
         if (readingState != null) {
             val size = message.toBytes().size
-            val isEmpty = message == "\r\n"
+            val isEmpty = message == ""
             // After data is over, there's an empty line
             if (readingState.toRead > 0) {
                 readingState.toRead -= size
@@ -39,14 +37,22 @@ class ImapServer(private val mailLoader: MailLoader) {
             }
         }
 
-        val messageParts = message.dropLast(2).split(' ', limit = 3)
-        if (messageParts.size < 2) {
-            return listOf("* BAD")
-        }
-        val (tag, commandLower) = messageParts
-        val command = commandLower.toUpperCase()
-        val args = messageParts.getOrElse(2) { "" }
+        return message.split("\r\n").flatMap { line ->
+            // If we are not reading body then empty line shouldn't matter to us
+            if (line.isEmpty()) return@flatMap emptyList()
 
+            val messageParts = line.split(' ', limit = 3)
+            if (messageParts.size < 2) {
+                return listOf("* BAD")
+            }
+            val (tag, commandLower) = messageParts
+            val command = commandLower.toUpperCase()
+            val args = messageParts.getOrElse(2) { "" }
+            respondToCommand(tag, command, args)
+        }
+    }
+
+    private fun respondToCommand(tag: String, command: String, args: String): List<String> {
         return when (command) {
             "CAPABILITY" -> {
                 listOf("* CAPABILITY IMAP4rev1", success(tag, command))
@@ -62,7 +68,9 @@ class ImapServer(private val mailLoader: MailLoader) {
                     val folderResponses = folders.mapNotNull { folder ->
                         val name = folder.imapName
                         if (pattern == "*" || name.contains(pattern, ignoreCase = true)) {
-                            "* LIST (\\HasNoChildren) \"#\" \"$name\""
+                            val flags = mutableListOf<String>("\\HasNoChildren")
+                            folder.specialUse?.let { flags.add(it) }
+                            "* LIST (${flags.joinToString(" ")}) \"#\" \"$name\""
                         } else {
                             null
                         }
@@ -94,14 +102,6 @@ class ImapServer(private val mailLoader: MailLoader) {
             "NOOP" -> listOf(success(tag, command))
             "FETCH" -> {
                 handleFetch(args, tag, command)
-//                // get some email details
-//                listOf(
-//                    // FETCH 1:1 (UID FLAGS INTERNALDATE RFC822.SIZE BODY.PEEK[HEADER.FIELDS (DATE FROM SENDER SUBJECT TO CC MESSAGE-ID REFERENCES CONTENT-TYPE CONTENT-DESCRIPTION IN-REPLY-TO REPLY-TO LINES LIST-POST X-LABEL)])
-//                    """* 1 FETCH (FLAGS (\Seen) INTERNALDATE "17-Jul-1996 02:44:25 -0700" RFC822.SIZE 9 UID 1 BODY[HEADER.FIELDS (DATE FROM SENDER SUBJECT TO CC MESSAGE-ID REFERENCES CONTENT-TYPE CONTENT-DESCRIPTION IN-REPLY-TO REPLY-TO LINES LIST-POST X-LABEL)] {${headers.encodeToByteArray().size + 2}}""",
-//                    headers,
-//                    ")",
-//                    success(tag, command)
-//                )
             }
             "CREATE" -> listOf(success(tag, command))
             "UID" -> {
@@ -167,6 +167,16 @@ class ImapServer(private val mailLoader: MailLoader) {
                 this.readingState = ReadingState(tag, appendCommand.literalSize)
                 listOf("+")
             }
+            "CHECK" -> {
+                runBlocking {
+                    syncHandler.resync()
+                }
+                listOf(success(tag, command))
+            }
+            "CLOSE" -> {
+                // Noop for now
+                listOf(success(tag, command))
+            }
             else -> {
                 println("# unknown command '$command'")
                 listOf("$tag BAD IDK WHAT THIS MEANS $command")
@@ -175,9 +185,8 @@ class ImapServer(private val mailLoader: MailLoader) {
     }
 
     private fun getFolderByImapName(name: String): MailFolder? {
-        return this.mailLoader.folders().find {
-            it.imapName == name || "\"${it.imapName}\"" == name
-        }
+        val canonicalName = name.trim(' ').toUpperCase()
+        return this.mailLoader.folders().find { it.imapName == canonicalName }
     }
 
     private fun handleFetch(args: String, tag: String, command: String): List<String> {
@@ -257,6 +266,7 @@ class ImapServer(private val mailLoader: MailLoader) {
                 "BODY", "BODY.PEEK" -> {
                     val sectionSpec = fetchAttr.sectionSpec
                         ?: error("I don't fetch lists without spec yet!")
+                    // TODO: handle partial in all of these
                     return when (sectionSpec.section) {
                         // All headers
                         "HEADER" -> {
@@ -268,6 +278,23 @@ class ImapServer(private val mailLoader: MailLoader) {
                             val headers = makeHeaders(mail, sectionSpec.fields)
                             val fields = sectionSpec.fields.joinToString(" ")
                             FetchPartResponse.Data("BODY[HEADER.FIELDS ($fields)]", headers)
+                        }
+                        // Just body
+                        "TEXT" -> {
+                            val body = this.mailLoader.body(mail).let {
+                                it.compressedText ?: it.text
+                            }!!
+                            if (fetchAttr.range != null) {
+                                val partialBody = body.toBytes()
+                                    .copyOfRange(fetchAttr.range.first, fetchAttr.range.second)
+                                    .decodeToString()
+                                FetchPartResponse.Data(
+                                    "TEXT[]<${fetchAttr.range.first}.${fetchAttr.range.second}>",
+                                    partialBody
+                                )
+                            } else {
+                                FetchPartResponse.Data("TEXT[]", body)
+                            }
                         }
                         // The whole body
                         null -> {
@@ -400,7 +427,18 @@ private val MailFolder.imapName
         MailFolderType.SENT.value -> "SENT"
         MailFolderType.DRAFT.value -> "DRAFTS"
         MailFolderType.ARCHIVE.value -> "ARCHIVE"
-        MailFolderType.SPAM.value -> "SPAM"
-        MailFolderType.TRASH.value -> "TRASH"
+        MailFolderType.SPAM.value -> "JUNK"
+        MailFolderType.TRASH.value -> "WASTEBASKET"
+        else -> error("Unknown folder type ${this.folderType}")
+    }
+
+private val MailFolder.specialUse: String?
+    get() = when (this.folderType) {
+        MailFolderType.INBOX.value -> null
+        MailFolderType.SENT.value -> "\\Sent"
+        MailFolderType.DRAFT.value -> "\\Drafts"
+        MailFolderType.ARCHIVE.value -> "\\Archive"
+        MailFolderType.SPAM.value -> "\\Junk"
+        MailFolderType.TRASH.value -> "\\Wastebasket"
         else -> error("Unknown folder type ${this.folderType}")
     }
