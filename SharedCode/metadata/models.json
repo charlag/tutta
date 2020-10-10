@@ -589,7 +589,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AdministratedGroup": {
       "name": "AdministratedGroup",
@@ -669,7 +669,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AdministratedGroupsRef": {
       "name": "AdministratedGroupsRef",
@@ -703,7 +703,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AlarmInfo": {
       "name": "AlarmInfo",
@@ -754,7 +754,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AlarmNotification": {
       "name": "AlarmNotification",
@@ -851,7 +851,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AlarmServicePost": {
       "name": "AlarmServicePost",
@@ -884,7 +884,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AuditLogEntry": {
       "name": "AuditLogEntry",
@@ -1009,7 +1009,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AuditLogRef": {
       "name": "AuditLogRef",
@@ -1043,7 +1043,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AuthenticatedDevice": {
       "name": "AuthenticatedDevice",
@@ -1093,7 +1093,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Authentication": {
       "name": "Authentication",
@@ -1154,7 +1154,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AutoLoginDataDelete": {
       "name": "AutoLoginDataDelete",
@@ -1186,7 +1186,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AutoLoginDataGet": {
       "name": "AutoLoginDataGet",
@@ -1229,7 +1229,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AutoLoginDataReturn": {
       "name": "AutoLoginDataReturn",
@@ -1261,7 +1261,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "AutoLoginPostReturn": {
       "name": "AutoLoginPostReturn",
@@ -1293,7 +1293,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Booking": {
       "name": "Booking",
@@ -1416,7 +1416,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "BookingItem": {
       "name": "BookingItem",
@@ -1502,7 +1502,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "BookingServiceData": {
       "name": "BookingServiceData",
@@ -1552,7 +1552,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "BookingsRef": {
       "name": "BookingsRef",
@@ -1586,7 +1586,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "BootstrapFeature": {
       "name": "BootstrapFeature",
@@ -1618,7 +1618,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "BrandingDomainData": {
       "name": "BrandingDomainData",
@@ -1677,7 +1677,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "BrandingDomainDeleteData": {
       "name": "BrandingDomainDeleteData",
@@ -1709,7 +1709,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "BrandingDomainGetReturn": {
       "name": "BrandingDomainGetReturn",
@@ -1742,7 +1742,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Bucket": {
       "name": "Bucket",
@@ -1776,7 +1776,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "BucketPermission": {
       "name": "BucketPermission",
@@ -1882,7 +1882,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CalendarEventRef": {
       "name": "CalendarEventRef",
@@ -1923,7 +1923,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CertificateInfo": {
       "name": "CertificateInfo",
@@ -1984,7 +1984,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Challenge": {
       "name": "Challenge",
@@ -2035,7 +2035,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "ChangePasswordData": {
       "name": "ChangePasswordData",
@@ -2112,7 +2112,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Chat": {
       "name": "Chat",
@@ -2162,7 +2162,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CloseSessionServicePost": {
       "name": "CloseSessionServicePost",
@@ -2205,7 +2205,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CreateCustomerServerPropertiesData": {
       "name": "CreateCustomerServerPropertiesData",
@@ -2237,7 +2237,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CreateCustomerServerPropertiesReturn": {
       "name": "CreateCustomerServerPropertiesReturn",
@@ -2271,7 +2271,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CreateGroupData": {
       "name": "CreateGroupData",
@@ -2366,7 +2366,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CreateGroupListData": {
       "name": "CreateGroupListData",
@@ -2417,7 +2417,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CreateSessionData": {
       "name": "CreateSessionData",
@@ -2505,7 +2505,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CreateSessionReturn": {
       "name": "CreateSessionReturn",
@@ -2557,7 +2557,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CreditCard": {
       "name": "CreditCard",
@@ -2625,7 +2625,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomDomainCheckData": {
       "name": "CustomDomainCheckData",
@@ -2657,7 +2657,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomDomainCheckReturn": {
       "name": "CustomDomainCheckReturn",
@@ -2705,10 +2705,19 @@
           "cardinality": "Any",
           "refType": "DnsRecord",
           "final": false
+        },
+        "requiredRecords": {
+          "name": "requiredRecords",
+          "id": 1758,
+          "since": 62,
+          "type": "AGGREGATION",
+          "cardinality": "Any",
+          "refType": "DnsRecord",
+          "final": false
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomDomainData": {
       "name": "CustomDomainData",
@@ -2751,7 +2760,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomDomainReturn": {
       "name": "CustomDomainReturn",
@@ -2793,7 +2802,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Customer": {
       "name": "Customer",
@@ -3061,7 +3070,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomerData": {
       "name": "CustomerData",
@@ -3229,7 +3238,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomerInfo": {
       "name": "CustomerInfo",
@@ -3463,7 +3472,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomerInfoReturn": {
       "name": "CustomerInfoReturn",
@@ -3495,7 +3504,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomerProperties": {
       "name": "CustomerProperties",
@@ -3591,7 +3600,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomerReturn": {
       "name": "CustomerReturn",
@@ -3635,7 +3644,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "CustomerServerProperties": {
       "name": "CustomerServerProperties",
@@ -3749,7 +3758,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "DebitServicePutData": {
       "name": "DebitServicePutData",
@@ -3783,7 +3792,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "DeleteCustomerData": {
       "name": "DeleteCustomerData",
@@ -3853,7 +3862,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "DnsRecord": {
       "name": "DnsRecord",
@@ -3903,7 +3912,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "DomainInfo": {
       "name": "DomainInfo",
@@ -3965,7 +3974,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "DomainMailAddressAvailabilityData": {
       "name": "DomainMailAddressAvailabilityData",
@@ -3997,7 +4006,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "DomainMailAddressAvailabilityReturn": {
       "name": "DomainMailAddressAvailabilityReturn",
@@ -4029,7 +4038,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "DomainsRef": {
       "name": "DomainsRef",
@@ -4063,7 +4072,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "EmailSenderListElement": {
       "name": "EmailSenderListElement",
@@ -4122,7 +4131,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "EntityEventBatch": {
       "name": "EntityEventBatch",
@@ -4182,7 +4191,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "EntityUpdate": {
       "name": "EntityUpdate",
@@ -4250,7 +4259,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Exception": {
       "name": "Exception",
@@ -4291,7 +4300,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "ExternalPropertiesReturn": {
       "name": "ExternalPropertiesReturn",
@@ -4351,7 +4360,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "ExternalUserReference": {
       "name": "ExternalUserReference",
@@ -4422,7 +4431,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Feature": {
       "name": "Feature",
@@ -4454,7 +4463,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "File": {
       "name": "File",
@@ -4504,7 +4513,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "GeneratedIdWrapper": {
       "name": "GeneratedIdWrapper",
@@ -4536,7 +4545,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Group": {
       "name": "Group",
@@ -4701,7 +4710,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "GroupInfo": {
       "name": "GroupInfo",
@@ -4844,7 +4853,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "GroupMember": {
       "name": "GroupMember",
@@ -4934,7 +4943,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "GroupMembership": {
       "name": "GroupMembership",
@@ -5024,7 +5033,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "GroupRoot": {
       "name": "GroupRoot",
@@ -5104,7 +5113,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Invoice": {
       "name": "Invoice",
@@ -5310,7 +5319,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "InvoiceInfo": {
       "name": "InvoiceInfo",
@@ -5470,7 +5479,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "InvoiceItem": {
       "name": "InvoiceItem",
@@ -5556,7 +5565,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "KeyPair": {
       "name": "KeyPair",
@@ -5606,7 +5615,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "LocationServiceGetReturn": {
       "name": "LocationServiceGetReturn",
@@ -5638,7 +5647,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Login": {
       "name": "Login",
@@ -5697,7 +5706,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MailAddressAlias": {
       "name": "MailAddressAlias",
@@ -5738,7 +5747,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MailAddressAliasServiceData": {
       "name": "MailAddressAliasServiceData",
@@ -5781,7 +5790,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MailAddressAliasServiceDataDelete": {
       "name": "MailAddressAliasServiceDataDelete",
@@ -5833,7 +5842,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MailAddressAliasServiceReturn": {
       "name": "MailAddressAliasServiceReturn",
@@ -5892,7 +5901,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MailAddressAvailabilityData": {
       "name": "MailAddressAvailabilityData",
@@ -5924,7 +5933,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MailAddressAvailabilityReturn": {
       "name": "MailAddressAvailabilityReturn",
@@ -5956,7 +5965,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MailAddressToGroup": {
       "name": "MailAddressToGroup",
@@ -6017,7 +6026,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MembershipAddData": {
       "name": "MembershipAddData",
@@ -6070,7 +6079,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MembershipRemoveData": {
       "name": "MembershipRemoveData",
@@ -6114,7 +6123,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "MissedNotification": {
       "name": "MissedNotification",
@@ -6219,7 +6228,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "NotificationInfo": {
       "name": "NotificationInfo",
@@ -6269,7 +6278,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "NotificationMailTemplate": {
       "name": "NotificationMailTemplate",
@@ -6319,7 +6328,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "NotificationSessionKey": {
       "name": "NotificationSessionKey",
@@ -6362,7 +6371,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "OrderProcessingAgreement": {
       "name": "OrderProcessingAgreement",
@@ -6469,7 +6478,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "OtpChallenge": {
       "name": "OtpChallenge",
@@ -6503,7 +6512,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PaymentDataServiceGetReturn": {
       "name": "PaymentDataServiceGetReturn",
@@ -6535,7 +6544,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PaymentDataServicePutData": {
       "name": "PaymentDataServicePutData",
@@ -6658,7 +6667,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PaymentDataServicePutReturn": {
       "name": "PaymentDataServicePutReturn",
@@ -6690,7 +6699,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PaymentErrorInfo": {
       "name": "PaymentErrorInfo",
@@ -6740,7 +6749,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PdfInvoiceServiceData": {
       "name": "PdfInvoiceServiceData",
@@ -6783,7 +6792,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PdfInvoiceServiceReturn": {
       "name": "PdfInvoiceServiceReturn",
@@ -6833,7 +6842,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Permission": {
       "name": "Permission",
@@ -6966,7 +6975,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PhoneNumber": {
       "name": "PhoneNumber",
@@ -6998,7 +7007,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PlanPrices": {
       "name": "PlanPrices",
@@ -7084,7 +7093,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PremiumFeatureData": {
       "name": "PremiumFeatureData",
@@ -7125,7 +7134,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PremiumFeatureReturn": {
       "name": "PremiumFeatureReturn",
@@ -7157,7 +7166,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PriceData": {
       "name": "PriceData",
@@ -7217,7 +7226,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PriceItemData": {
       "name": "PriceItemData",
@@ -7276,7 +7285,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PriceRequestData": {
       "name": "PriceRequestData",
@@ -7353,7 +7362,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PriceServiceData": {
       "name": "PriceServiceData",
@@ -7404,7 +7413,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PriceServiceReturn": {
       "name": "PriceServiceReturn",
@@ -7473,7 +7482,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PublicKeyData": {
       "name": "PublicKeyData",
@@ -7505,7 +7514,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PublicKeyReturn": {
       "name": "PublicKeyReturn",
@@ -7546,7 +7555,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PushIdentifier": {
       "name": "PushIdentifier",
@@ -7686,7 +7695,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "PushIdentifierList": {
       "name": "PushIdentifierList",
@@ -7720,7 +7729,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "ReceivedGroupInvitation": {
       "name": "ReceivedGroupInvitation",
@@ -7854,7 +7863,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RecoverCode": {
       "name": "RecoverCode",
@@ -7931,7 +7940,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RegistrationCaptchaServiceData": {
       "name": "RegistrationCaptchaServiceData",
@@ -7972,7 +7981,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RegistrationCaptchaServiceGetData": {
       "name": "RegistrationCaptchaServiceGetData",
@@ -8040,7 +8049,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RegistrationCaptchaServiceReturn": {
       "name": "RegistrationCaptchaServiceReturn",
@@ -8081,7 +8090,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RegistrationConfigReturn": {
       "name": "RegistrationConfigReturn",
@@ -8122,7 +8131,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RegistrationReturn": {
       "name": "RegistrationReturn",
@@ -8154,7 +8163,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RegistrationServiceData": {
       "name": "RegistrationServiceData",
@@ -8204,7 +8213,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RejectedSender": {
       "name": "RejectedSender",
@@ -8299,7 +8308,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RejectedSendersRef": {
       "name": "RejectedSendersRef",
@@ -8333,7 +8342,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RepeatRule": {
       "name": "RepeatRule",
@@ -8401,7 +8410,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "ResetFactorsDeleteData": {
       "name": "ResetFactorsDeleteData",
@@ -8451,7 +8460,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "ResetPasswordData": {
       "name": "ResetPasswordData",
@@ -8512,7 +8521,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "RootInstance": {
       "name": "RootInstance",
@@ -8571,7 +8580,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SaltData": {
       "name": "SaltData",
@@ -8603,7 +8612,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SaltReturn": {
       "name": "SaltReturn",
@@ -8635,7 +8644,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SecondFactor": {
       "name": "SecondFactor",
@@ -8722,7 +8731,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SecondFactorAuthAllowedReturn": {
       "name": "SecondFactorAuthAllowedReturn",
@@ -8754,7 +8763,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SecondFactorAuthData": {
       "name": "SecondFactorAuthData",
@@ -8815,7 +8824,41 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
+    },
+    "SecondFactorAuthDeleteData": {
+      "name": "SecondFactorAuthDeleteData",
+      "since": 62,
+      "type": "DATA_TRANSFER_TYPE",
+      "id": 1755,
+      "rootId": "A3N5cwAG2w",
+      "versioned": false,
+      "encrypted": false,
+      "values": {
+        "_format": {
+          "name": "_format",
+          "id": 1756,
+          "since": 62,
+          "type": "Number",
+          "cardinality": "One",
+          "final": false,
+          "encrypted": false
+        }
+      },
+      "associations": {
+        "session": {
+          "name": "session",
+          "id": 1757,
+          "since": 62,
+          "type": "LIST_ELEMENT_ASSOCIATION",
+          "cardinality": "One",
+          "refType": "Session",
+          "final": true,
+          "external": false
+        }
+      },
+      "app": "sys",
+      "version": "62"
     },
     "SecondFactorAuthGetData": {
       "name": "SecondFactorAuthGetData",
@@ -8847,7 +8890,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SecondFactorAuthGetReturn": {
       "name": "SecondFactorAuthGetReturn",
@@ -8879,7 +8922,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SecondFactorAuthentication": {
       "name": "SecondFactorAuthentication",
@@ -8965,7 +9008,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SendRegistrationCodeData": {
       "name": "SendRegistrationCodeData",
@@ -9024,7 +9067,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SendRegistrationCodeReturn": {
       "name": "SendRegistrationCodeReturn",
@@ -9056,7 +9099,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SentGroupInvitation": {
       "name": "SentGroupInvitation",
@@ -9145,7 +9188,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Session": {
       "name": "Session",
@@ -9278,7 +9321,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SignOrderProcessingAgreementData": {
       "name": "SignOrderProcessingAgreementData",
@@ -9319,7 +9362,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SseConnectData": {
       "name": "SseConnectData",
@@ -9361,7 +9404,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "StringConfigValue": {
       "name": "StringConfigValue",
@@ -9402,7 +9445,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "StringWrapper": {
       "name": "StringWrapper",
@@ -9434,7 +9477,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SwitchAccountTypeData": {
       "name": "SwitchAccountTypeData",
@@ -9493,7 +9536,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "SystemKeysReturn": {
       "name": "SystemKeysReturn",
@@ -9582,7 +9625,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "U2fChallenge": {
       "name": "U2fChallenge",
@@ -9624,7 +9667,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "U2fKey": {
       "name": "U2fKey",
@@ -9676,7 +9719,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "U2fRegisteredDevice": {
       "name": "U2fRegisteredDevice",
@@ -9744,7 +9787,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "U2fResponseData": {
       "name": "U2fResponseData",
@@ -9794,7 +9837,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UpdateAdminshipData": {
       "name": "UpdateAdminshipData",
@@ -9847,7 +9890,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UpdatePermissionKeyData": {
       "name": "UpdatePermissionKeyData",
@@ -9909,7 +9952,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UpgradePriceServiceData": {
       "name": "UpgradePriceServiceData",
@@ -9950,7 +9993,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UpgradePriceServiceReturn": {
       "name": "UpgradePriceServiceReturn",
@@ -10019,7 +10062,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "User": {
       "name": "User",
@@ -10236,7 +10279,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserAlarmInfo": {
       "name": "UserAlarmInfo",
@@ -10305,7 +10348,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserAlarmInfoListType": {
       "name": "UserAlarmInfoListType",
@@ -10339,7 +10382,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserAreaGroups": {
       "name": "UserAreaGroups",
@@ -10373,7 +10416,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserAuthentication": {
       "name": "UserAuthentication",
@@ -10427,7 +10470,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserData": {
       "name": "UserData",
@@ -10514,7 +10557,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserDataDelete": {
       "name": "UserDataDelete",
@@ -10566,7 +10609,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserExternalAuthInfo": {
       "name": "UserExternalAuthInfo",
@@ -10636,7 +10679,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserGroupRoot": {
       "name": "UserGroupRoot",
@@ -10697,7 +10740,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserIdData": {
       "name": "UserIdData",
@@ -10729,7 +10772,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserIdReturn": {
       "name": "UserIdReturn",
@@ -10763,7 +10806,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "UserReturn": {
       "name": "UserReturn",
@@ -10807,7 +10850,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "VariableExternalAuthInfo": {
       "name": "VariableExternalAuthInfo",
@@ -10911,7 +10954,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "VerifyRegistrationCodeData": {
       "name": "VerifyRegistrationCodeData",
@@ -10952,7 +10995,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "Version": {
       "name": "Version",
@@ -11023,7 +11066,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "VersionData": {
       "name": "VersionData",
@@ -11082,7 +11125,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "VersionInfo": {
       "name": "VersionInfo",
@@ -11207,7 +11250,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "VersionReturn": {
       "name": "VersionReturn",
@@ -11240,7 +11283,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "WebsocketCounterData": {
       "name": "WebsocketCounterData",
@@ -11282,7 +11325,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "WebsocketCounterValue": {
       "name": "WebsocketCounterValue",
@@ -11323,7 +11366,7 @@
       },
       "associations": {},
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "WebsocketEntityData": {
       "name": "WebsocketEntityData",
@@ -11374,7 +11417,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "WhitelabelChild": {
       "name": "WhitelabelChild",
@@ -11480,7 +11523,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "WhitelabelChildrenRef": {
       "name": "WhitelabelChildrenRef",
@@ -11514,7 +11557,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "WhitelabelConfig": {
       "name": "WhitelabelConfig",
@@ -11646,7 +11689,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     },
     "WhitelabelParent": {
       "name": "WhitelabelParent",
@@ -11690,7 +11733,7 @@
         }
       },
       "app": "sys",
-      "version": "61"
+      "version": "62"
     }
   },
   "tutanota": {
@@ -11744,7 +11787,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "Birthday": {
       "name": "Birthday",
@@ -11794,7 +11837,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CalendarDeleteData": {
       "name": "CalendarDeleteData",
@@ -11828,7 +11871,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CalendarEvent": {
       "name": "CalendarEvent",
@@ -11902,11 +11945,38 @@
           "final": false,
           "encrypted": true
         },
+        "hashedUid": {
+          "name": "hashedUid",
+          "id": 1088,
+          "since": 42,
+          "type": "Bytes",
+          "cardinality": "ZeroOrOne",
+          "final": false,
+          "encrypted": false
+        },
+        "invitedConfidentially": {
+          "name": "invitedConfidentially",
+          "id": 1090,
+          "since": 42,
+          "type": "Boolean",
+          "cardinality": "ZeroOrOne",
+          "final": false,
+          "encrypted": true
+        },
         "location": {
           "name": "location",
           "id": 944,
           "since": 33,
           "type": "String",
+          "cardinality": "One",
+          "final": false,
+          "encrypted": true
+        },
+        "sequence": {
+          "name": "sequence",
+          "id": 1089,
+          "since": 42,
+          "type": "Number",
           "cardinality": "One",
           "final": false,
           "encrypted": true
@@ -11940,6 +12010,24 @@
         }
       },
       "associations": {
+        "attendees": {
+          "name": "attendees",
+          "id": 1091,
+          "since": 42,
+          "type": "AGGREGATION",
+          "cardinality": "Any",
+          "refType": "CalendarEventAttendee",
+          "final": false
+        },
+        "organizer": {
+          "name": "organizer",
+          "id": 1092,
+          "since": 42,
+          "type": "AGGREGATION",
+          "cardinality": "ZeroOrOne",
+          "refType": "EncryptedMailAddress",
+          "final": false
+        },
         "repeatRule": {
           "name": "repeatRule",
           "id": 945,
@@ -11961,7 +12049,257 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
+    },
+    "CalendarEventAttendee": {
+      "name": "CalendarEventAttendee",
+      "since": 42,
+      "type": "AGGREGATED_TYPE",
+      "id": 1084,
+      "rootId": "CHR1dGFub3RhAAQ8",
+      "versioned": false,
+      "encrypted": false,
+      "values": {
+        "_id": {
+          "name": "_id",
+          "id": 1085,
+          "since": 42,
+          "type": "CustomId",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": false
+        },
+        "status": {
+          "name": "status",
+          "id": 1086,
+          "since": 42,
+          "type": "Number",
+          "cardinality": "One",
+          "final": false,
+          "encrypted": true
+        }
+      },
+      "associations": {
+        "address": {
+          "name": "address",
+          "id": 1087,
+          "since": 42,
+          "type": "AGGREGATION",
+          "cardinality": "One",
+          "refType": "EncryptedMailAddress",
+          "final": true
+        }
+      },
+      "app": "tutanota",
+      "version": "42"
+    },
+    "CalendarEventIndexRef": {
+      "name": "CalendarEventIndexRef",
+      "since": 42,
+      "type": "AGGREGATED_TYPE",
+      "id": 1100,
+      "rootId": "CHR1dGFub3RhAARM",
+      "versioned": false,
+      "encrypted": false,
+      "values": {
+        "_id": {
+          "name": "_id",
+          "id": 1101,
+          "since": 42,
+          "type": "CustomId",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": false
+        }
+      },
+      "associations": {
+        "list": {
+          "name": "list",
+          "id": 1102,
+          "since": 42,
+          "type": "LIST_ASSOCIATION",
+          "cardinality": "One",
+          "refType": "CalendarEventUidIndex",
+          "final": true,
+          "external": false
+        }
+      },
+      "app": "tutanota",
+      "version": "42"
+    },
+    "CalendarEventUidIndex": {
+      "name": "CalendarEventUidIndex",
+      "since": 42,
+      "type": "LIST_ELEMENT_TYPE",
+      "id": 1093,
+      "rootId": "CHR1dGFub3RhAARF",
+      "versioned": false,
+      "encrypted": false,
+      "values": {
+        "_format": {
+          "name": "_format",
+          "id": 1097,
+          "since": 42,
+          "type": "Number",
+          "cardinality": "One",
+          "final": false,
+          "encrypted": false
+        },
+        "_id": {
+          "name": "_id",
+          "id": 1095,
+          "since": 42,
+          "type": "CustomId",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": false
+        },
+        "_ownerGroup": {
+          "name": "_ownerGroup",
+          "id": 1098,
+          "since": 42,
+          "type": "GeneratedId",
+          "cardinality": "ZeroOrOne",
+          "final": true,
+          "encrypted": false
+        },
+        "_permissions": {
+          "name": "_permissions",
+          "id": 1096,
+          "since": 42,
+          "type": "GeneratedId",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": false
+        }
+      },
+      "associations": {
+        "calendarEvent": {
+          "name": "calendarEvent",
+          "id": 1099,
+          "since": 42,
+          "type": "LIST_ELEMENT_ASSOCIATION",
+          "cardinality": "One",
+          "refType": "CalendarEvent",
+          "final": true,
+          "external": false
+        }
+      },
+      "app": "tutanota",
+      "version": "42"
+    },
+    "CalendarEventUpdate": {
+      "name": "CalendarEventUpdate",
+      "since": 42,
+      "type": "LIST_ELEMENT_TYPE",
+      "id": 1104,
+      "rootId": "CHR1dGFub3RhAARQ",
+      "versioned": false,
+      "encrypted": true,
+      "values": {
+        "_format": {
+          "name": "_format",
+          "id": 1108,
+          "since": 42,
+          "type": "Number",
+          "cardinality": "One",
+          "final": false,
+          "encrypted": false
+        },
+        "_id": {
+          "name": "_id",
+          "id": 1106,
+          "since": 42,
+          "type": "GeneratedId",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": false
+        },
+        "_ownerEncSessionKey": {
+          "name": "_ownerEncSessionKey",
+          "id": 1110,
+          "since": 42,
+          "type": "Bytes",
+          "cardinality": "ZeroOrOne",
+          "final": true,
+          "encrypted": false
+        },
+        "_ownerGroup": {
+          "name": "_ownerGroup",
+          "id": 1109,
+          "since": 42,
+          "type": "GeneratedId",
+          "cardinality": "ZeroOrOne",
+          "final": true,
+          "encrypted": false
+        },
+        "_permissions": {
+          "name": "_permissions",
+          "id": 1107,
+          "since": 42,
+          "type": "GeneratedId",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": false
+        },
+        "sender": {
+          "name": "sender",
+          "id": 1111,
+          "since": 42,
+          "type": "String",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": true
+        }
+      },
+      "associations": {
+        "file": {
+          "name": "file",
+          "id": 1112,
+          "since": 42,
+          "type": "LIST_ELEMENT_ASSOCIATION",
+          "cardinality": "One",
+          "refType": "File",
+          "final": true,
+          "external": false
+        }
+      },
+      "app": "tutanota",
+      "version": "42"
+    },
+    "CalendarEventUpdateList": {
+      "name": "CalendarEventUpdateList",
+      "since": 42,
+      "type": "AGGREGATED_TYPE",
+      "id": 1113,
+      "rootId": "CHR1dGFub3RhAARZ",
+      "versioned": false,
+      "encrypted": false,
+      "values": {
+        "_id": {
+          "name": "_id",
+          "id": 1114,
+          "since": 42,
+          "type": "CustomId",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": false
+        }
+      },
+      "associations": {
+        "list": {
+          "name": "list",
+          "id": 1115,
+          "since": 42,
+          "type": "LIST_ASSOCIATION",
+          "cardinality": "One",
+          "refType": "CalendarEventUpdate",
+          "final": true,
+          "external": false
+        }
+      },
+      "app": "tutanota",
+      "version": "42"
     },
     "CalendarGroupData": {
       "name": "CalendarGroupData",
@@ -12040,7 +12378,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CalendarGroupRoot": {
       "name": "CalendarGroupRoot",
@@ -12098,6 +12436,15 @@
         }
       },
       "associations": {
+        "index": {
+          "name": "index",
+          "id": 1103,
+          "since": 42,
+          "type": "AGGREGATION",
+          "cardinality": "ZeroOrOne",
+          "refType": "CalendarEventIndexRef",
+          "final": true
+        },
         "longEvents": {
           "name": "longEvents",
           "id": 955,
@@ -12120,7 +12467,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CalendarPostData": {
       "name": "CalendarPostData",
@@ -12153,7 +12500,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CalendarPostReturn": {
       "name": "CalendarPostReturn",
@@ -12187,7 +12534,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CalendarRepeatRule": {
       "name": "CalendarRepeatRule",
@@ -12255,7 +12602,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "Contact": {
       "name": "Contact",
@@ -12487,7 +12834,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactAddress": {
       "name": "ContactAddress",
@@ -12537,7 +12884,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactForm": {
       "name": "ContactForm",
@@ -12664,7 +13011,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactFormAccountData": {
       "name": "ContactFormAccountData",
@@ -12734,7 +13081,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactFormAccountReturn": {
       "name": "ContactFormAccountReturn",
@@ -12775,7 +13122,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactFormEncryptedStatisticsField": {
       "name": "ContactFormEncryptedStatisticsField",
@@ -12816,7 +13163,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactFormLanguage": {
       "name": "ContactFormLanguage",
@@ -12894,7 +13241,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactFormStatisticEntry": {
       "name": "ContactFormStatisticEntry",
@@ -12954,7 +13301,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactFormStatisticField": {
       "name": "ContactFormStatisticField",
@@ -12995,7 +13342,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactFormUserData": {
       "name": "ContactFormUserData",
@@ -13099,7 +13446,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactList": {
       "name": "ContactList",
@@ -13178,7 +13525,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactMailAddress": {
       "name": "ContactMailAddress",
@@ -13228,7 +13575,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactPhoneNumber": {
       "name": "ContactPhoneNumber",
@@ -13278,7 +13625,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ContactSocialId": {
       "name": "ContactSocialId",
@@ -13328,7 +13675,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ConversationEntry": {
       "name": "ConversationEntry",
@@ -13417,7 +13764,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CreateExternalUserGroupData": {
       "name": "CreateExternalUserGroupData",
@@ -13467,7 +13814,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CreateFileData": {
       "name": "CreateFileData",
@@ -13547,7 +13894,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CreateLocalAdminGroupData": {
       "name": "CreateLocalAdminGroupData",
@@ -13589,7 +13936,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CreateMailFolderData": {
       "name": "CreateMailFolderData",
@@ -13641,7 +13988,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CreateMailFolderReturn": {
       "name": "CreateMailFolderReturn",
@@ -13675,7 +14022,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CreateMailGroupData": {
       "name": "CreateMailGroupData",
@@ -13735,7 +14082,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CustomerAccountCreateData": {
       "name": "CustomerAccountCreateData",
@@ -13876,7 +14223,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "CustomerContactFormGroupRoot": {
       "name": "CustomerContactFormGroupRoot",
@@ -13965,7 +14312,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DataBlock": {
       "name": "DataBlock",
@@ -14006,7 +14353,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DeleteContactFormConversationIndex": {
       "name": "DeleteContactFormConversationIndex",
@@ -14040,7 +14387,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DeleteContactFormConversationIndexEntry": {
       "name": "DeleteContactFormConversationIndexEntry",
@@ -14090,7 +14437,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DeleteGroupData": {
       "name": "DeleteGroupData",
@@ -14133,7 +14480,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DeleteMailData": {
       "name": "DeleteMailData",
@@ -14177,7 +14524,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DeleteMailFolderData": {
       "name": "DeleteMailFolderData",
@@ -14211,7 +14558,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DraftAttachment": {
       "name": "DraftAttachment",
@@ -14263,7 +14610,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DraftCreateData": {
       "name": "DraftCreateData",
@@ -14332,7 +14679,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DraftCreateReturn": {
       "name": "DraftCreateReturn",
@@ -14366,7 +14713,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DraftData": {
       "name": "DraftData",
@@ -14400,6 +14747,15 @@
           "id": 502,
           "since": 11,
           "type": "Boolean",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": true
+        },
+        "method": {
+          "name": "method",
+          "id": 1116,
+          "since": 42,
+          "type": "Number",
           "cardinality": "One",
           "final": true,
           "encrypted": true
@@ -14490,7 +14846,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DraftRecipient": {
       "name": "DraftRecipient",
@@ -14531,7 +14887,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DraftUpdateData": {
       "name": "DraftUpdateData",
@@ -14574,7 +14930,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "DraftUpdateReturn": {
       "name": "DraftUpdateReturn",
@@ -14608,7 +14964,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "EncryptTutanotaPropertiesData": {
       "name": "EncryptTutanotaPropertiesData",
@@ -14651,7 +15007,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "EncryptedMailAddress": {
       "name": "EncryptedMailAddress",
@@ -14692,7 +15048,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ExternalUserData": {
       "name": "ExternalUserData",
@@ -14815,7 +15171,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "File": {
       "name": "File",
@@ -14958,7 +15314,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "FileData": {
       "name": "FileData",
@@ -15036,7 +15392,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "FileDataDataGet": {
       "name": "FileDataDataGet",
@@ -15079,7 +15435,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "FileDataDataPost": {
       "name": "FileDataDataPost",
@@ -15120,7 +15476,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "FileDataDataReturn": {
       "name": "FileDataDataReturn",
@@ -15152,7 +15508,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "FileDataReturnPost": {
       "name": "FileDataReturnPost",
@@ -15186,7 +15542,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "FileSystem": {
       "name": "FileSystem",
@@ -15256,7 +15612,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "GroupInvitationDeleteData": {
       "name": "GroupInvitationDeleteData",
@@ -15290,7 +15646,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "GroupInvitationPostData": {
       "name": "GroupInvitationPostData",
@@ -15332,7 +15688,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "GroupInvitationPostReturn": {
       "name": "GroupInvitationPostReturn",
@@ -15383,7 +15739,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "GroupInvitationPutData": {
       "name": "GroupInvitationPutData",
@@ -15435,7 +15791,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "GroupSettings": {
       "name": "GroupSettings",
@@ -15487,7 +15843,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ImapFolder": {
       "name": "ImapFolder",
@@ -15548,7 +15904,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ImapSyncConfiguration": {
       "name": "ImapSyncConfiguration",
@@ -15618,7 +15974,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ImapSyncState": {
       "name": "ImapSyncState",
@@ -15678,7 +16034,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "InboxRule": {
       "name": "InboxRule",
@@ -15730,7 +16086,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "InputField": {
       "name": "InputField",
@@ -15781,7 +16137,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "InternalGroupData": {
       "name": "InternalGroupData",
@@ -15851,7 +16207,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "InternalRecipientKeyData": {
       "name": "InternalRecipientKeyData",
@@ -15901,7 +16257,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ListUnsubscribeData": {
       "name": "ListUnsubscribeData",
@@ -15953,7 +16309,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "Mail": {
       "name": "Mail",
@@ -16059,6 +16415,15 @@
           "id": 866,
           "since": 24,
           "type": "Boolean",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": true
+        },
+        "method": {
+          "name": "method",
+          "id": 1120,
+          "since": 42,
+          "type": "Number",
           "cardinality": "One",
           "final": true,
           "encrypted": true
@@ -16242,7 +16607,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailAddress": {
       "name": "MailAddress",
@@ -16294,7 +16659,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailBody": {
       "name": "MailBody",
@@ -16389,7 +16754,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailBox": {
       "name": "MailBox",
@@ -16506,7 +16871,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailFolder": {
       "name": "MailFolder",
@@ -16614,7 +16979,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailFolderRef": {
       "name": "MailFolderRef",
@@ -16648,7 +17013,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailHeaders": {
       "name": "MailHeaders",
@@ -16725,7 +17090,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailRestriction": {
       "name": "MailRestriction",
@@ -16769,7 +17134,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailboxGroupRoot": {
       "name": "MailboxGroupRoot",
@@ -16818,6 +17183,15 @@
         }
       },
       "associations": {
+        "calendarEventUpdates": {
+          "name": "calendarEventUpdates",
+          "id": 1119,
+          "since": 42,
+          "type": "AGGREGATION",
+          "cardinality": "ZeroOrOne",
+          "refType": "CalendarEventUpdateList",
+          "final": true
+        },
         "contactFormUserContactForm": {
           "name": "contactFormUserContactForm",
           "id": 748,
@@ -16880,7 +17254,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MailboxServerProperties": {
       "name": "MailboxServerProperties",
@@ -16939,7 +17313,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "MoveMailData": {
       "name": "MoveMailData",
@@ -16983,7 +17357,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "Name": {
       "name": "Name",
@@ -17015,7 +17389,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "NewDraftAttachment": {
       "name": "NewDraftAttachment",
@@ -17076,7 +17450,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "NotificationMail": {
       "name": "NotificationMail",
@@ -17144,7 +17518,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PasswordAutoAuthenticationReturn": {
       "name": "PasswordAutoAuthenticationReturn",
@@ -17167,7 +17541,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PasswordChannelPhoneNumber": {
       "name": "PasswordChannelPhoneNumber",
@@ -17199,7 +17573,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PasswordChannelReturn": {
       "name": "PasswordChannelReturn",
@@ -17232,7 +17606,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PasswordMessagingData": {
       "name": "PasswordMessagingData",
@@ -17282,7 +17656,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PasswordMessagingReturn": {
       "name": "PasswordMessagingReturn",
@@ -17314,7 +17688,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PasswordRetrievalData": {
       "name": "PasswordRetrievalData",
@@ -17346,7 +17720,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PasswordRetrievalReturn": {
       "name": "PasswordRetrievalReturn",
@@ -17378,7 +17752,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PhishingMarker": {
       "name": "PhishingMarker",
@@ -17419,7 +17793,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PhishingMarkerWebsocketData": {
       "name": "PhishingMarkerWebsocketData",
@@ -17461,7 +17835,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "PhotosRef": {
       "name": "PhotosRef",
@@ -17495,7 +17869,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ReceiveInfoServiceData": {
       "name": "ReceiveInfoServiceData",
@@ -17514,11 +17888,20 @@
           "cardinality": "One",
           "final": false,
           "encrypted": false
+        },
+        "language": {
+          "name": "language",
+          "id": 1121,
+          "since": 42,
+          "type": "String",
+          "cardinality": "One",
+          "final": true,
+          "encrypted": false
         }
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "RemoteImapSyncInfo": {
       "name": "RemoteImapSyncInfo",
@@ -17588,7 +17971,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "ReportPhishingPostData": {
       "name": "ReportPhishingPostData",
@@ -17640,7 +18023,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "SecureExternalRecipientKeyData": {
       "name": "SecureExternalRecipientKeyData",
@@ -17745,7 +18128,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "SendDraftData": {
       "name": "SendDraftData",
@@ -17772,6 +18155,15 @@
           "type": "Bytes",
           "cardinality": "ZeroOrOne",
           "final": true,
+          "encrypted": false
+        },
+        "calendarMethod": {
+          "name": "calendarMethod",
+          "id": 1117,
+          "since": 42,
+          "type": "Boolean",
+          "cardinality": "One",
+          "final": false,
           "encrypted": false
         },
         "language": {
@@ -17851,7 +18243,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "SendDraftReturn": {
       "name": "SendDraftReturn",
@@ -17912,7 +18304,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "SharedGroupData": {
       "name": "SharedGroupData",
@@ -18007,7 +18399,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "StatisticLogEntry": {
       "name": "StatisticLogEntry",
@@ -18095,7 +18487,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "StatisticLogRef": {
       "name": "StatisticLogRef",
@@ -18129,7 +18521,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "Subfiles": {
       "name": "Subfiles",
@@ -18163,7 +18555,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "TutanotaProperties": {
       "name": "TutanotaProperties",
@@ -18332,7 +18724,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "UnencryptedStatisticLogEntry": {
       "name": "UnencryptedStatisticLogEntry",
@@ -18400,7 +18792,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "UnencryptedStatisticLogRef": {
       "name": "UnencryptedStatisticLogRef",
@@ -18434,7 +18826,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "UserAccountCreateData": {
       "name": "UserAccountCreateData",
@@ -18485,7 +18877,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "UserAccountUserData": {
       "name": "UserAccountUserData",
@@ -18697,7 +19089,7 @@
       },
       "associations": {},
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     },
     "UserSettingsGroupRoot": {
       "name": "UserSettingsGroupRoot",
@@ -18784,7 +19176,7 @@
         }
       },
       "app": "tutanota",
-      "version": "41"
+      "version": "42"
     }
   }
 }

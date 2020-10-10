@@ -56,7 +56,8 @@ class MailFacade(
         val userGroupKey = api.sessionDataProvider.getGroupKey(user.userGroup.group.asString())
             ?: error("Could not get user group key")
         val mailGroupKey =
-            api.sessionDataProvider.getGroupKey(mailGroupId) ?: error("Could not get mail group key")
+            api.sessionDataProvider.getGroupKey(mailGroupId)
+                ?: error("Could not get mail group key")
 
 
         // For now we assume that all files are new
@@ -79,7 +80,8 @@ class MailFacade(
                 )
             },
             addedAttachments = draftAttachments,
-            removedAttachments = listOf()
+            removedAttachments = listOf(),
+            method = MailMethod.NONE.value,
         )
         val service = DraftCreateData(
             previousMessageId = previousMessageId?.asString(),
@@ -133,7 +135,8 @@ class MailFacade(
                 toRecipients = recipientInfoToDraftRecipient(toRecipients),
                 ccRecipients = recipientInfoToDraftRecipient(ccRecipients),
                 bccRecipients = recipientInfoToDraftRecipient(bccRecipients),
-                replyTos = draft.replyTos
+                replyTos = draft.replyTos,
+                method = MailMethod.NONE.value,
             ),
             draft = draft._id!!
         )
@@ -175,7 +178,10 @@ class MailFacade(
     }
 
     suspend fun sendDraft(
-        @Suppress("UNUSED_PARAMETER") user: User, draft: Mail, recipientInfos: List<RecipientInfo>, language: String
+        @Suppress("UNUSED_PARAMETER") user: User,
+        draft: Mail,
+        recipientInfos: List<RecipientInfo>,
+        language: String
     ) {
         // We don't need a user currently but we'll need them for external secure mails
         val bucketKey = cryptor.aes128RandomKey()
@@ -242,7 +248,8 @@ class MailFacade(
             attachmentKeyData = attachmentKeyData,
             internalRecipientKeyData = internalRecipientKeyData,
             mail = draft._id!!,
-            secureExternalRecipientKeyData = listOf() // for now
+            secureExternalRecipientKeyData = listOf(), // for now
+            calendarMethod = false,
         )
         api.serviceRequestVoid("tutanota", "senddraftservice", HttpMethod.Post, requestBody)
     }
