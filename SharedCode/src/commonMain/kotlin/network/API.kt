@@ -50,15 +50,17 @@ class API(
         sk: ByteArray? = null
     ): T {
         val serializedEntity = requestEntity?.let { serializeEntity(it, sk) }
+        val responseTypeModel = instanceMapper.getTypeModelByClass(responseClass)
         return if (method == HttpMethod.Get) {
             httpClient.get<JsonObject?> {
                 commonHeaders()
                 url(serviceUrl(app, name))
+                entityHeaders(responseTypeModel)
                 addQueryParams(queryParams)
                 if (serializedEntity != null) {
                     parameter("_body", json.encodeToString(JsonObject.serializer(), serializedEntity))
                 }
-            }!!.let { deserializeEntitity(it, responseClass, sk) }
+            }!!.let { deserializeEntity(it, responseClass, sk) }
         } else {
             httpClient.post<JsonObject?> {
                 commonHeaders()
@@ -66,7 +68,7 @@ class API(
                 addQueryParams(queryParams)
 
                 if (serializedEntity != null) body = jsonSerializer.write(serializedEntity)
-            }!!.let { deserializeEntitity(it, responseClass, sk) }
+            }!!.let { deserializeEntity(it, responseClass, sk) }
         }
     }
 
@@ -141,9 +143,11 @@ class API(
         queryParams: Map<String, String>? = null,
         sk: ByteArray? = null
     ) {
+        val requestTypeModel = instanceMapper.getTypeModelByClass(requestEntity::class)
         httpClient.request<Unit> {
             this.method = method
             commonHeaders()
+            entityHeaders(requestTypeModel)
             url(serviceUrl(app, name))
             addQueryParams(queryParams)
             body = jsonSerializer.write(serializeEntity(requestEntity, sk))
@@ -188,7 +192,7 @@ class API(
             url(baseUrl + "${model}/${typeModel.name.toLowerCase()}/${listId.asString()}")
         }.mapNotNull {
             try {
-                deserializeEntitity(it as JsonObject, klass)
+                deserializeEntity(it as JsonObject, klass)
             } catch (e: CryptoException) {
                 println("Failed to decrypt entity, skipping $e")
                 null
@@ -325,7 +329,7 @@ class API(
                             "entityUpdate" -> {
                                 val jsonElement = json.parseToJsonElement(value).jsonObject
                                 val data =
-                                    deserializeEntitity(jsonElement, WebsocketEntityData::class)
+                                    deserializeEntity(jsonElement, WebsocketEntityData::class)
                                 WSEvent.EntityUpdate(
                                     data
                                 )
@@ -333,7 +337,7 @@ class API(
                             "unreadCounterUpdate" -> {
                                 val jsonElement = json.parseToJsonElement(value).jsonObject
                                 val data =
-                                    deserializeEntitity(jsonElement, WebsocketCounterData::class)
+                                    deserializeEntity(jsonElement, WebsocketCounterData::class)
                                 WSEvent.CounterUpdate(data)
                             }
                             else -> WSEvent.Unknown(
@@ -398,7 +402,7 @@ class API(
             commonHeaders()
             entityHeaders(instanceMapper.getTypeModelByClass(responseClass))
             url(address)
-        }?.let { deserializeEntitity(it, responseClass) }
+        }?.let { deserializeEntity(it, responseClass) }
     }
 
     private suspend fun <T : Entity> serializeEntity(
@@ -417,7 +421,7 @@ class API(
             }
     }
 
-    private suspend fun <T : Any> deserializeEntitity(
+    private suspend fun <T : Entity> deserializeEntity(
         map: JsonObject,
         klass: KClass<T>,
         serviceSessionKey: ByteArray? = null

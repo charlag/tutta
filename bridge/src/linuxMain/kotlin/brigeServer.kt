@@ -1,7 +1,7 @@
-import com.charlag.tuta.zeroOut
 import com.charlag.tuta.imap.ImapServer
 import com.charlag.tuta.imap.SmtpServer
 import com.charlag.tuta.posix.*
+import com.charlag.tuta.zeroOut
 import kotlinx.cinterop.*
 import platform.posix.*
 import kotlin.math.min
@@ -12,12 +12,12 @@ import kotlin.native.concurrent.freeze
 const val IMAP_PORT = 2143
 const val SMTP_PORT = 2125
 
-fun runBridgeServer(imapServerFactory: () -> ImapServer) {
+fun runBridgeServer(imapServerFactory: () -> ImapServer, smtpServerFactory: () -> SmtpServer) {
     // Ignore wild SIGPIPEs, we get return code anyway
     signal(SIGPIPE, SIG_IGN)
     init_sockets()
 
-    runSmtpServer() // Start listening on a different thread
+    runSmtpServer(smtpServerFactory) // Start listening on a different thread
     runImapServer(imapServerFactory) // Start listening on this thread and dispatch each connection to a new one
 }
 
@@ -93,13 +93,17 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
     }
 }
 
-private fun runSmtpServer() {
-    Worker.start().execute(TransferMode.SAFE, {}) {
+private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
+    Worker.start().execute(TransferMode.SAFE, { smtpServerFactory.freeze() }) { serverFactory ->
         memScoped {
             val buffer = ByteArray(1024)
 
             val listenFd = socket(AF_INET, SOCK_STREAM, 0)
                 .check({ it != -1 }) { error("socket failed: ${errorMessage()}") }
+
+            val enabled = alloc<IntVar>()
+            enabled.value = 1
+            setsockopt(listenFd, SOL_SOCKET, SO_REUSEPORT, enabled.ptr, sizeOf<IntVar>().convert())
 
             val serverAddr = alloc<sockaddr_in> {
                 zeroOut()
@@ -117,7 +121,7 @@ private fun runSmtpServer() {
 
             println("SMTP: listen $SMTP_PORT")
 
-            val server = SmtpServer()
+            val server = serverFactory()
 
             while (true) {
                 val commFd = accept(listenFd, null, null)
@@ -148,7 +152,7 @@ private fun runSmtpServer() {
                         } catch (e: IOException) {
                             println("Could not write response: $e")
                         } catch (e: Throwable) {
-                            println("Request failed with $e")
+                            println("Request failed with ${e.printStackTrace()}")
                             sendImapResponse(tag, commFd, listOf("500 ERROR"))
                         }
                     }

@@ -303,10 +303,10 @@ class InstanceMapper(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getTypeInfoByClass(klass: KClass<T>): TypeInfo<T> =
+    fun <T : Entity> getTypeInfoByClass(klass: KClass<T>): TypeInfo<T> =
         typeModelByName.getValue(klass.noReflectionName) as TypeInfo<T>
 
-    fun getTypeModelByClass(klass: KClass<*>): TypeModel =
+    fun <T: Entity> getTypeModelByClass(klass: KClass<T>): TypeModel =
         typeModelByName.getValue(klass.noReflectionName).typemodel
 
     private fun getTypeModelForName(name: String): TypeModel {

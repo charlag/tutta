@@ -1,6 +1,7 @@
 package com.charlag.tuta
 
 import com.charlag.tuta.entities.GeneratedId
+import kotlin.native.concurrent.SharedImmutable
 
 fun base64ToBase64Url(base64: String): String =
     base64.replace('+', '-').replace('/', '_').replace("=", "")
@@ -16,6 +17,7 @@ fun base64UrlToBase64(base64url: String): String {
     return replaced + padding
 }
 
+@SharedImmutable
 private val hexArray =
     charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
 
@@ -65,6 +67,7 @@ private fun hexDigitToChar(digit: Int): Char = when (digit) {
 /**
  * Map from char (code of it) to it's BASE64 value
  */
+@SharedImmutable
 private val BASE64_LOOKUP = intArrayOf(
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -84,6 +87,8 @@ private val BASE64_LOOKUP = intArrayOf(
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
 )
 
+
+@SharedImmutable
 private val BASE64_EXT_LOOKUP = intArrayOf(
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -103,6 +108,7 @@ private val BASE64_EXT_LOOKUP = intArrayOf(
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
 )
 
+@SharedImmutable
 private val BASE64_URL_LOOKUP = intArrayOf(
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -122,6 +128,7 @@ private val BASE64_URL_LOOKUP = intArrayOf(
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
 )
 
+@SharedImmutable
 private val BASE64_ENCODE = charArrayOf(
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
     'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
@@ -133,6 +140,7 @@ private val BASE64_ENCODE = charArrayOf(
  * Lookup table for turning Base64 alphabet positions (6 bits)
  * into output bytes.
  */
+@SharedImmutable
 private val BASE64_URL_ENCODE = charArrayOf(
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
     'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',

@@ -60,6 +60,18 @@ enum class ConversationType(val value: Long) {
     }
 }
 
+enum class MailMethod(val value: Long) {
+    NONE(0),
+    ICAL_PUBLISH(1),
+    ICAL_REQUEST(2),
+    ICAL_REPLY(3),
+    ICAL_ADD(4),
+    ICAL_CANCEL(5),
+    ICAL_REFRESH(6),
+    ICAL_COUNTER(7),
+    ICAL_DECLINECOUNTER(8),
+}
+
 enum class ReplyType(val raw: Long) {
     NONE(0),
     REPLY(1),

@@ -54,7 +54,11 @@ fun <T> Parser<T>.build(): ((String) -> T) = { s ->
     val parserContext = ParserContext(s)
     this(parserContext).also {
         if (parserContext.hasNext()) {
-            throw ParserError("Did not consume the whole input, ${parserContext.position} out of ${parserContext.iteratee.length}")
+            throw ParserError(
+                "Did not consume the whole input, ${parserContext.position} out of ${parserContext.iteratee.length} near ${
+                    s.substring(parserContext.position)
+                }"
+            )
         }
     }
 }
@@ -138,7 +142,7 @@ fun <T> zeroOrMoreParser(anotherParser: Parser<T>): Parser<List<T>> {
 /**
  * Parses a non-empty sequence.
  */
-fun <T> makeOneOrMoreParser(parser: Parser<T>): Parser<List<T>> {
+fun <T> oneOrMoreParser(parser: Parser<T>): Parser<List<T>> {
     return mapParser(zeroOrMoreParser(parser), { value ->
         log("makeOneOrMoreParser $parser", null)
         if (value.isEmpty()) {
@@ -261,7 +265,7 @@ fun oneOfCharactersParser(allowed: Collection<Char>): Parser<Char> {
 
 fun digits() = setOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 val numberParser: Parser<Int>
-    get() = mapParser(makeOneOrMoreParser(oneOfCharactersParser(digits()))) { values ->
+    get() = mapParser(oneOrMoreParser(oneOfCharactersParser(digits()))) { values ->
         log("numberParser", null)
         values.joinToString(separator = "").toInt()
     }

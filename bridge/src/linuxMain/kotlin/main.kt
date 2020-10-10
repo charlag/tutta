@@ -4,6 +4,7 @@ import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.imap.ImapServer
 import com.charlag.tuta.imap.MailLoaderImpl
+import com.charlag.tuta.imap.SmtpServer
 import com.charlag.tuta.network.API
 import com.charlag.tuta.network.SessionKeyResolver
 import com.charlag.tuta.network.UserSessionDataProvider
@@ -35,7 +36,12 @@ fun main() {
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController, mailDb)
 //        val mailLoader = FakeMailLoader()
-        runBridgeServer { ImapServer(mailLoader) }
+        runBridgeServer(
+            imapServerFactory = { ImapServer(mailLoader) },
+            smtpServerFactory = {
+                SmtpServer(dependencyDump.mailFacade, dependencyDump.userController)
+            }
+        )
     }
 }
 

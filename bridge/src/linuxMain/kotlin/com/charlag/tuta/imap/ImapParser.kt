@@ -1,7 +1,7 @@
 package com.charlag.tuta.imap
 
 fun fetchAttrNameParser(): Parser<String> =
-    makeOneOrMoreParser(
+    oneOrMoreParser(
         characterInRangeParser('A'..'Z')
                 or characterParser('.')
                 or oneOfCharactersParser(digits())
@@ -96,6 +96,9 @@ fun fetchCommandParser(): Parser<FetchRequest> =
 private fun anyFetchAttrsParser() = (fetchAttrListParser() or fetchAttrParser().map { listOf(it) })
 
 fun characterNotParser(char: Char): Parser<Char> = { context ->
+    if (!context.hasNext()) {
+        throw ParserError("No more input for 'not char $char'")
+    }
     context.next().also {
         if (it == char) throw ParserError("Char not '$char'")
     }
@@ -114,7 +117,7 @@ val listCommandParser: Parser<ListCommand>
 
 val flagParser: Parser<String>
     get() = (characterParser('\\').throwAway() +
-            makeOneOrMoreParser(
+            oneOrMoreParser(
                 characterInRangeParser('a'..'z') or characterInRangeParser('A'..'Z')
             ).map { it.joinTo(StringBuilder("\\")).toString() })
 
@@ -126,7 +129,7 @@ val flagsParser: Parser<List<String>>
 data class AppendCommand(val targetFolder: String, val flags: List<String>, val literalSize: Int)
 
 val appendParser: Parser<AppendCommand>
-    get() = (makeOneOrMoreParser(characterNotParser(' ')).map { it.joinToString("") } +
+    get() = (oneOrMoreParser(characterNotParser(' ')).map { it.joinToString("") } +
             characterParser(' ').throwAway() +
             flagsParser +
             characterParser(' ').throwAway() +
@@ -139,12 +142,12 @@ val appendParser: Parser<AppendCommand>
 data class StatusCommand(val folder: String, val attributes: List<String>)
 
 val statusParser: Parser<StatusCommand>
-    get() = (makeOneOrMoreParser(characterNotParser(' ')).map { it.joinToString("") } +
+    get() = (oneOrMoreParser(characterNotParser(' ')).map { it.joinToString("") } +
             characterParser(' ').throwAway() +
             characterParser('(').throwAway() +
             separatedParser(
                 characterParser(' '),
-                makeOneOrMoreParser(characterInRangeParser('A'..'Z')).map { it.joinToString("") }
+                oneOrMoreParser(characterInRangeParser('A'..'Z')).map { it.joinToString("") }
             ) +
             characterParser(')').throwAway()
             ).map { (folder, flags) -> StatusCommand(folder, flags) }

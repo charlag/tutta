@@ -4,12 +4,14 @@ import com.charlag.tuta.entities.Entity
 import com.charlag.tuta.entities.TypeInfo
 import com.charlag.tuta.entities.sys.typeInfo
 import kotlin.collections.set
+import kotlin.native.concurrent.SharedImmutable
 import kotlin.reflect.KClass
 
 expect fun platformName(): String
 
 expect val KClass<*>.noReflectionName: String
 
+@SharedImmutable
 val typemodelMap: Map<String, TypeInfo<out Entity>> by lazy {
     val typeModelMap = mutableMapOf<String, TypeInfo<*>>()
     // TODO: improve lookup so that names cannot collide

@@ -23,7 +23,7 @@ class ParserTests {
     @Test
     fun testUppercaseAsciiWordParser() {
         val parser =
-            makeOneOrMoreParser(characterInRangeParser('A'..'Z')).map { it.joinToString("") }.build()
+            oneOrMoreParser(characterInRangeParser('A'..'Z')).map { it.joinToString("") }.build()
         assertEquals("ABC", parser("ABC"))
         assertEquals("A", parser("A"))
         assertEquals("XYZ", parser("XYZ"))
