@@ -66,18 +66,35 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                 // In some cases should return hierarchy delimeter
                 val (delimiter, pattern) = this.parseList(args)
                 if (delimiter == "") {
-                    val folders = mailLoader.folders()
-                    val folderResponses = folders.mapNotNull { folder ->
-                        val name = folder.imapName
-                        if (pattern == "*" || name.contains(pattern, ignoreCase = true)) {
-                            val flags = mutableListOf<String>("\\HasNoChildren")
-                            folder.specialUse?.let { flags.add(it) }
-                            "* LIST (${flags.joinToString(" ")}) \"#\" \"$name\""
-                        } else {
-                            null
+                    if (pattern == "") {
+                        //      An empty ("" string) mailbox name argument is a special request to
+                        //      return the hierarchy delimiter and the root name of the name given
+                        //      in the reference.  The value returned as the root MAY be the empty
+                        //      string if the reference is non-rooted or is an empty string.  In
+                        //      all cases, a hierarchy delimiter (or NIL if there is no hierarchy)
+                        //      is returned.  This permits a client to get the hierarchy delimiter
+                        //      (or find out that the mailbox names are flat) even when no
+                        //      mailboxes by that name currently exist.
+                        //
+                        //      https://tools.ietf.org/html/rfc3501#section-6.3.8
+                        listOf("""* LIST (\Noselect) "/" """"", success(tag, command))
+                    } else {
+                        val folders = mailLoader.folders()
+                        val folderResponses = folders.mapNotNull { folder ->
+                            val name = folder.imapName
+                            if (pattern == "*" ||
+                                pattern == "%" || // should not match subfolders
+                                name.contains(pattern, ignoreCase = true)
+                            ) {
+                                val flags = mutableListOf("\\HasNoChildren")
+                                folder.specialUse?.let { flags.add(it) }
+                                "* LIST (${flags.joinToString(" ")}) \"/\" \"$name\""
+                            } else {
+                                null
+                            }
                         }
+                        folderResponses + success(tag, command)
                     }
-                    folderResponses + success(tag, command)
                 } else {
                     listOf(success(tag, command))
                 }
