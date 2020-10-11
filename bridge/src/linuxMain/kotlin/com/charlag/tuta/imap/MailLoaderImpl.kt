@@ -43,6 +43,15 @@ class MailLoaderImpl(
         return mailsDb.readFolders()
     }
 
+    override fun nextUid(folder: MailFolder): Int {
+        return (mailsDb.lastMail(folder.mails.asString()) ?: 0) + 1
+    }
+
+    override fun messageId(mail: Mail): String {
+        // TODO: real one is on the conversation entry
+        return "${mail.getId().elementId.asString()}@tutanota.com"
+    }
+
     /**
      * This is a stub impl which only loads last emails.
      */
@@ -69,7 +78,12 @@ class MailLoaderImpl(
         return mailsDb.readMultiple(folder.mails.asString(), startUid, endUid)
     }
 
-    override fun body(mail: Mail): MailBody {
-        return runBlocking { api.loadElementEntity(mail.body) }
+    override fun body(mail: Mail): String {
+        return mailsDb.readBody(mail.body.asString()) ?: runBlocking {
+            api.loadElementEntity<MailBody>(mail.body)
+        }.let {
+            mailsDb.writeBody(it)
+            it.compressedText ?: it.text ?: ""
+        }
     }
 }

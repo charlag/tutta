@@ -3,12 +3,14 @@ package com.charlag.tuta.imap
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.Date
 import com.charlag.tuta.entities.IdTuple
+import com.charlag.tuta.entities.tutanota.EncryptedMailAddress
 import com.charlag.tuta.entities.tutanota.Mail
+import com.charlag.tuta.entities.tutanota.MailAddress
 import com.charlag.tuta.entities.tutanota.MailFolder
+import deriveHackyUid
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.*
+import kotlin.math.min
 
 private data class ReadingState(val tag: String, var toRead: Int)
 
@@ -88,12 +90,14 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                 }
                 val folder = this.getFolderByImapName(args) ?: return listOf("$tag NO such folder")
                 this.currentFolder = folder
+                val nextUid = mailLoader.nextUid(folder)
                 listOf(
                     """* ${mailLoader.numberOfMailsFor(folder)} EXISTS""",
                     """* 0 RECENT""",
 //                            """* OK [UNSEEN 1] Message 1 is first unseen""",
                     // we user valid UIDs always
                     """* OK [UIDVALIDITY 1] UIDs valid""",
+                    """* OK [UIDNEXT ${nextUid}] Predicted next UID""",
                     """* FLAGS (\Answered \Flagged \Deleted \Seen)""",
                     """* OK [PERMANENTFLAGS (\Deleted \Seen \*)] Limited""",
                     """$tag OK [READ-WRITE] $command completed""",
@@ -107,7 +111,7 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
             "UID" -> {
                 // for UID FETCH and UID SEARCH, same as normal commands but with UID instead of
                 // sequence numbers
-                if (args.startsWith("FETCH ") || args.startsWith("fetch ")) {
+                if (args.startsWith("FETCH ", ignoreCase = true)) {
                     val effectiveArgs = args.substring("FETCH ".length)
                     val fetchCommand = this.parseFetch(effectiveArgs)
                     val selectedFolder =
@@ -136,6 +140,27 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                         tag,
                         "UID FETCH"
                     )
+                } else if (args.startsWith("search ", ignoreCase = true)) {
+                    val effectiveArgs = args.substring("search ".length)
+                    val searchCommand = searchCommandParser.build()(effectiveArgs)
+                    if (searchCommand.size == 1 && searchCommand[0] is SearchCriteria.Since) {
+                        val criteria: SearchCriteria.Since =
+                            searchCommand[0] as SearchCriteria.Since
+                        val folder = this.currentFolder ?: return listOf("$tag NO")
+                        val date =
+                            LocalDate(criteria.date.year, criteria.date.month, criteria.date.day)
+                        val uid = date.atStartOfDayIn(TimeZone.currentSystemDefault())
+                            .epochSeconds.toInt()
+                        val mails = this.mailLoader.mailsByUid(folder, uid, null)
+                        val uids =
+                            mails.joinToString(separator = " ") { it.deriveHackyUid().toString() }
+                        listOf(
+                            "* SEARCH $uids",
+                            success(tag, "search"),
+                        )
+                    } else {
+                        listOf("$tag NO")
+                    }
                 } else {
                     listOf("$tag BAD $command $args")
                 }
@@ -244,7 +269,7 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
 
     private fun fetchPart(fetchAttr: FetchAttr, mail: Mail): FetchPartResponse? {
         return when (fetchAttr) {
-            is FetchAttr.Simple -> when (fetchAttr.value) {
+            is FetchAttr.Simple -> when (fetchAttr.value.toUpperCase()) {
                 "FLAGS" -> if (mail.unread) {
                     FetchPartResponse.Simple(fetchAttr.value, "()")
                 } else {
@@ -256,18 +281,60 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                 }
                 // TODO
                 "RFC822.SIZE" -> FetchPartResponse.Simple(fetchAttr.value, "9")
+                "RFC822.HEADER" -> {
+                    val headers = makeHeaders(mail, headerNames)
+                    FetchPartResponse.Data("RFC822.HEADER", headers)
+                }
                 "UID" -> null // ignore, we always append it
+                "ENVELOPE" -> {
+                    // The fields of the envelope structure are in the following
+                    //         order: date, subject, from, sender, reply-to, to, cc, bcc,
+                    //         in-reply-to, and message-id.  The date, subject, in-reply-to,
+                    //         and message-id fields are strings.  The from, sender, reply-to,
+                    //         to, cc, and bcc fields are parenthesized lists of address
+                    //         structures.
+
+                    // ("Wed, 17 Jul 1996 02:23:25 -0700 (PDT)"
+                    //      "IMAP4rev1 WG mtg summary and minutes"
+                    //      (("Terry Gray" NIL "gray" "cac.washington.edu"))
+                    //      (("Terry Gray" NIL "gray" "cac.washington.edu"))
+                    //      (("Terry Gray" NIL "gray" "cac.washington.edu"))
+                    //      ((NIL NIL "imap" "cac.washington.edu"))
+                    //      ((NIL NIL "minutes" "CNRI.Reston.VA.US")
+                    //      ("John Klensin" NIL "KLENSIN" "MIT.EDU")) NIL NIL
+                    //      "<B27397-0100000@cac.washington.edu>")
+                    val response = listOf(
+                        mail.receivedDate.toRFC822().quote(),
+                        mail.subject.quote(),
+                        "(${formatMailStructure(mail.sender)})",
+                        "(${
+                            formatMailStructure(mail.differentEnvelopeSender?.let {
+                                MailAddress(address = it, name = "", contact = null)
+                            } ?: mail.sender)
+                        })",
+                        "(${
+                            mail.replyTos.map { formatMailStructure(it.toMailAddress()) }
+                                .joinToString(" ")
+                        })",
+                        "(${mail.toRecipients.map { formatMailStructure(it) }.joinToString(" ")})",
+                        "(${mail.ccRecipients.map { formatMailStructure(it) }.joinToString(" ")})",
+                        "(${mail.bccRecipients.map { formatMailStructure(it) }.joinToString(" ")})",
+                        "NIL", // TODO In-reply-to,
+                        "<${mailLoader.messageId(mail)}>".quote()
+                    ).joinToString(" ", prefix = "(", postfix = ")")
+                    FetchPartResponse.Simple(name = "ENVELOPE", value = response)
+                }
                 else -> {
                     println("I don't know attr ${fetchAttr.value}")
                     null
                 }
             }
-            is FetchAttr.Parametrized -> when (fetchAttr.value) {
+            is FetchAttr.Parametrized -> when (fetchAttr.value.toUpperCase()) {
                 "BODY", "BODY.PEEK" -> {
                     val sectionSpec = fetchAttr.sectionSpec
                         ?: error("I don't fetch lists without spec yet!")
                     // TODO: handle partial in all of these
-                    return when (sectionSpec.section) {
+                    return when (sectionSpec.section?.toUpperCase()) {
                         // All headers
                         "HEADER" -> {
                             val headers = makeHeaders(mail, headerNames)
@@ -281,26 +348,11 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                         }
                         // Just body
                         "TEXT" -> {
-                            val body = this.mailLoader.body(mail).let {
-                                it.compressedText ?: it.text
-                            }!!
-                            if (fetchAttr.range != null) {
-                                val partialBody = body.toBytes()
-                                    .copyOfRange(fetchAttr.range.first, fetchAttr.range.second)
-                                    .decodeToString()
-                                FetchPartResponse.Data(
-                                    "TEXT[]<${fetchAttr.range.first}.${fetchAttr.range.second}>",
-                                    partialBody
-                                )
-                            } else {
-                                FetchPartResponse.Data("TEXT[]", body)
-                            }
+                            bodyPart(mail, fetchAttr.range, "BODY[TEXT]")
                         }
                         // The whole body
                         null -> {
-                            val body = this.mailLoader.body(mail).let {
-                                it.compressedText ?: it.text
-                            }!!
+                            val body = this.mailLoader.body(mail)
                             val headers = makeHeaders(
                                 mail,
                                 headerNames
@@ -308,8 +360,25 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                             FetchPartResponse.Data("BODY[]", headers + body)
                         }
                         else -> {
-                            println("I don't know $fetchAttr")
-                            null
+                            // Most of these cases should be handled by the parser instead
+
+                            // must be a part selector like "1.mime" or just "1"
+                            val parts = sectionSpec.section.split('.')
+                            val (before) = parts
+                            val after = parts.getOrNull(1)
+                            val partNumber = before.toIntOrNull()
+                                ?: throw ParserError("Part number is invalid: ${sectionSpec.section}")
+                            // For now only one part
+                            return if (partNumber > 1) {
+                                return null
+                            } else if (after == null) {
+                                bodyPart(mail, fetchAttr.range, "BODY[1]")
+                            } else if (after.equals("mime", ignoreCase = true)) {
+                                FetchPartResponse.Simple("BODY[1.MIME]", "TEXT/HTML")
+                            } else {
+                                println("I don't know section ${sectionSpec}")
+                                null
+                            }
                         }
                     }
                 }
@@ -318,6 +387,25 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                     null
                 }
             }
+        }
+    }
+
+    private fun bodyPart(
+        mail: Mail,
+        range: Pair<Int, Int>?,
+        name: String,
+    ): FetchPartResponse.Data {
+        val body = this.mailLoader.body(mail)
+        return if (range != null) {
+            val partialBody = body.toBytes()
+                .copyOfNumber(range.first, range.second)
+                .decodeToString()
+            FetchPartResponse.Data(
+                "$name<${range.first}.${range.second}>",
+                partialBody
+            )
+        } else {
+            FetchPartResponse.Data(name, body)
         }
     }
 
@@ -381,7 +469,7 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
             }
             "FROM" -> return "From: ${mail.sender.address}"
             "SUBJECT" -> return "Subject: ${mail.subject}"
-            "MESSAGE-ID" -> return "Message-Id: <${mail.getId().elementId.asString()}@tutanota.com>"
+            "MESSAGE-ID" -> return "Message-Id: <${mailLoader.messageId(mail)}>"
             "DATE" -> {
                 val date = mail.receivedDate.toRFC822()
                 return "Date: $date"
@@ -442,3 +530,21 @@ private val MailFolder.specialUse: String?
         MailFolderType.TRASH.value -> "\\Wastebasket"
         else -> error("Unknown folder type ${this.folderType}")
     }
+
+fun String.surroundWith(s: CharSequence): String = "$s$this$s"
+
+fun String.quote() = replace("\"", "\\").surroundWith("\"")
+
+
+fun formatMailStructure(mailAddress: MailAddress): String {
+    return "(${mailAddress.name.quote()} NIL ${
+        mailAddress.address.substringBefore('@').quote()
+    } ${mailAddress.address.substringAfter('@').quote()})"
+}
+
+fun EncryptedMailAddress.toMailAddress() =
+    MailAddress(address = address, name = name, contact = null)
+
+
+fun ByteArray.copyOfNumber(from: Int, number: Int): ByteArray =
+    copyOfRange(min(from, size), min(from + number, size))

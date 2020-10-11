@@ -2,13 +2,17 @@ import com.charlag.tuta.imap.ImapServer
 import com.charlag.tuta.imap.SmtpServer
 import com.charlag.tuta.posix.*
 import com.charlag.tuta.zeroOut
-import io.ktor.client.engine.curl.*
 import kotlinx.cinterop.*
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import platform.posix.*
 import kotlin.math.min
 import kotlin.native.concurrent.TransferMode
 import kotlin.native.concurrent.Worker
 import kotlin.native.concurrent.freeze
+import kotlin.time.milliseconds
+import kotlin.time.nanoseconds
 
 const val IMAP_PORT = 2143
 const val SMTP_PORT = 2125
@@ -83,7 +87,7 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
                     println("Could not read from the input $e")
                     break
                 }
-                print("$tag C: $received")
+                print("${timeString()} $tag C: $received")
                 try {
                     val response = imapSever.respondTo(received)
                     sendImapResponse(tag, commFd, response)
@@ -97,6 +101,13 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
         }
         println("closed $commFd")
     }
+}
+
+private fun timeString(): String {
+    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${now.hour.toString().padStart(2, '0')}:${
+        now.minute.toString().padStart(2, '0')
+    }:${(now.nanosecond.nanoseconds.toLongMilliseconds()).toString().padStart(2, '0')}"
 }
 
 private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
@@ -171,7 +182,7 @@ private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
 
 private fun sendImapResponse(tag: String, commFd: Int, response: List<String>) {
     for (s in response) {
-        println("$tag S: ${s.substring(0, min(s.length, 200))}")
+        println("${timeString()} $tag S: ${s.substring(0, min(s.length, 200))}")
         sendString(commFd, s + "\r\n")
     }
 }

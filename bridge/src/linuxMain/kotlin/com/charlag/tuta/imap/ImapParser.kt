@@ -1,5 +1,8 @@
 package com.charlag.tuta.imap
 
+import com.charlag.tuta.monthFromName
+import kotlinx.datetime.Month
+
 fun fetchAttrNameParser(): Parser<String> =
     oneOrMoreParser(
         characterInRangeParser('A'..'Z')
@@ -20,12 +23,13 @@ sealed class FetchAttr {
 
 data class SectionSpec(val section: String?, val fields: List<String>)
 
+// HEADER.FIELDS (DATE FROM)
 private fun sectionContentParser(): Parser<SectionSpec> = (
         fetchAttrNameParser()
-                + characterParser(' ').throwAway()
+                + (characterParser(' ').throwAway()
                 + characterParser('(').throwAway()
                 + separatedParser(characterParser(' '), fetchAttrNameParser())
-                + characterParser(')').throwAway()
+                + characterParser(')').throwAway()).optional().map { it ?: listOf() }
         ).map { (section, fields) -> SectionSpec(section, fields) }.named("sectionContentParser")
 
 fun emptySectionParser(): Parser<SectionSpec> =
@@ -167,3 +171,56 @@ val statusParser: Parser<StatusCommand>
             ) +
             characterParser(')').throwAway()
             ).map { (folder, flags) -> StatusCommand(folder, flags) }
+
+data class DateSpec(val day: Int, val month: Month, val year: Int)
+
+sealed class SearchCriteria {
+    data class Since(val date: DateSpec) : SearchCriteria()
+}
+
+/**
+ * Case insensitive
+ */
+fun wordParser(word: String): Parser<String> = { context: ParserContext ->
+    for (lowerChar in word.toLowerCase()) {
+        if (!context.hasNext() || context.next().toLowerCase() != lowerChar) {
+            throw ParserError("Could not parse word $word")
+        }
+    }
+    word
+}.named("wordParser($word)")
+
+inline fun <T> ParserContext.takeExactly(number: Int, block: (Char) -> T) {
+    var i = 0
+    while (i < number) {
+        if (!hasNext()) throw ParserError("Could not take $number from $this, no more input")
+        block(next())
+        i++
+    }
+}
+
+val monthParser: Parser<Month>
+    get() = ({ context: ParserContext ->
+        val word = StringBuilder(3)
+        context.takeExactly(3) { word.append(it) }
+        monthFromName(word.toString()) ?: throw ParserError("$word is not a month name")
+    }).named("month")
+
+// 27-Sep-2020
+val dateSpecParser: Parser<DateSpec>
+    get() = (numberParser + characterParser('-').throwAway() +
+            monthParser + characterParser('-').throwAway() +
+            numberParser
+            ).map { (dateAndMonth, year) ->
+            DateSpec(dateAndMonth.first, dateAndMonth.second, year)
+        }.named("dateSpec")
+
+val searchCriteriaParser: Parser<SearchCriteria>
+    get() = (wordParser("since").throwAway() +
+            characterParser(' ').throwAway() +
+            dateSpecParser
+            ).map { SearchCriteria.Since(it) }.named("searchCriteria")
+
+// search since 27-Sep-2020
+val searchCommandParser: Parser<List<SearchCriteria>>
+    get() = oneOrMoreParser(searchCriteriaParser).named("searchCommand")

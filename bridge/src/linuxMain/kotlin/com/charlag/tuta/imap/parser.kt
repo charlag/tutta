@@ -237,6 +237,14 @@ operator fun <B> Parser<B>.plus(parserB: Parser<Unit>): Parser<B> = { iterator -
 }
 
 /**
+ * Parses [this] first and then [parserB].
+ */
+operator fun Parser<Unit>.plus(parserB: Parser<Unit>): Parser<Unit> = { iterator ->
+    this(iterator)
+    parserB(iterator)
+}
+
+/**
  * Parses [this] first and then [parserB] and returns both.
  */
 operator fun <A, B> Parser<A>.plus(parserB: Parser<B>): Parser<Pair<A, B>> = { iterator ->

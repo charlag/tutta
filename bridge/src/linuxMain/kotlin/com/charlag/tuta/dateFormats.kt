@@ -103,6 +103,15 @@ private val monthNames = listOf(
     "Sep", "Oct", "Nov", "Dec"
 )
 
+fun monthFromName(name: String): Month? {
+    val index = monthNames.indexOf(name)
+    return if (index == -1) {
+        null
+    } else {
+        return Month(index + 1)
+    }
+}
+
 private fun Month.toRFC822(): String = monthNames[this.number - 1]
 
 private fun LocalDateTime.toRfC822Time(): String =

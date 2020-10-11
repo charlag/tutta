@@ -7,6 +7,11 @@ import kotlinx.cinterop.*
 import org.sqlite.*
 import platform.posix.stat
 
+// TODO: improve to avoid strings
+private fun log(message: Any?) {
+//    println("DB: $message")
+}
+
 class SqliteDb(path: String) {
     private val arena = Arena()
     private val db = arena.alloc<CPointerVar<sqlite3>>()
@@ -38,7 +43,7 @@ class SqliteDb(path: String) {
     private fun execSqliteStatement(db: CPointerVar<sqlite3>, statement: String) {
         memScoped {
             val errMessagePointer = allocPointerTo<ByteVar>()
-            println("db: $statement")
+            log(statement)
             sqlite3_exec(
                 db.value,
                 statement,
@@ -127,6 +132,8 @@ class SqliteDb(path: String) {
                 else -> throw IllegalArgumentException("Invalid type to bind: ${value::class}")
             }
         }
+        val finishedStatement = sqlite3_expanded_sql(statement)
+        log(finishedStatement?.toKString())
     }
 }
 
@@ -154,7 +161,7 @@ fun Cursor.readBlob(at: Int): ByteArray {
     return bytesPtr!!.readBytes(dataSize)
 }
 
-fun Cursor.readString(at: Int): String {
+fun Cursor.readText(at: Int): String {
     val ptr: CPointer<ByteVar> = sqlite3_column_text(statement, at)!!.reinterpret()
     return ptr.toKString()
 }

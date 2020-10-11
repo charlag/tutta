@@ -1,5 +1,6 @@
 package com.charlag.tuta.imap
 
+import kotlinx.datetime.Month
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -96,6 +97,16 @@ class ParserTests {
     }
 
     @Test
+    fun testFetchCommandBodyPartPartialParser() {
+        val parser = fetchCommandParser().build()
+        assertEquals(
+            FetchRequest(IdParam.IdSet(listOf(1602340968, 1602341271, 1602341428)),
+            listOf(FetchAttr.Parametrized("body.peek", SectionSpec("1", listOf()), 0 to 256))),
+            parser("1602340968,1602341271,1602341428 body.peek[1]<0.256>")
+        )
+    }
+
+    @Test
     fun testEmptyFetchSpec() {
         val parser = fetchCommandParser().build()
         assertEquals(
@@ -158,6 +169,15 @@ class ParserTests {
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),
             parser("0,2,3 RFC8222.SIZE")
+        )
+    }
+
+    @Test
+    fun testParseSearchCommand() {
+        val parser = searchCommandParser.build()
+        assertEquals(
+            listOf(SearchCriteria.Since(DateSpec(27, Month.SEPTEMBER, 2020))),
+            parser("since 27-Sep-2020")
         )
     }
 }
