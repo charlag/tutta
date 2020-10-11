@@ -7,6 +7,7 @@ import com.charlag.tuta.entities.TypeModel
 import com.charlag.tuta.entities.sys.BucketPermission
 import com.charlag.tuta.entities.sys.Group
 import com.charlag.tuta.entities.sys.Permission
+import com.charlag.tuta.util.PlatformAtomicRef
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -94,11 +95,17 @@ class SessionKeyResolver(
     }
 
     // Groups keys do not change now anyway so it should be okay to cache it.
-    // This is not very safe in multi-threading environment, we probably should lock it somehow
-    private val groupCache = mutableMapOf<Id, Group>()
+    // We use atomic ref to use it in frozen state, we don't really use it atomically
+    // and can lose some values but it doesn't hurt as it's only a cache.
+    private val groupCache = PlatformAtomicRef(mapOf<Id, Group>())
 
     private suspend fun getGroup(id: Id, loader: SessionKeyLoader): Group {
-        return this.groupCache[id] ?: loader.loadGroup(id).also { groupCache[id] = it }
+        return this.groupCache.get()[id] ?: loader.loadGroup(id).also { group ->
+            val newMap = mutableMapOf<Id, Group>()
+            newMap.putAll(groupCache.get())
+            newMap[id] = group
+            groupCache.set(newMap)
+        }
     }
 
     private suspend fun updateWithSymPermissionKey(
