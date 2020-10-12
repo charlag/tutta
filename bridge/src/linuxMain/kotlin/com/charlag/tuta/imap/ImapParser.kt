@@ -139,7 +139,7 @@ val flagParser: Parser<String>
     get() = (characterParser('\\').throwAway() +
             oneOrMoreParser(
                 characterInRangeParser('a'..'z') or characterInRangeParser('A'..'Z')
-            ).map { it.joinTo(StringBuilder("\\")).toString() })
+            ).map { it.joinTo(StringBuilder("\\"), separator = "").toString() })
 
 val flagsParser: Parser<List<String>>
     get() = characterParser('(').throwAway() +
@@ -224,3 +224,51 @@ val searchCriteriaParser: Parser<SearchCriteria>
 // search since 27-Sep-2020
 val searchCommandParser: Parser<List<SearchCriteria>>
     get() = oneOrMoreParser(searchCriteriaParser).named("searchCommand")
+
+
+enum class FlagOperation {
+    REPLACE, ADD, REMOVE
+}
+
+data class StoreCommand(
+    val id: IdParam,
+    val operation: FlagOperation,
+    val silent: Boolean,
+    val flags: List<String>
+)
+
+val flagOperationParser: Parser<FlagOperation>
+    get() = (characterParser('+') or characterParser('-')).optional().map { v ->
+        when (v) {
+            null -> FlagOperation.REPLACE
+            '+' -> FlagOperation.ADD
+            '-' -> FlagOperation.REMOVE
+            else -> error("Parsed wrong character for flag operation: $v")
+        }
+    }
+
+fun <A, B, C> Parser<Pair<Pair<A, B>, C>>.flatten(): Parser<Triple<A, B, C>> {
+    return map { (ab, c) -> Triple(ab.first, ab.second, c) }
+}
+
+fun <A, B, C, D> Parser<Pair<Pair<Pair<A, B>, C>, D>>.flatten(): Parser<FourTuple<A, B, C, D>> {
+    return map { (abc, d) ->
+        FourTuple(abc.first.first, abc.first.second, abc.second, d)
+    }
+}
+
+data class FourTuple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+// store 1601570340 +flags (\seen)
+val storeCommandParser: Parser<StoreCommand>
+    get() = (idParser() +
+            characterParser(' ').throwAway() +
+            flagOperationParser +
+            wordParser("flags").throwAway() +
+            wordParser(".silent").optional() +
+            characterParser(' ').throwAway() +
+            flagsParser)
+        .flatten()
+        .map { (id, operation, silent, flags) ->
+            StoreCommand(id, operation, silent != null, flags)
+        }

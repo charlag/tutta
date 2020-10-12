@@ -100,8 +100,10 @@ class ParserTests {
     fun testFetchCommandBodyPartPartialParser() {
         val parser = fetchCommandParser().build()
         assertEquals(
-            FetchRequest(IdParam.IdSet(listOf(1602340968, 1602341271, 1602341428)),
-            listOf(FetchAttr.Parametrized("body.peek", SectionSpec("1", listOf()), 0 to 256))),
+            FetchRequest(
+                IdParam.IdSet(listOf(1602340968, 1602341271, 1602341428)),
+                listOf(FetchAttr.Parametrized("body.peek", SectionSpec("1", listOf()), 0 to 256))
+            ),
             parser("1602340968,1602341271,1602341428 body.peek[1]<0.256>")
         )
     }
@@ -178,6 +180,62 @@ class ParserTests {
         assertEquals(
             listOf(SearchCriteria.Since(DateSpec(27, Month.SEPTEMBER, 2020))),
             parser("since 27-Sep-2020")
+        )
+    }
+
+    @Test
+    fun `test parse store command with adding a flag`() {
+        val parser = storeCommandParser.build()
+        assertEquals(
+            StoreCommand(
+                IdParam.IdSet(listOf(1601570340)),
+                FlagOperation.ADD,
+                silent = false,
+                flags = listOf("\\seen")
+            ),
+            parser("1601570340 +flags (\\seen)")
+        )
+    }
+
+    @Test
+    fun `test parse store command with replacing a flag`() {
+        val parser = storeCommandParser.build()
+        assertEquals(
+            StoreCommand(
+                IdParam.IdSet(listOf(1601570340)),
+                FlagOperation.REPLACE,
+                silent = false,
+                flags = listOf("\\seen")
+            ),
+            parser("1601570340 flags (\\seen)")
+        )
+    }
+
+    @Test
+    fun `test parse store command with removing a flag`() {
+        val parser = storeCommandParser.build()
+        assertEquals(
+            StoreCommand(
+                IdParam.IdSet(listOf(1601570340)),
+                FlagOperation.REMOVE,
+                silent = false,
+                flags = listOf("\\seen")
+            ),
+            parser("1601570340 -flags (\\seen)")
+        )
+    }
+
+    @Test
+    fun `test parse store command with adding a flag silent`() {
+        val parser = storeCommandParser.build()
+        assertEquals(
+            StoreCommand(
+                IdParam.IdSet(listOf(1601570340)),
+                FlagOperation.ADD,
+                silent = true,
+                flags = listOf("\\seen")
+            ),
+            parser("1601570340 +flags.silent (\\seen)")
         )
     }
 }

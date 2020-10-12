@@ -17,4 +17,5 @@ interface MailLoader {
     fun mailsBySeq(folder: MailFolder, start: Int, end: Int?): List<Mail>
     fun mailsByUid(folder: MailFolder, startUid: Int, endUid: Int?): List<Mail>
     fun body(mail: Mail): String
+    fun markUnread(mail: Mail, unread: Boolean)
 }

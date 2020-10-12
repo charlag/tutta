@@ -126,6 +126,8 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
             }
             "CREATE" -> listOf(success(tag, command))
             "UID" -> {
+                // TODO: subcommand parsing is a mess, leave it to the parser
+
                 // for UID FETCH and UID SEARCH, same as normal commands but with UID instead of
                 // sequence numbers
                 if (args.startsWith("FETCH ", ignoreCase = true)) {
@@ -178,6 +180,33 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                     } else {
                         listOf("$tag NO")
                     }
+                } else if (args.startsWith("store ", ignoreCase = true)) {
+                    val effectiveArgs = args.substring("store ".length)
+                    val storeCommand = storeCommandParser.build()(effectiveArgs)
+                    val selectedFolder =
+                        currentFolder ?: return listOf("$tag NO INBOX SELECTED")
+                    if (storeCommand.flags.size != 1 ||
+                        !storeCommand.flags[0].equals("\\seen", ignoreCase = true)
+                    ) {
+                        return listOf("$tag NO not allowed to change flags")
+                    }
+                    val id = storeCommand.id
+                    val mails = when (id) {
+                        is IdParam.IdSet ->
+                            id.ids.mapNotNull { mailLoader.mailByUid(selectedFolder, it) }
+                        is IdParam.ClosedRange ->
+                            mailLoader.mailsByUid(selectedFolder, id.startId, id.endId)
+                        is IdParam.OpenRange ->
+                            return listOf("$tag NO not allowed to store with open range")
+                    }
+                    val unread = storeCommand.operation == FlagOperation.REMOVE
+                    val unreadFlag = if (unread) "" else "\\SEEN"
+                    val responses = mails.mapIndexed { index, mail ->
+                        mailLoader.markUnread(mail, unread)
+                        // TODO: more flags?
+                        "* ${index + 1} FETCH (UID ${mail.deriveHackyUid()} FLAGS (${unreadFlag}))"
+                    }
+                    return responses + success(tag, "store")
                 } else {
                     listOf("$tag BAD $command $args")
                 }

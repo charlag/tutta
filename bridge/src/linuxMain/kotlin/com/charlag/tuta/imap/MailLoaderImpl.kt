@@ -86,4 +86,15 @@ class MailLoaderImpl(
             it.compressedText ?: it.text ?: ""
         }
     }
+
+    override fun markUnread(mail: Mail, unread: Boolean) {
+        val dbMail = mail
+
+        // important! Copy IVs as well, it's not handled by the copy (yet}
+        val unreadMail = dbMail.copy(unread = unread)
+        unreadMail.finalIvs = dbMail.finalIvs
+        runBlocking {
+            api.updateEntity(unreadMail)
+        }
+    }
 }
