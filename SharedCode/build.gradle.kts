@@ -10,10 +10,6 @@ android {
         minSdkVersion(rootProject.extra["android_minSdkVersion"] as Int)
         targetSdkVersion(rootProject.extra["android_targetSdkVersion"] as Int)
     }
-    compileOptions {
-        setSourceCompatibility("1.8")
-        setTargetCompatibility("1.8")
-    }
 }
 
 kotlin {

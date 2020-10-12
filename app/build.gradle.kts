@@ -34,10 +34,6 @@ android {
     packagingOptions {
         exclude("META-INF/*.kotlin_module")
     }
-    compileOptions {
-        setSourceCompatibility("1.8")
-        setTargetCompatibility("1.8")
-    }
     kotlinOptions {
         jvmTarget = "1.8"
     }
