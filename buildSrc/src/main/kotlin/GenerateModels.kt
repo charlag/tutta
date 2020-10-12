@@ -190,6 +190,7 @@ open class GenerateModels : DefaultTask() {
                     .addType(
                         TypeSpec.classBuilder(typeName)
                             .apply {
+                                modifiers += KModifier.DATA
                                 val constructorBuilder = FunSpec.constructorBuilder()
                                 val values = type["values"] as Map<String, Any>
                                 val isElement = when (type["type"]) {
