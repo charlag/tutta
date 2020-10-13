@@ -45,6 +45,18 @@ class SyncHandler(
                 } catch (e: DbException) {
                     log("Inserting mail $mail w/ uid $uid failed: $e")
                 }
+                if (mail.attachments.isNotEmpty()) {
+                    val listId = mail.attachments.first().listId
+                    val ids = mail.attachments.map { it.elementId }
+                    val attachments = api.loadMultipleListElementEntities(File::class, listId, ids)
+                    for (attachment in attachments) {
+                        try {
+                            mailDb.writeFile(attachment)
+                        } catch (e: DbException) {
+                            log("Inserting file $attachment w/ id ${attachment._id} failed")
+                        }
+                    }
+                }
             }
             loaded += mails.size
         }
@@ -115,6 +127,10 @@ class SyncHandler(
                         ?: return
                 mailDb.writeFolder(instance)
             }
+            FileTypeInfo -> {
+                val instance = downloadBatchInstance(api, FileTypeInfo, entityUpdate) ?: return
+                mailDb.writeFile(instance)
+            }
         }
     }
 
@@ -154,6 +170,13 @@ class SyncHandler(
                 )
             )
             MailFolderTypeInfo -> mailDb.deleteFolder(
+                IdTuple(
+                    GeneratedId(entityUpdate.instanceListId),
+                    GeneratedId(entityUpdate.instanceId)
+                )
+            )
+            MailBodyTypeInfo -> mailDb.deleteBody(entityUpdate.instanceId)
+            FileTypeInfo -> mailDb.deleteFile(
                 IdTuple(
                     GeneratedId(entityUpdate.instanceListId),
                     GeneratedId(entityUpdate.instanceId)

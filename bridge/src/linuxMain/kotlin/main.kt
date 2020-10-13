@@ -35,7 +35,7 @@ fun main() {
         val syncHandler = SyncHandler(dependencyDump.api, mailDb, dependencyDump.userController)
         if (!dbExists) syncHandler.initialSync() else syncHandler.resync()
 
-        val mailLoader = MailLoaderImpl(dependencyDump.api, dependencyDump.userController, mailDb)
+        val mailLoader = MailLoaderImpl(dependencyDump.api, mailDb, dependencyDump.fileFacade)
 //        val mailLoader = FakeMailLoader()
         runBridgeServer(
             imapServerFactory = { ImapServer(mailLoader, syncHandler) },
@@ -112,6 +112,7 @@ class DependencyDump {
     val loginFacade = LoginFacade(cryptor, api)
     val mailFacade = MailFacade(api, cryptor, keyResolver)
     val userController = UserController()
+    val fileFacade = FileFacade(api, cryptor, keyResolver)
 }
 
 class UserController {

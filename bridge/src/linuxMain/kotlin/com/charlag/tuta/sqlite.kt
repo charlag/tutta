@@ -52,8 +52,8 @@ class SqliteDb(path: String) {
                 errMessagePointer.ptr
             ).check({ it == SQLITE_OK || it == SQLITE_DONE }) {
                 val msg = errMessagePointer.value!!.toKString()
-                println("Sqlite error: $msg")
                 sqlite3_free(errMessagePointer.value)
+                throw DbException("Exec for $statement failed: $msg")
             }
         }
     }

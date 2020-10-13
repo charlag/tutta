@@ -1,14 +1,14 @@
 package com.charlag.tuta.imap
 
-import UserController
-import com.charlag.tuta.GroupType
+import com.charlag.tuta.FileFacade
 import com.charlag.tuta.MailDb
 import com.charlag.tuta.entities.Id
-import com.charlag.tuta.entities.tutanota.*
+import com.charlag.tuta.entities.tutanota.File
+import com.charlag.tuta.entities.tutanota.Mail
+import com.charlag.tuta.entities.tutanota.MailBody
+import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.network.API
 import kotlinx.coroutines.runBlocking
-import kotlin.native.concurrent.AtomicReference
-import kotlin.native.concurrent.freeze
 
 /**
  * This is a stub implementation which loads only the first batch of emails.
@@ -18,8 +18,8 @@ import kotlin.native.concurrent.freeze
  */
 class MailLoaderImpl(
     private val api: API,
-    private val userController: UserController,
     private val mailsDb: MailDb,
+    private val fileFacade: FileFacade,
 ) : MailLoader {
     override fun uid(mail: Mail): Int {
         // UIDs must be increasing and must be 32bit
@@ -78,9 +78,9 @@ class MailLoaderImpl(
         return mailsDb.readMultiple(folder.mails.asString(), startUid, endUid)
     }
 
-    override fun body(mail: Mail): String {
-        return mailsDb.readBody(mail.body.asString()) ?: runBlocking {
-            api.loadElementEntity<MailBody>(mail.body)
+    override fun body(bodyId: Id): String {
+        return mailsDb.readBody(bodyId.asString()) ?: runBlocking {
+            api.loadElementEntity<MailBody>(bodyId)
         }.let {
             mailsDb.writeBody(it)
             it.compressedText ?: it.text ?: ""
@@ -96,5 +96,15 @@ class MailLoaderImpl(
         runBlocking {
             api.updateEntity(unreadMail)
         }
+    }
+
+    override fun getFiles(mail: Mail): List<File> {
+        return mail.attachments.mapNotNull { mailsDb.readFile(it) }
+    }
+
+    override fun getFileData(file: File): ByteArray {
+        return runBlocking {
+            fileFacade.downloadFile(file)
+        }.data
     }
 }

@@ -14,6 +14,8 @@ import kotlin.math.min
 
 private data class ReadingState(val tag: String, var toRead: Int)
 
+typealias FetchRange = Pair<Int, Int>
+
 class ImapServer(private val mailLoader: MailLoader, private val syncHandler: SyncHandler) {
     private var currentFolder: MailFolder? = null
     private var readingState: ReadingState? = null
@@ -377,8 +379,8 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
             }
             is FetchAttr.Parametrized -> when (fetchAttr.value.toUpperCase()) {
                 "BODY", "BODY.PEEK" -> {
-                    val sectionSpec = fetchAttr.sectionSpec
-                        ?: error("I don't fetch lists without spec yet!")
+                    val (_, sectionSpec, range) = fetchAttr
+                    sectionSpec ?: error("I don't fetch lists without spec yet!")
                     // TODO: handle partial in all of these
                     return when (sectionSpec.section?.toUpperCase()) {
                         // All headers
@@ -394,11 +396,11 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                         }
                         // Just body
                         "TEXT" -> {
-                            bodyPart(mail, fetchAttr.range, "BODY[TEXT]")
+                            bodyPart(mail, range, "BODY[TEXT]")
                         }
                         // The whole body
                         null -> {
-                            val body = this.mailLoader.body(mail)
+                            val body = this.mailLoader.body(mail.body)
                             val headers = makeHeaders(
                                 mail,
                                 headerNames
@@ -406,42 +408,84 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                             FetchPartResponse.Data("BODY[]", headers + body)
                         }
                         else -> {
-                            // Most of these cases should be handled by the parser instead
-
-                            // must be a part selector like "1.mime" or just "1"
-                            val parts = sectionSpec.section.split('.')
-                            val (before) = parts
-                            val after = parts.getOrNull(1)
-                            val partNumber = before.toIntOrNull()
-                                ?: throw ParserError("Part number is invalid: ${sectionSpec.section}")
-                            // For now only one part
-                            return if (partNumber > 1) {
-                                return null
-                            } else if (after == null) {
-                                bodyPart(mail, fetchAttr.range, "BODY[1]")
-                            } else if (after.equals("mime", ignoreCase = true)) {
-                                FetchPartResponse.Simple("BODY[1.MIME]", "TEXT/HTML")
-                            } else {
-                                println("I don't know section ${sectionSpec}")
-                                null
+                            // must be a part selector like "1.mime", "1.2.TEXT" or just "1"
+                            val mailParts = mailToParts(mail, mailLoader.getFiles(mail))
+                            val path = sectionSpec.section.split(".")
+                            println("mailParts $mailParts path $path")
+                            return traversePartPath(mailParts, range, path)?.let { data ->
+                                val rangeString =
+                                    if (range != null) "<$${range.first}.${range.second}>" else ""
+                                val name = "BODY[${sectionSpec.section}${rangeString}"
+                                FetchPartResponse.Data(name, data)
                             }
                         }
                     }
                 }
                 else -> {
-                    println("I don't konw $fetchAttr")
+                    println("I don't know $fetchAttr")
                     null
                 }
             }
         }
     }
 
+    private fun traversePartPath(
+        rootParts: List<Part>,
+        range: FetchRange?,
+        path: List<String>
+    ): String? {
+        val (first, rest) = path.headTail()
+        val partNumber = first.toIntOrNull()
+            ?: throw ParserError("Part number is invalid $first")
+        // path is indexed from 1
+        return rootParts.getOrNull(partNumber - 1)?.traverse(range, rest)
+    }
+
+    private tailrec fun Part.traverse(range: FetchRange?, path: List<String>): String? {
+        val (step, rest) = path.headTail()
+
+        return if (rest.isEmpty()) {
+            when (step.toLowerCase()) {
+                // TODO: it should be the whole header for the part?
+                "mime" -> this.mime
+                "text" -> partData(this, range)
+                "header" -> TODO()
+                else -> {
+                    println("Unknown section param: $step")
+                    null
+                }
+            }
+        } else {
+            val partNumber = step.toIntOrNull()
+                ?: throw ParserError("Part number is invalid $step")
+            val child = this.childAt(partNumber - 1)
+            if (child == null) println("no child at $partNumber")
+            child?.traverse(range, rest)
+        }
+    }
+
+    private fun partData(part: Part, range: FetchRange?): String {
+        val fullData = when (part) {
+            is Part.AttachmentPart -> mailLoader.getFileData(part.file)
+                .toBase64()
+            is Part.TextHtml -> mailLoader.body(part.bodyId)
+            is Part.Multipart -> TODO("multipart data")
+        }
+        return if (range != null) {
+            fullData.toBytes()
+                .copyOfNumber(range.first, range.second)
+                .decodeToString()
+        } else {
+            fullData
+        }
+    }
+
     private fun bodyPart(
         mail: Mail,
-        range: Pair<Int, Int>?,
+        range: FetchRange?,
         name: String,
     ): FetchPartResponse.Data {
-        val body = this.mailLoader.body(mail)
+        val body = this.mailLoader.body(mail.body)
         return if (range != null) {
             val partialBody = body.toBytes()
                 .copyOfNumber(range.first, range.second)
@@ -521,7 +565,11 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                 return "Date: $date"
             }
             // TODO
-            "CONTENT-TYPE" -> return "Content-Type: text/html; charset=utf-8"
+            "CONTENT-TYPE" -> if (mail.attachments.isEmpty()) {
+                "Content-Type: text/html; charset=utf-8"
+            } else {
+                "Content-Type: multipart/mixed; boundary=\"----=_Part_1_boundary\""
+            }
             else -> {
                 println("Unknown header: $header")
                 return null
@@ -594,3 +642,5 @@ fun EncryptedMailAddress.toMailAddress() =
 
 fun ByteArray.copyOfNumber(from: Int, number: Int): ByteArray =
     copyOfRange(min(from, size), min(from + number, size))
+
+fun <T> List<T>.headTail(): Pair<T, List<T>> = first() to drop(1)

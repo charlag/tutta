@@ -37,7 +37,7 @@ class API(
     val keyResolver: SessionKeyResolver,
     val wsUrl: String
 ) : SessionKeyLoader {
-    private val json = Json {  }
+    private val json = Json { }
     private val jsonSerializer = httpClient.feature(JsonFeature)!!.serializer
 
     suspend fun <T : Entity> serviceRequest(
@@ -58,7 +58,10 @@ class API(
                 entityHeaders(responseTypeModel)
                 addQueryParams(queryParams)
                 if (serializedEntity != null) {
-                    parameter("_body", json.encodeToString(JsonObject.serializer(), serializedEntity))
+                    parameter(
+                        "_body",
+                        json.encodeToString(JsonObject.serializer(), serializedEntity)
+                    )
                 }
             }!!.let { deserializeEntity(it, responseClass, sk) }
         } else {
@@ -175,6 +178,49 @@ class API(
         val name = typeModel.name.toLowerCase()
         val url = "${model}/${name}/${id.listId.asString()}/${id.elementId.asString()}"
         return loadAndMapToEntity(url, klass)!!
+    }
+
+    suspend fun <T : ElementEntity> loadMultipleElementEntities(
+        klass: KClass<T>,
+        ids: List<Id>
+    ): List<T> {
+        val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(klass)
+        val name = typeModel.name.toLowerCase()
+        return httpClient.get<JsonArray> {
+            commonHeaders()
+            entityHeaders(typeModel)
+            parameter("ids", ids.joinToString(","))
+            url(baseUrl + "${model}/${name}")
+        }.mapNotNull {
+            try {
+                deserializeEntity(it as JsonObject, klass)
+            } catch (e: CryptoException) {
+                println("Failed to decrypt entity, skipping $e")
+                null
+            }
+        }
+    }
+
+    suspend fun <T : ListElementEntity> loadMultipleListElementEntities(
+        klass: KClass<T>,
+        listId: Id,
+        ids: List<Id>
+    ): List<T> {
+        val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(klass)
+        val name = typeModel.name.toLowerCase()
+        return httpClient.get<JsonArray> {
+            commonHeaders()
+            entityHeaders(typeModel)
+            parameter("ids", ids.joinToString(","))
+            url(baseUrl + "${model}/${name}/${listId}")
+        }.mapNotNull {
+            try {
+                deserializeEntity(it as JsonObject, klass)
+            } catch (e: CryptoException) {
+                println("Failed to decrypt entity, skipping $e")
+                null
+            }
+        }
     }
 
     suspend fun <T : ListElementEntity> loadRange(

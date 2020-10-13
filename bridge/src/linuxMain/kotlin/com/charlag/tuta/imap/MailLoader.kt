@@ -1,6 +1,8 @@
 package com.charlag.tuta.imap
 
+import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.IdTuple
+import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailBody
 import com.charlag.tuta.entities.tutanota.MailFolder
@@ -16,6 +18,8 @@ interface MailLoader {
     fun mailByUid(folder: MailFolder, uid: Int): Mail?
     fun mailsBySeq(folder: MailFolder, start: Int, end: Int?): List<Mail>
     fun mailsByUid(folder: MailFolder, startUid: Int, endUid: Int?): List<Mail>
-    fun body(mail: Mail): String
+    fun body(bodyId: Id): String
     fun markUnread(mail: Mail, unread: Boolean)
+    fun getFiles(mail: Mail): List<File>
+    fun getFileData(file: File): ByteArray
 }

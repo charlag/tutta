@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonObject
 
 // TODO: better format
 // Hopefully later we won't need most of the data and can just cache some things in memory.
+// TODO: cleanup (always accept IDs, deletions with bound params)
 class MailDb(
     private val sqliteDb: SqliteDb,
     private val instanceMapper: InstanceMapper,
@@ -47,6 +48,15 @@ data BYTES NOT NULL
 elementId TEXT PRIMARY KEY,
 data TEXT NOT NULL
 );"""
+        )
+
+        sqliteDb.exec(
+            """CREATE TABLE IF NOT EXISTS File(
+                |elementId TEXT PRIMARY KEY,
+                |listId TEXT NOT NULL,
+                |data BYTES NOT NULL
+                |);
+            """.trimMargin()
         )
     }
 
@@ -153,6 +163,24 @@ data TEXT NOT NULL
         }
     }
 
+    fun writeFile(file: File) {
+        return sqliteDb.insert(
+            "INSERT OR REPLACE INTO File(elementId, listId, data) VALUES (?, ?, ?)",
+            file._id!!.elementId.asString(),
+            file._id!!.listId.asString(),
+            file.serialize(FileTypeInfo)
+        )
+    }
+
+    fun readFile(idTuple: IdTuple): File? {
+        return sqliteDb.querySingle(
+            "SELECT data FROM File WHERE elementId = ?",
+            idTuple.elementId.asString()
+        ) {
+            deserialize(FileTypeInfo, readBlob(0))
+        }
+    }
+
     private inline fun <reified T : Entity> T.serialize(typeInfo: TypeInfo<T>): ByteArray {
         val jsonInstance = runBlocking {
             instanceMapper.encryptAndMapToLiteral(
@@ -173,5 +201,13 @@ data TEXT NOT NULL
             instanceMapper.decryptAndMapToMap(jsonObject, typeInfo.typemodel, key)
         }
         return mapper.unmap(typeInfo.serializer, map)
+    }
+
+    fun deleteBody(elementId: String) {
+        return sqliteDb.exec("DELETE FROM MailBody WHERE elementId = '${elementId}'")
+    }
+
+    fun deleteFile(idTuple: IdTuple) {
+        return sqliteDb.exec("DELETE FROM File WHERE elementId = '${idTuple.elementId}")
     }
 }
