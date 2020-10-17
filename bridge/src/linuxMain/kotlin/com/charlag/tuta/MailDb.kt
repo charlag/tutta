@@ -4,7 +4,6 @@ import com.charlag.tuta.entities.Entity
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.TypeInfo
 import com.charlag.tuta.entities.tutanota.*
-import com.charlag.tuta.imap.getId
 import com.charlag.tuta.network.mapping.InstanceMapper
 import com.charlag.tuta.network.mapping.NestedMapper
 import kotlinx.coroutines.runBlocking

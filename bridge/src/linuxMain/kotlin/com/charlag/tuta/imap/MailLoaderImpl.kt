@@ -7,6 +7,7 @@ import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailBody
 import com.charlag.tuta.entities.tutanota.MailFolder
+import com.charlag.tuta.getId
 import com.charlag.tuta.network.API
 import kotlinx.coroutines.runBlocking
 

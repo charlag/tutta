@@ -82,7 +82,7 @@ sealed class IdParam {
     data class OpenRange(val startId: Int) : IdParam()
 }
 
-data class FetchRequest(
+data class FetchCommand(
     val idParam: IdParam,
     val attrs: List<FetchAttr>,
 )
@@ -105,9 +105,9 @@ fun fetchAttrListParser(): Parser<List<FetchAttr>> =
 
 // 1:1 (UID FLAGS INTERNALDATE RFC822.SIZE BODY.PEEK[HEADER.FIELDS (DATE FROM SENDER SUBJECT TO CC MESSAGE-ID REFERENCES CONTENT-TYPE CONTENT-DESCRIPTION IN-REPLY-TO REPLY-TO LINES LIST-POST X-LABEL)])
 // 1 BODY.PEEK[]
-fun fetchCommandParser(): Parser<FetchRequest> =
-    (idParser + characterParser(' ').throwAway() + anyFetchAttrsParser()).map { (id, attrs) ->
-        FetchRequest(id, attrs)
+val fetchCommandParser: Parser<FetchCommand>
+    get() = (idParser + characterParser(' ').throwAway() + anyFetchAttrsParser()).map { (id, attrs) ->
+        FetchCommand(id, attrs)
     }.named("fetchCommand")
 
 private fun anyFetchAttrsParser() = (fetchAttrListParser() or fetchAttrParser().map { listOf(it) })

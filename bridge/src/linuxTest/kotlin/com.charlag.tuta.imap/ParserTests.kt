@@ -76,9 +76,9 @@ class ParserTests {
 
     @Test
     fun testFetchCommandParser() {
-        val parser = fetchCommandParser().build()
+        val parser = fetchCommandParser.build()
         assertEquals(
-            FetchRequest(
+            FetchCommand(
                 IdParam.ClosedRange(1, 1),
                 listOf(
                     FetchAttr.Simple("UID"),
@@ -98,9 +98,9 @@ class ParserTests {
 
     @Test
     fun testFetchCommandBodyPartPartialParser() {
-        val parser = fetchCommandParser().build()
+        val parser = fetchCommandParser.build()
         assertEquals(
-            FetchRequest(
+            FetchCommand(
                 IdParam.IdSet(listOf(1602340968, 1602341271, 1602341428)),
                 listOf(FetchAttr.Parametrized("body.peek", SectionSpec("1", listOf()), 0 to 256))
             ),
@@ -110,9 +110,9 @@ class ParserTests {
 
     @Test
     fun testEmptyFetchSpec() {
-        val parser = fetchCommandParser().build()
+        val parser = fetchCommandParser.build()
         assertEquals(
-            FetchRequest(
+            FetchCommand(
                 IdParam.IdSet(listOf(0)),
                 listOf(
                     FetchAttr.Parametrized(
@@ -128,9 +128,9 @@ class ParserTests {
 
     @Test
     fun testSingleIdFetchSpec() {
-        val parser = fetchCommandParser().build()
+        val parser = fetchCommandParser.build()
         assertEquals(
-            FetchRequest(
+            FetchCommand(
                 IdParam.IdSet(listOf(0)),
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),
@@ -140,9 +140,9 @@ class ParserTests {
 
     @Test
     fun testOpenRangeIdFetchSpec() {
-        val parser = fetchCommandParser().build()
+        val parser = fetchCommandParser.build()
         assertEquals(
-            FetchRequest(
+            FetchCommand(
                 IdParam.OpenRange(1),
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),
@@ -152,9 +152,9 @@ class ParserTests {
 
     @Test
     fun testClosedRangeIdFetchSpec() {
-        val parser = fetchCommandParser().build()
+        val parser = fetchCommandParser.build()
         assertEquals(
-            FetchRequest(
+            FetchCommand(
                 IdParam.ClosedRange(1, 5),
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),
@@ -164,9 +164,9 @@ class ParserTests {
 
     @Test
     fun testSetIdFetchSpec() {
-        val parser = fetchCommandParser().build()
+        val parser = fetchCommandParser.build()
         assertEquals(
-            FetchRequest(
+            FetchCommand(
                 IdParam.IdSet(listOf(0, 2, 3)),
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),

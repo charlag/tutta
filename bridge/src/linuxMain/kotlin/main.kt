@@ -5,6 +5,8 @@ import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.imap.ImapServer
 import com.charlag.tuta.imap.MailLoaderImpl
 import com.charlag.tuta.imap.SmtpServer
+import com.charlag.tuta.imap.commands.FetchHandler
+import com.charlag.tuta.imap.commands.SearchHandler
 import com.charlag.tuta.network.API
 import com.charlag.tuta.network.SessionKeyResolver
 import com.charlag.tuta.network.UserSessionDataProvider
@@ -36,9 +38,18 @@ fun main() {
         if (!dbExists) syncHandler.initialSync() else syncHandler.resync()
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, mailDb, dependencyDump.fileFacade)
+        val fetchHandler = FetchHandler(mailLoader)
+        val searchHandler = SearchHandler(mailLoader)
 //        val mailLoader = FakeMailLoader()
         runBridgeServer(
-            imapServerFactory = { ImapServer(mailLoader, syncHandler) },
+            imapServerFactory = {
+                ImapServer(
+                    mailLoader,
+                    syncHandler,
+                    fetchHandler,
+                    searchHandler
+                )
+            },
             smtpServerFactory = {
                 SmtpServer(dependencyDump.mailFacade, dependencyDump.userController)
             }
