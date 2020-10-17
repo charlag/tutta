@@ -183,7 +183,7 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
         // SELECT and EXAMINE do the same thing - show info about mailbox - but EXAMINE does
         // not reset RECENT flag nor does any other changes
         if (args.isEmpty()) {
-            return listOf("${tag} BAD NO ARGS FOR SELECT")
+            return listOf("$tag BAD NO ARGS FOR SELECT")
         }
         val folder = this.getFolderByImapName(args) ?: return listOf("$tag NO such folder")
         this.currentFolder = folder
@@ -284,7 +284,7 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
     }
 
     private fun getFolderByImapName(name: String): MailFolder? {
-        val canonicalName = name.trim(' ').toUpperCase()
+        val canonicalName = name.trim(' ', '"').toUpperCase()
         return this.mailLoader.folders().find { it.imapName == canonicalName }
     }
 
