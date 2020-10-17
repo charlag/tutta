@@ -87,16 +87,17 @@ data class FetchRequest(
     val attrs: List<FetchAttr>,
 )
 
-fun idParser(): Parser<IdParam> {
-    val openRangeParser =
-        (numberParser + characterParser(':').throwAway() + characterParser('*').throwAway())
-            .map { start -> IdParam.OpenRange(start) }.named("OpenRange")
-    val idRangeParser = (numberParser + characterParser(':').throwAway() + numberParser)
-        .map { (start, end) -> IdParam.ClosedRange(start, end) }.named("closedRange")
-    val idSingleParser = separatedParser(characterParser(','), numberParser)
-        .map(IdParam::IdSet).named("single")
-    return (openRangeParser or idRangeParser or idSingleParser).named("idParser")
-}
+val idParser: Parser<IdParam>
+    get() {
+        val openRangeParser =
+            (numberParser + characterParser(':').throwAway() + characterParser('*').throwAway())
+                .map { start -> IdParam.OpenRange(start) }.named("OpenRange")
+        val idRangeParser = (numberParser + characterParser(':').throwAway() + numberParser)
+            .map { (start, end) -> IdParam.ClosedRange(start, end) }.named("closedRange")
+        val idSingleParser = separatedParser(characterParser(','), numberParser)
+            .map(IdParam::IdSet).named("single")
+        return (openRangeParser or idRangeParser or idSingleParser).named("idParser")
+    }
 
 fun fetchAttrListParser(): Parser<List<FetchAttr>> =
     (characterParser('(').throwAway() + fetchAttrsParser() + characterParser(')').throwAway())
@@ -105,7 +106,7 @@ fun fetchAttrListParser(): Parser<List<FetchAttr>> =
 // 1:1 (UID FLAGS INTERNALDATE RFC822.SIZE BODY.PEEK[HEADER.FIELDS (DATE FROM SENDER SUBJECT TO CC MESSAGE-ID REFERENCES CONTENT-TYPE CONTENT-DESCRIPTION IN-REPLY-TO REPLY-TO LINES LIST-POST X-LABEL)])
 // 1 BODY.PEEK[]
 fun fetchCommandParser(): Parser<FetchRequest> =
-    (idParser() + characterParser(' ').throwAway() + anyFetchAttrsParser()).map { (id, attrs) ->
+    (idParser + characterParser(' ').throwAway() + anyFetchAttrsParser()).map { (id, attrs) ->
         FetchRequest(id, attrs)
     }.named("fetchCommand")
 
@@ -176,6 +177,8 @@ data class DateSpec(val day: Int, val month: Month, val year: Int)
 
 sealed class SearchCriteria {
     data class Since(val date: DateSpec) : SearchCriteria()
+    data class Id(val idRange: IdParam) : SearchCriteria()
+    data class Uid(val idSet: IdParam) : SearchCriteria()
 }
 
 /**
@@ -215,15 +218,28 @@ val dateSpecParser: Parser<DateSpec>
             DateSpec(dateAndMonth.first, dateAndMonth.second, year)
         }.named("dateSpec")
 
-val searchCriteriaParser: Parser<SearchCriteria>
+val searchCriteriaSinceParser: Parser<SearchCriteria.Since>
     get() = (wordParser("since").throwAway() +
             characterParser(' ').throwAway() +
             dateSpecParser
-            ).map { SearchCriteria.Since(it) }.named("searchCriteria")
+            ).map { SearchCriteria.Since(it) }
+
+val searchCriteriaIdRangeParser: Parser<SearchCriteria.Id>
+    get() = idParser.map { SearchCriteria.Id(it) }
+
+val searchCriteriaUidRangeParser: Parser<SearchCriteria.Uid>
+    get() = (wordParser("uid").throwAway() + characterParser(' ').throwAway() + idParser).map {
+        SearchCriteria.Uid(it)
+    }
+
+val searchCriteriaParser: Parser<SearchCriteria>
+    get() = (searchCriteriaSinceParser or
+            searchCriteriaUidRangeParser or
+            searchCriteriaIdRangeParser).named("searchCriteria")
 
 // search since 27-Sep-2020
 val searchCommandParser: Parser<List<SearchCriteria>>
-    get() = oneOrMoreParser(searchCriteriaParser).named("searchCommand")
+    get() = separatedParser(characterParser(' '), searchCriteriaParser).named("searchCommand")
 
 
 enum class FlagOperation {
@@ -261,7 +277,7 @@ data class FourTuple<A, B, C, D>(val first: A, val second: B, val third: C, val 
 
 // store 1601570340 +flags (\seen)
 val storeCommandParser: Parser<StoreCommand>
-    get() = (idParser() +
+    get() = (idParser +
             characterParser(' ').throwAway() +
             flagOperationParser +
             wordParser("flags").throwAway() +

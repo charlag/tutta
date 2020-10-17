@@ -27,18 +27,7 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
     fun respondTo(message: String): List<String> {
         val readingState = this.readingState
         if (readingState != null) {
-            val size = message.toBytes().size
-            val isEmpty = message == ""
-            // After data is over, there's an empty line
-            if (readingState.toRead > 0) {
-                readingState.toRead -= size
-                return listOf()
-            } else if (isEmpty && readingState.toRead == 0) {
-                this.readingState = null
-                return listOf(success(readingState.tag, "APPEND"))
-            } else {
-                return listOf("* BAD")
-            }
+            return handleReading(message, readingState)
         }
 
         return message.split("\r\n").flatMap { line ->
@@ -56,6 +45,21 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
         }
     }
 
+    private fun handleReading(message: String, readingState: ReadingState): List<String> {
+        val size = message.toBytes().size
+        val isEmpty = message == ""
+        // After data is over, there's an empty line
+        return if (readingState.toRead > 0) {
+            readingState.toRead -= size
+            listOf()
+        } else if (isEmpty && readingState.toRead == 0) {
+            this.readingState = null
+            listOf(success(readingState.tag, "APPEND"))
+        } else {
+            listOf("* BAD")
+        }
+    }
+
     private fun respondToCommand(tag: String, command: String, args: String): List<String> {
         return when (command) {
             "CAPABILITY" -> {
@@ -65,62 +69,10 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                 listOf(success(tag, command))
             }
             "LIST", "LSUB" -> {
-                // In some cases should return hierarchy delimeter
-                val (delimiter, pattern) = this.parseList(args)
-                if (delimiter == "") {
-                    if (pattern == "") {
-                        //      An empty ("" string) mailbox name argument is a special request to
-                        //      return the hierarchy delimiter and the root name of the name given
-                        //      in the reference.  The value returned as the root MAY be the empty
-                        //      string if the reference is non-rooted or is an empty string.  In
-                        //      all cases, a hierarchy delimiter (or NIL if there is no hierarchy)
-                        //      is returned.  This permits a client to get the hierarchy delimiter
-                        //      (or find out that the mailbox names are flat) even when no
-                        //      mailboxes by that name currently exist.
-                        //
-                        //      https://tools.ietf.org/html/rfc3501#section-6.3.8
-                        listOf("""* LIST (\Noselect) "/" """"", success(tag, command))
-                    } else {
-                        val folders = mailLoader.folders()
-                        val folderResponses = folders.mapNotNull { folder ->
-                            val name = folder.imapName
-                            if (pattern == "*" ||
-                                pattern == "%" || // should not match subfolders
-                                name.contains(pattern, ignoreCase = true)
-                            ) {
-                                val flags = mutableListOf("\\HasNoChildren")
-                                folder.specialUse?.let { flags.add(it) }
-                                "* LIST (${flags.joinToString(" ")}) \"/\" \"$name\""
-                            } else {
-                                null
-                            }
-                        }
-                        folderResponses + success(tag, command)
-                    }
-                } else {
-                    listOf(success(tag, command))
-                }
+                handleList(args, tag, command)
             }
             "SELECT", "EXAMINE" -> {
-                // SELECT and EXAMINE do the same thing - show info about mailbox - but EXAMINE does
-                // not reset RECENT flag nor does any other changes
-                if (args.isEmpty()) {
-                    return listOf("${tag} BAD NO ARGS FOR SELECT")
-                }
-                val folder = this.getFolderByImapName(args) ?: return listOf("$tag NO such folder")
-                this.currentFolder = folder
-                val nextUid = mailLoader.nextUid(folder)
-                listOf(
-                    """* ${mailLoader.numberOfMailsFor(folder)} EXISTS""",
-                    """* 0 RECENT""",
-//                            """* OK [UNSEEN 1] Message 1 is first unseen""",
-                    // we user valid UIDs always
-                    """* OK [UIDVALIDITY 1] UIDs valid""",
-                    """* OK [UIDNEXT ${nextUid}] Predicted next UID""",
-                    """* FLAGS (\Answered \Flagged \Deleted \Seen)""",
-                    """* OK [PERMANENTFLAGS (\Deleted \Seen \*)] Limited""",
-                    """$tag OK [READ-WRITE] $command completed""",
-                )
+                handleSelect(args, tag, command)
             }
             "NOOP" -> listOf(success(tag, command))
             "FETCH" -> {
@@ -132,107 +84,25 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
 
                 // for UID FETCH and UID SEARCH, same as normal commands but with UID instead of
                 // sequence numbers
-                if (args.startsWith("FETCH ", ignoreCase = true)) {
-                    val effectiveArgs = args.substring("FETCH ".length)
-                    val fetchCommand = this.parseFetch(effectiveArgs)
-                    val selectedFolder =
-                        currentFolder ?: return listOf("$tag NO INBOX SELECTED")
-
-                    val idParam = fetchCommand.idParam
-                    val mails = when (idParam) {
-                        is IdParam.IdSet -> {
-                            idParam.ids.map {
-                                mailLoader.mailByUid(selectedFolder, it)
-                                    ?: return listOf("$tag NO EMAIL FOUND")
-                            }
-                        }
-                        is IdParam.OpenRange -> mailLoader.mailsByUid(
-                            selectedFolder,
-                            idParam.startId,
-                            null
-                        )
-                        is IdParam.ClosedRange -> mailLoader.mailsByUid(
-                            selectedFolder,
-                            idParam.startId,
-                            idParam.endId
-                        )
+                return when {
+                    args.startsWith("FETCH ", ignoreCase = true) -> {
+                        handleUidFetch(args, tag)
                     }
-                    respondToFetch(mails, fetchCommand.attrs) + success(
-                        tag,
-                        "UID FETCH"
-                    )
-                } else if (args.startsWith("search ", ignoreCase = true)) {
-                    val effectiveArgs = args.substring("search ".length)
-                    val searchCommand = searchCommandParser.build()(effectiveArgs)
-                    if (searchCommand.size == 1 && searchCommand[0] is SearchCriteria.Since) {
-                        val criteria: SearchCriteria.Since =
-                            searchCommand[0] as SearchCriteria.Since
-                        val folder = this.currentFolder ?: return listOf("$tag NO")
-                        val date =
-                            LocalDate(criteria.date.year, criteria.date.month, criteria.date.day)
-                        val uid = date.atStartOfDayIn(TimeZone.currentSystemDefault())
-                            .epochSeconds.toInt()
-                        val mails = this.mailLoader.mailsByUid(folder, uid, null)
-                        val uids =
-                            mails.joinToString(separator = " ") { it.deriveHackyUid().toString() }
-                        listOf(
-                            "* SEARCH $uids",
-                            success(tag, "search"),
-                        )
-                    } else {
-                        listOf("$tag NO")
+                    args.startsWith("search ", ignoreCase = true) -> {
+                        handleUidSearch(args.substring("search ".length), tag)
                     }
-                } else if (args.startsWith("store ", ignoreCase = true)) {
-                    val effectiveArgs = args.substring("store ".length)
-                    val storeCommand = storeCommandParser.build()(effectiveArgs)
-                    val selectedFolder =
-                        currentFolder ?: return listOf("$tag NO INBOX SELECTED")
-                    if (storeCommand.flags.size != 1 ||
-                        !storeCommand.flags[0].equals("\\seen", ignoreCase = true)
-                    ) {
-                        return listOf("$tag NO not allowed to change flags")
+                    args.startsWith("store ", ignoreCase = true) -> {
+                        val effectiveArgs = args.substring("store ".length)
+                        handleUidStore(effectiveArgs, tag)
                     }
-                    val id = storeCommand.id
-                    val mails = when (id) {
-                        is IdParam.IdSet ->
-                            id.ids.mapNotNull { mailLoader.mailByUid(selectedFolder, it) }
-                        is IdParam.ClosedRange ->
-                            mailLoader.mailsByUid(selectedFolder, id.startId, id.endId)
-                        is IdParam.OpenRange ->
-                            return listOf("$tag NO not allowed to store with open range")
+                    else -> {
+                        listOf("$tag BAD $command $args")
                     }
-                    val unread = storeCommand.operation == FlagOperation.REMOVE
-                    val unreadFlag = if (unread) "" else "\\SEEN"
-                    val responses = mails.mapIndexed { index, mail ->
-                        mailLoader.markUnread(mail, unread)
-                        // TODO: more flags?
-                        "* ${index + 1} FETCH (UID ${mail.deriveHackyUid()} FLAGS (${unreadFlag}))"
-                    }
-                    return responses + success(tag, "store")
-                } else {
-                    listOf("$tag BAD $command $args")
                 }
             }
             "LOGOUT" -> listOf(success(tag, command))
             "STATUS" -> {
-                val statusCommand = parseStatus(args)
-                val folder = getFolderByImapName(statusCommand.folder)
-                    ?: return listOf("$tag NO ${statusCommand.folder}")
-                val attrs = statusCommand.attributes.mapNotNull { attr ->
-                    val value = when (attr) {
-                        "MESSAGES" -> this.mailLoader.numberOfMailsFor(folder)
-                        "UNSEEN" -> this.mailLoader.numberOfMailsFor(folder)
-                        // Placeholder
-                        "RECENT" -> 0
-                        "UIDNEXT" -> return@mapNotNull null
-                        else -> return@mapNotNull null
-                    }
-                    "$attr $value"
-                }
-                listOf(
-                    "* STATUS ${statusCommand.folder} (${attrs.joinToString(" ")})",
-                    success(tag, command)
-                )
+                handleStatus(args, tag, command)
             }
             // TODO
             "APPEND" -> {
@@ -257,6 +127,162 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
         }
     }
 
+    private fun handleUidFetch(args: String, tag: String): List<String> {
+        val effectiveArgs = args.substring("FETCH ".length)
+        val fetchCommand = this.parseFetch(effectiveArgs)
+        val selectedFolder =
+            currentFolder ?: return listOf("$tag NO INBOX SELECTED")
+
+        val idParam = fetchCommand.idParam
+        val mails = this.loadMailsByUidParam(selectedFolder, idParam)
+        return respondToFetch(mails, fetchCommand.attrs) + success(
+            tag,
+            "UID FETCH"
+        )
+    }
+
+    private fun handleList(args: String, tag: String, command: String): List<String> {
+        // In some cases should return hierarchy delimeter
+        val (delimiter, pattern) = this.parseList(args)
+        return if (delimiter == "") {
+            if (pattern == "") {
+                //      An empty ("" string) mailbox name argument is a special request to
+                //      return the hierarchy delimiter and the root name of the name given
+                //      in the reference.  The value returned as the root MAY be the empty
+                //      string if the reference is non-rooted or is an empty string.  In
+                //      all cases, a hierarchy delimiter (or NIL if there is no hierarchy)
+                //      is returned.  This permits a client to get the hierarchy delimiter
+                //      (or find out that the mailbox names are flat) even when no
+                //      mailboxes by that name currently exist.
+                //
+                //      https://tools.ietf.org/html/rfc3501#section-6.3.8
+                listOf("""* LIST (\Noselect) "/" """"", success(tag, command))
+            } else {
+                val folders = mailLoader.folders()
+                val folderResponses = folders.mapNotNull { folder ->
+                    val name = folder.imapName
+                    if (pattern == "*" ||
+                        pattern == "%" || // should not match subfolders
+                        name.contains(pattern, ignoreCase = true)
+                    ) {
+                        val flags = mutableListOf("\\HasNoChildren")
+                        folder.specialUse?.let { flags.add(it) }
+                        "* LIST (${flags.joinToString(" ")}) \"/\" \"$name\""
+                    } else {
+                        null
+                    }
+                }
+                folderResponses + success(tag, command)
+            }
+        } else {
+            listOf(success(tag, command))
+        }
+    }
+
+    private fun handleSelect(args: String, tag: String, command: String): List<String> {
+        // SELECT and EXAMINE do the same thing - show info about mailbox - but EXAMINE does
+        // not reset RECENT flag nor does any other changes
+        if (args.isEmpty()) {
+            return listOf("${tag} BAD NO ARGS FOR SELECT")
+        }
+        val folder = this.getFolderByImapName(args) ?: return listOf("$tag NO such folder")
+        this.currentFolder = folder
+        val nextUid = mailLoader.nextUid(folder)
+        return listOf(
+            """* ${mailLoader.numberOfMailsFor(folder)} EXISTS""",
+            """* 0 RECENT""",
+            //                            """* OK [UNSEEN 1] Message 1 is first unseen""",
+            // we user valid UIDs always
+            """* OK [UIDVALIDITY 1] UIDs valid""",
+            """* OK [UIDNEXT ${nextUid}] Predicted next UID""",
+            """* FLAGS (\Answered \Flagged \Deleted \Seen)""",
+            """* OK [PERMANENTFLAGS (\Deleted \Seen \*)] Limited""",
+            """$tag OK [READ-WRITE] $command completed""",
+        )
+    }
+
+    private fun handleStatus(args: String, tag: String, command: String): List<String> {
+        val statusCommand = parseStatus(args)
+        val folder = getFolderByImapName(statusCommand.folder)
+            ?: return listOf("$tag NO ${statusCommand.folder}")
+        val attrs = statusCommand.attributes.mapNotNull { attr ->
+            val value = when (attr) {
+                "MESSAGES" -> this.mailLoader.numberOfMailsFor(folder)
+                "UNSEEN" -> this.mailLoader.numberOfMailsFor(folder)
+                // Placeholder
+                "RECENT" -> 0
+                "UIDNEXT" -> return@mapNotNull null
+                else -> return@mapNotNull null
+            }
+            "$attr $value"
+        }
+        return listOf(
+            "* STATUS ${statusCommand.folder} (${attrs.joinToString(" ")})",
+            success(tag, command)
+        )
+    }
+
+    private fun handleUidStore(args: String, tag: String): List<String> {
+        val storeCommand = storeCommandParser.build()(args)
+        val selectedFolder = currentFolder ?: return listOf("$tag NO INBOX SELECTED")
+        if (storeCommand.flags.size != 1 ||
+            !storeCommand.flags[0].equals("\\seen", ignoreCase = true)
+        ) {
+            return listOf("$tag NO not allowed to change flags")
+        }
+        val id = storeCommand.id
+        val mails = when (id) {
+            is IdParam.IdSet ->
+                id.ids.mapNotNull { mailLoader.mailByUid(selectedFolder, it) }
+            is IdParam.ClosedRange ->
+                mailLoader.mailsByUid(selectedFolder, id.startId, id.endId)
+            is IdParam.OpenRange ->
+                return listOf("$tag NO not allowed to store with open range")
+        }
+        val unread = storeCommand.operation == FlagOperation.REMOVE
+        val unreadFlag = if (unread) "" else "\\SEEN"
+        val responses = mails.mapIndexed { index, mail ->
+            mailLoader.markUnread(mail, unread)
+            // TODO: more flags?
+            "* ${index + 1} FETCH (UID ${mail.deriveHackyUid()} FLAGS (${unreadFlag}))"
+        }
+        return responses + success(tag, "store")
+    }
+
+    private fun handleUidSearch(args: String, tag: String): List<String> {
+        val searchCommand = searchCommandParser.build()(args)
+        val folder = this.currentFolder ?: return listOf("$tag NO")
+        // Placeholder impl which just
+        val mails = searchCommand.map { searchEmails(folder, it).toSet() }
+            .reduce { acc, list -> acc.union(list) }
+            .sortedByDescending { it.deriveHackyUid() }
+        val uids = mails.joinToString(" ") { it.deriveHackyUid().toString() }
+        return listOf(
+            "* SEARCH $uids",
+            success(tag, "search"),
+        )
+    }
+
+    private fun loadMailsByUidParam(selectedFolder: MailFolder, uidParam: IdParam): List<Mail> {
+        return when (uidParam) {
+            is IdParam.IdSet -> {
+                uidParam.ids.mapNotNull {
+                    mailLoader.mailByUid(selectedFolder, it)
+                }
+            }
+            is IdParam.OpenRange -> mailLoader.mailsByUid(
+                selectedFolder,
+                uidParam.startId,
+                null
+            )
+            is IdParam.ClosedRange -> mailLoader.mailsByUid(
+                selectedFolder,
+                uidParam.startId,
+                uidParam.endId
+            )
+        }
+    }
+
     private fun getFolderByImapName(name: String): MailFolder? {
         val canonicalName = name.trim(' ').toUpperCase()
         return this.mailLoader.folders().find { it.imapName == canonicalName }
@@ -270,7 +296,7 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
         val mails = when (idParam) {
             is IdParam.IdSet -> {
                 idParam.ids.map {
-                    mailLoader.mailByUid(folder, it)
+                    mailLoader.mailBySeq(folder, it)
                         ?: return listOf("$tag NO EMAIL FOUND")
                 }
             }
@@ -396,11 +422,13 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                         }
                         // Just body
                         "TEXT" -> {
-                            bodyPart(mail, range, "BODY[TEXT]")
+                            bodyTextResponse(mail, range, "BODY[TEXT]")
                         }
                         // The whole body
                         null -> {
-                            val body = this.mailLoader.body(mail.body)
+                            // We get the text of the root part but not headers because email
+                            // headers and first part headers are kinda the same thing. It's a mess.
+                            val body = mailBodyText(mail, range = null)
                             val headers = makeHeaders(
                                 mail,
                                 headerNames
@@ -411,12 +439,18 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
                             // must be a part selector like "1.mime", "1.2.TEXT" or just "1"
                             val mailParts = mailToParts(mail, mailLoader.getFiles(mail))
                             val path = sectionSpec.section.split(".")
-                            println("mailParts $mailParts path $path")
-                            return traversePartPath(mailParts, range, path)?.let { data ->
+                            return traversePartPath(mailParts, range, path).let { data ->
                                 val rangeString =
-                                    if (range != null) "<$${range.first}.${range.second}>" else ""
-                                val name = "BODY[${sectionSpec.section}${rangeString}"
-                                FetchPartResponse.Data(name, data)
+                                    if (range != null) "<${range.first}.${range.second}>" else ""
+                                val name = "BODY[${sectionSpec.section}]${rangeString}"
+                                when (data) {
+                                    is TraverseResult.Success ->
+                                        FetchPartResponse.Data(name, data.data)
+                                    is TraverseResult.NotAllowed -> {
+                                        println("Traverse not allowed: ${data.message}")
+                                        null
+                                    }
+                                }
                             }
                         }
                     }
@@ -433,43 +467,72 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
         rootParts: List<Part>,
         range: FetchRange?,
         path: List<String>
-    ): String? {
+    ): TraverseResult {
+        //a011 uid fetch 1 body.peek[header.fields (references)]
+        //a012 uid fetch 1 body.peek[1]<0.256>
+        //a013 uid fetch 1 body.peek[1.mime]
         val (first, rest) = path.headTail()
-        val partNumber = first.toIntOrNull()
+        val partNumber = first?.toIntOrNull()
             ?: throw ParserError("Part number is invalid $first")
         // path is indexed from 1
         return rootParts.getOrNull(partNumber - 1)?.traverse(range, rest)
+            ?: TraverseResult.NotAllowed("No child at $partNumber")
     }
 
-    private tailrec fun Part.traverse(range: FetchRange?, path: List<String>): String? {
+    private tailrec fun Part.traverse(range: FetchRange?, path: List<String>): TraverseResult {
         val (step, rest) = path.headTail()
 
         return if (rest.isEmpty()) {
-            when (step.toLowerCase()) {
-                // TODO: it should be the whole header for the part?
-                "mime" -> this.mime
-                "text" -> partData(this, range)
-                "header" -> TODO()
-                else -> {
-                    println("Unknown section param: $step")
-                    null
-                }
+            when (step?.toLowerCase()) {
+                "mime" -> TraverseResult.Success(partHeader(this))
+                "header" -> TraverseResult.Success(partHeader(this))
+                "text" -> TraverseResult.Success(partText(this, range))
+                null -> TraverseResult.Success(fullPartData(this))
+                else -> TraverseResult.NotAllowed("unknown $step")
             }
         } else {
-            val partNumber = step.toIntOrNull()
+            val partNumber = step?.toIntOrNull()
                 ?: throw ParserError("Part number is invalid $step")
             val child = this.childAt(partNumber - 1)
-            if (child == null) println("no child at $partNumber")
-            child?.traverse(range, rest)
+                ?: return TraverseResult.NotAllowed("No child at $partNumber")
+            child.traverse(range, rest)
         }
     }
 
-    private fun partData(part: Part, range: FetchRange?): String {
+    /**
+     * Full part content, headers and text.
+     */
+    private fun fullPartData(part: Part): String {
+        return partHeader(part) + partText(part, null)
+    }
+
+    private fun partHeader(part: Part): String {
+        val headers = mutableMapOf<String, String>()
+        if (part is Part.AttachmentPart) {
+            headers["Content-Type"] = part.mime + "; name=" + part.file.name
+            headers["Content-Transfer-Encoding"] = "base64"
+            headers["Content-Disposition"] = "attachment; filename=${part.file.name}"
+        } else {
+            headers["Content-Type"] = part.mime
+        }
+        return headers.entries.joinToString("\r\n", postfix = "\r\n\r\n") { (k, v) -> "$k: $v" }
+    }
+
+    /**
+     * Only part text, without headers
+     */
+    private fun partText(part: Part, range: FetchRange?): String {
         val fullData = when (part) {
             is Part.AttachmentPart -> mailLoader.getFileData(part.file)
                 .toBase64()
+                .chunked(76)
+                .joinToString("\r\n")
             is Part.TextHtml -> mailLoader.body(part.bodyId)
-            is Part.Multipart -> TODO("multipart data")
+            is Part.Multipart ->
+                // Who requests partial multipart? It can only be a preview and we can just give
+                // them the first part.
+                if (range == null) multipartText(part)
+                else partText(part.parts.first(), range)
         }
         return if (range != null) {
             fullData.toBytes()
@@ -480,23 +543,31 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
         }
     }
 
-    private fun bodyPart(
+    private fun bodyTextResponse(
         mail: Mail,
         range: FetchRange?,
         name: String,
     ): FetchPartResponse.Data {
-        val body = this.mailLoader.body(mail.body)
+        val body = mailBodyText(mail, range)
         return if (range != null) {
-            val partialBody = body.toBytes()
-                .copyOfNumber(range.first, range.second)
-                .decodeToString()
             FetchPartResponse.Data(
                 "$name<${range.first}.${range.second}>",
-                partialBody
+                body
             )
         } else {
             FetchPartResponse.Data(name, body)
         }
+    }
+
+    private fun mailBodyText(mail: Mail, range: FetchRange?): String {
+        val mailParts = mailToParts(mail, mailLoader.getFiles(mail))
+        println("mailParts $mailParts")
+        return partText(mailParts.first(), range)
+    }
+
+    sealed class TraverseResult {
+        data class Success(val data: String) : TraverseResult()
+        data class NotAllowed(val message: String) : TraverseResult()
     }
 
     private val headerNames = setOf(
@@ -568,7 +639,7 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
             "CONTENT-TYPE" -> if (mail.attachments.isEmpty()) {
                 "Content-Type: text/html; charset=utf-8"
             } else {
-                "Content-Type: multipart/mixed; boundary=\"----=_Part_1_boundary\""
+                "Content-Type: multipart/mixed; boundary=\"$partSeparator\""
             }
             else -> {
                 println("Unknown header: $header")
@@ -577,12 +648,45 @@ class ImapServer(private val mailLoader: MailLoader, private val syncHandler: Sy
         }
     }
 
-    fun success(tag: String, command: String) = "$tag OK $command COMPLETED"
+    private fun success(tag: String, command: String) = "$tag OK $command COMPLETED"
 
+    private fun searchEmails(
+        selectedFolder: MailFolder,
+        searchCriteria: SearchCriteria,
+    ): List<Mail> {
+        return when (searchCriteria) {
+            is SearchCriteria.Id -> TODO()
+            is SearchCriteria.Uid -> loadMailsByUidParam(selectedFolder, searchCriteria.idSet)
+            is SearchCriteria.Since -> {
+                val date = LocalDate(
+                    searchCriteria.date.year,
+                    searchCriteria.date.month,
+                    searchCriteria.date.day
+                )
+                val uid = date.atStartOfDayIn(TimeZone.currentSystemDefault())
+                    .epochSeconds.toInt()
+                this.mailLoader.mailsByUid(selectedFolder, uid, null)
+            }
+        }
+    }
+
+    private fun multipartText(part: Part.Multipart): String {
+        println("multipartText ${part.parts}")
+        return part.parts.joinToString(
+            prefix = partSeparator + "\r\n",
+            separator = "\r\n--$partSeparator\r\n",
+            postfix = "\r\n--$partSeparator--\r\n",
+            transform = this::fullPartData,
+        )
+    }
 
     private val parseFetch: (String) -> FetchRequest = fetchCommandParser().build()
     private val parseList: (String) -> ListCommand = listCommandParser.build()
     private val parseStatus: (String) -> StatusCommand = statusParser.build()
+
+    companion object {
+        private const val partSeparator = "---------=_MultipartSeparator"
+    }
 }
 
 @SharedImmutable
@@ -610,7 +714,7 @@ private val MailFolder.imapName
         MailFolderType.DRAFT.value -> "DRAFTS"
         MailFolderType.ARCHIVE.value -> "ARCHIVE"
         MailFolderType.SPAM.value -> "JUNK"
-        MailFolderType.TRASH.value -> "WASTEBASKET"
+        MailFolderType.TRASH.value -> "TRASH"
         else -> error("Unknown folder type ${this.folderType}")
     }
 
@@ -621,7 +725,7 @@ private val MailFolder.specialUse: String?
         MailFolderType.DRAFT.value -> "\\Drafts"
         MailFolderType.ARCHIVE.value -> "\\Archive"
         MailFolderType.SPAM.value -> "\\Junk"
-        MailFolderType.TRASH.value -> "\\Wastebasket"
+        MailFolderType.TRASH.value -> "\\Trash"
         else -> error("Unknown folder type ${this.folderType}")
     }
 
@@ -639,8 +743,7 @@ fun formatMailStructure(mailAddress: MailAddress): String {
 fun EncryptedMailAddress.toMailAddress() =
     MailAddress(address = address, name = name, contact = null)
 
-
 fun ByteArray.copyOfNumber(from: Int, number: Int): ByteArray =
     copyOfRange(min(from, size), min(from + number, size))
 
-fun <T> List<T>.headTail(): Pair<T, List<T>> = first() to drop(1)
+fun <T> List<T>.headTail(): Pair<T?, List<T>> = firstOrNull() to drop(1)

@@ -175,7 +175,7 @@ class ParserTests {
     }
 
     @Test
-    fun testParseSearchCommand() {
+    fun `parse search since`() {
         val parser = searchCommandParser.build()
         assertEquals(
             listOf(SearchCriteria.Since(DateSpec(27, Month.SEPTEMBER, 2020))),
@@ -183,6 +183,35 @@ class ParserTests {
         )
     }
 
+    @Test
+    fun `parse search id range`() {
+        val parser = searchCommandParser.build()
+        assertEquals(
+            listOf(SearchCriteria.Id(IdParam.ClosedRange(1, 100))),
+            parser("1:100")
+        )
+    }
+
+    @Test
+    fun `parse search uid range`() {
+        val parser = searchCommandParser.build()
+        assertEquals(
+            listOf(SearchCriteria.Uid(IdParam.ClosedRange(2, 50))),
+            parser("uid 2:50")
+        )
+    }
+
+    @Test
+    fun `parse search since and uid range`() {
+        val parser = searchCommandParser.build()
+        assertEquals(
+            listOf(
+                SearchCriteria.Since(DateSpec(3, Month.OCTOBER, 2020)),
+                SearchCriteria.Uid(IdParam.ClosedRange(1, 1602407810)),
+            ),
+            parser("since 03-Oct-2020 uid 1:1602407810")
+        )
+    }
     @Test
     fun `test parse store command with adding a flag`() {
         val parser = storeCommandParser.build()
