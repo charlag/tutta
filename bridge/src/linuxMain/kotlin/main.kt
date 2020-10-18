@@ -34,10 +34,11 @@ fun main() {
         println("Logged in!")
 
         val dbPath = getAppConfigDir().append("mail.db")
+        val dbExists = dbPath.exists() // Must be checked before creating db!
         val db = SqliteDb(dbPath.value)
         val mailDb = MailDb(db, dependencyDump.instanceMapper, pwKey)
         val syncHandler = SyncHandler(dependencyDump.api, mailDb, dependencyDump.userController)
-        if (!dbPath.exists()) syncHandler.initialSync() else syncHandler.resync()
+        if (!dbExists) syncHandler.initialSync() else syncHandler.resync()
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, mailDb, dependencyDump.fileFacade)
         val fetchHandler = FetchHandler(mailLoader)
