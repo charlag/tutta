@@ -1,8 +1,7 @@
 package com.charlag.tuta.posix
 
 import com.charlag.tuta.toBytes
-import kotlinx.cinterop.refTo
-import kotlinx.cinterop.toKString
+import kotlinx.cinterop.*
 import platform.posix.*
 
 inline class Path(val value: String)
@@ -86,4 +85,26 @@ fun ensureDir(path: Path) {
 
 fun getEnvironmentVariable(name: String): String? {
     return getenv(name)?.toKString()
+}
+
+/**
+ * Reads password from STDIN with echo (output each typed character) disabled.
+ * see [this SO answer](https://stackoverflow.com/questions/1413445/reading-a-password-from-stdcin).
+ */
+fun readPassword(): String? {
+    memScoped {
+        // Disable echo
+        val tty = alloc<termios>()
+        tcgetattr(STDIN_FILENO, tty.ptr)
+        tty.c_lflag = tty.c_lflag and ECHO.toUInt().inv()
+        tcsetattr(STDIN_FILENO, TCSANOW, tty.ptr)
+
+        val pw = readLine()
+
+        // Enable echo again
+        tty.c_lflag = tty.c_lflag or ECHO.toUInt()
+        tcsetattr(STDIN_FILENO, TCSANOW, tty.ptr)
+
+        return pw
+    }
 }

@@ -13,9 +13,9 @@ import com.charlag.tuta.network.SessionKeyResolver
 import com.charlag.tuta.network.UserSessionDataProvider
 import com.charlag.tuta.network.makeHttpClient
 import com.charlag.tuta.network.mapping.InstanceMapper
-import com.charlag.tuta.posix.Path
 import com.charlag.tuta.posix.append
 import com.charlag.tuta.posix.exists
+import com.charlag.tuta.posix.readPassword
 import com.charlag.writeCredentials
 import io.ktor.client.features.logging.*
 import kotlinx.coroutines.delay
@@ -88,7 +88,7 @@ suspend fun newSession(dependencyDump: DependencyDump): CreateSessionResult {
     print("Email: ")
     val email = readLine() ?: ""
     print("Password: ")
-    val password = readLine() ?: ""
+    val password = readPassword() ?: ""
 
     val credentials = dependencyDump.loginFacade.createSession(
         email,
