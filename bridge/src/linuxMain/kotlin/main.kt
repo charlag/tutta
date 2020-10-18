@@ -16,7 +16,8 @@ import com.charlag.tuta.posix.Path
 import com.charlag.tuta.posix.exists
 import com.charlag.writeCredentials
 import io.ktor.client.features.logging.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlin.native.concurrent.AtomicReference
 import kotlin.native.concurrent.freeze
 import kotlin.time.minutes

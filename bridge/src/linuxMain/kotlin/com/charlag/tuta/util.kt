@@ -3,16 +3,13 @@ package com.charlag.tuta
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.tutanota.EncryptedMailAddress
 import com.charlag.tuta.entities.tutanota.MailAddress
-import kotlinx.cinterop.CVariable
-import kotlinx.cinterop.convert
-import kotlinx.cinterop.ptr
-import kotlinx.cinterop.sizeOf
+import kotlinx.cinterop.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import platform.posix.memset
 
-inline fun <reified T : CVariable>T.zeroOut() = memset(this.ptr, 0, sizeOf<T>().convert())
+inline fun <reified T : CVariable> T.zeroOut() = memset(this.ptr, 0, sizeOf<T>().convert())
 
 fun EncryptedMailAddress.toMailAddress() =
     MailAddress(address = address, name = name, contact = null)
@@ -39,3 +36,14 @@ fun Date.toRFC3501(): String =
 
 fun ElementEntity.getId(): Id = this._id ?: error("No id! $this")
 fun ListElementEntity.getId(): IdTuple = this._id ?: error("No id! $this")
+
+
+/**
+ * This is a version of the function which is missing in standard library. It initializes members
+ * of the array.
+ * If possible, allocate array of correct elements instead. It might not be possible with C
+ * structures.
+ */
+inline fun <reified T : CVariable> CArrayPointer<T>.setAt(index: Int, value: CValue<T>) {
+    value.write(this.rawValue + index * sizeOf<T>())
+}

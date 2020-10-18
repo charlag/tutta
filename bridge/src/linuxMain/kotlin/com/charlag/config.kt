@@ -1,10 +1,26 @@
 package com.charlag
 
 import com.charlag.tuta.CreateSessionResult
+import com.charlag.tuta.libsecret.SecretSchema
+import com.charlag.tuta.libsecret.lookupSecretPasswordSync
+import com.charlag.tuta.libsecret.storeSecretPasswordSync
 import com.charlag.tuta.posix.*
+import kotlinx.cinterop.MemScope
+import kotlinx.cinterop.memScoped
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
+import org.libsecret.SECRET_COLLECTION_DEFAULT
+import org.libsecret.SecretSchema
+import org.libsecret.SecretSchemaAttributeType
+import org.libsecret.SecretSchemaFlags
+import kotlin.collections.Map
+import kotlin.collections.MutableMap
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.mapOf
+import kotlin.collections.mutableMapOf
+import kotlin.collections.set
 
 const val APP_FOLDER = "tuta-bridge"
 
@@ -27,23 +43,20 @@ fun ensureAppConfigDir(): Path {
 }
 
 fun tryToLoadCredentials(): CreateSessionResult? {
-    val credentialsPath = getCredentialsPath()
-    println("Credentials $credentialsPath exists ${credentialsPath.exists()}")
-    if (!credentialsPath.exists()) {
-        return null
-    }
-
     val json = Json { }
 
-    val readFileContent = readFile(credentialsPath)
+    return try {
+        val pw = memScoped {
+            lookupSecretPasswordSync(secretSchema(), mapOf("id" to "bridge"))
+        }
 
-    json.parseToJsonElement(readFileContent)
-    return json.decodeFromString<CreateSessionResult>(readFileContent)
-}
-
-private fun getCredentialsPath(): Path {
-    val configDir = ensureAppConfigDir()
-    return configDir.append("credentials.json")
+        return pw?.let {
+            json.decodeFromString<CreateSessionResult>(it)
+        }
+    } catch (e: Throwable) {
+        println("Error while trying to read credentials: $e")
+        null
+    }
 }
 
 private fun getConfigPath(): Path {
@@ -54,7 +67,23 @@ private fun getConfigPath(): Path {
 fun writeCredentials(createSessionResult: CreateSessionResult) {
     val json = Json { }
     val jsonData = json.encodeToString(createSessionResult)
-    writeFile(getCredentialsPath(), jsonData)
+    memScoped {
+        storeSecretPasswordSync(
+            secretSchema(),
+            SECRET_COLLECTION_DEFAULT,
+            label = "Tutanota bridge credentials",
+            password = jsonData,
+            attrs = mapOf("id" to "bridge")
+        )
+    }
+}
+
+private fun MemScope.secretSchema(): SecretSchema {
+    return SecretSchema(
+        "com.charlag.tuta-bridge",
+        SecretSchemaFlags.SECRET_SCHEMA_NONE,
+        mapOf("id" to SecretSchemaAttributeType.SECRET_SCHEMA_ATTRIBUTE_STRING)
+    )
 }
 
 private fun readConfig(): JsonObject? {
@@ -63,7 +92,6 @@ private fun readConfig(): JsonObject? {
     val configPath = getConfigPath()
     return if (configPath.exists()) {
         val readFileContent = readFile(configPath)
-
         json.parseToJsonElement(readFileContent).jsonObject
     } else {
         null
@@ -84,17 +112,16 @@ fun loadLastEntityEventBatchId(): String? {
 }
 
 fun writeLastEntityEventBatchId(lastId: String) {
-    val json = Json { }
     val config = readConfig() ?: JsonObject(mapOf())
     val newMap = config.mutableCopy()
     newMap[LAST_ENTITY_EVENT_BATCH_ID] = JsonPrimitive(lastId)
-    writeFile(getConfigPath(), json.encodeToString(JsonObject(newMap)))
+    saveConfig(JsonObject(newMap))
 }
 
 private fun <K, V> Map<K, V>.mutableCopy(): MutableMap<K, V> {
     val newMap = mutableMapOf<K, V>()
     for ((k, v) in this.entries) {
-        newMap.set(k, v)
+        newMap[k] = v
     }
     return newMap
 }
