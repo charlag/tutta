@@ -1,7 +1,7 @@
 headers = openssl/conf.h openssl/evp.h openssl/err.h string.h openssl/rsa.h openssl/rand.h openssl/hmac.h openssl/bio.h openssl/buffer.h
 headerFilter = openssl/**
 compilerOpts.linux  = -I/usr/include -I/usr/include/x86_64-linux-gnu/
-linkerOpts.linux = -L/usr/lib -L/usr/lib64 -L/usr/lib/x86_64-linux-gnu -lcrypto
+linkerOpts.linux = -lcrypto
 
 ---
 
