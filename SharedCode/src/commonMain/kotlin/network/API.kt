@@ -189,7 +189,7 @@ class API(
         return httpClient.get<JsonArray> {
             commonHeaders()
             entityHeaders(typeModel)
-            parameter("ids", ids.joinToString(","))
+            parameter("ids", ids.joinToString(",") { it.asString() })
             url(baseUrl + "${model}/${name}")
         }.mapNotNull {
             try {
@@ -211,8 +211,8 @@ class API(
         return httpClient.get<JsonArray> {
             commonHeaders()
             entityHeaders(typeModel)
-            parameter("ids", ids.joinToString(","))
-            url(baseUrl + "${model}/${name}/${listId}")
+            parameter("ids", ids.joinToString(",") { it.asString() })
+            url(baseUrl + "${model}/${name}/${listId.asString()}")
         }.mapNotNull {
             try {
                 deserializeEntity(it as JsonObject, klass)
