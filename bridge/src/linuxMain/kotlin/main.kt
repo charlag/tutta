@@ -1,3 +1,4 @@
+import com.charlag.getAppConfigDir
 import com.charlag.tryToLoadCredentials
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.sys.User
@@ -13,6 +14,7 @@ import com.charlag.tuta.network.UserSessionDataProvider
 import com.charlag.tuta.network.makeHttpClient
 import com.charlag.tuta.network.mapping.InstanceMapper
 import com.charlag.tuta.posix.Path
+import com.charlag.tuta.posix.append
 import com.charlag.tuta.posix.exists
 import com.charlag.writeCredentials
 import io.ktor.client.features.logging.*
@@ -31,12 +33,11 @@ fun main() {
         val pwKey = login(dependencyDump)
         println("Logged in!")
 
-        val dbBath = "mail.db"
-        val dbExists = Path(dbBath).exists()
-        val db = SqliteDb(dbBath)
+        val dbPath = getAppConfigDir().append("mail.db")
+        val db = SqliteDb(dbPath.value)
         val mailDb = MailDb(db, dependencyDump.instanceMapper, pwKey)
         val syncHandler = SyncHandler(dependencyDump.api, mailDb, dependencyDump.userController)
-        if (!dbExists) syncHandler.initialSync() else syncHandler.resync()
+        if (!dbPath.exists()) syncHandler.initialSync() else syncHandler.resync()
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, mailDb, dependencyDump.fileFacade)
         val fetchHandler = FetchHandler(mailLoader)
