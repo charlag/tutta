@@ -137,10 +137,9 @@ val listCommandParser: Parser<ListCommand>
         .map { (delimiter, pattern) -> ListCommand(delimiter, pattern) }
 
 val flagParser: Parser<String>
-    get() = (characterParser('\\').throwAway() +
-            oneOrMoreParser(
-                characterInRangeParser('a'..'z') or characterInRangeParser('A'..'Z')
-            ).map { it.joinTo(StringBuilder("\\"), separator = "").toString() })
+    get() = oneOrMoreParser(
+        characterParser('\\') or characterInRangeParser('a'..'z') or characterInRangeParser('A'..'Z')
+    ).map { it.joinToString(separator = "") }
 
 val flagsParser: Parser<List<String>>
     get() = characterParser('(').throwAway() +
