@@ -24,7 +24,7 @@ import kotlin.native.concurrent.AtomicReference
 import kotlin.native.concurrent.freeze
 import kotlin.time.minutes
 
-fun main() {
+fun main(args: Array<String>) {
     Platform.isMemoryLeakCheckerActive = false
 
     val dependencyDump = DependencyDump()
@@ -38,7 +38,7 @@ fun main() {
         val db = SqliteDb(dbPath.value)
         val mailDb = MailDb(db, dependencyDump.instanceMapper, pwKey)
         val syncHandler = SyncHandler(dependencyDump.api, mailDb, dependencyDump.userController)
-        if (!dbExists) syncHandler.initialSync() else syncHandler.resync()
+        if (!dbExists || args.contains("--resync")) syncHandler.initialSync() else syncHandler.resync()
 
         val mailLoader = MailLoaderImpl(dependencyDump.api, mailDb, dependencyDump.fileFacade)
         val fetchHandler = FetchHandler(mailLoader)
@@ -140,5 +140,3 @@ class UserController {
 
 private const val REST_PATH = "https://mail.tutanota.com/rest/"
 private const val WS_PATH = "https://mail.tutanota.com/event"
-
-fun Mail.deriveHackyUid() = (receivedDate.millis / 1000).toInt()

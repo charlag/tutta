@@ -118,6 +118,7 @@ fun characterParser(character: Char): Parser<Char> {
 /**
  * Parses a (possibly empty) sequence.
  */
+@Suppress("UNUSED_VALUE") // it doesn't understand that loop ends with exception
 fun <T> zeroOrMoreParser(anotherParser: Parser<T>): Parser<List<T>> {
     return { iterator ->
         log("zeroOrMore $anotherParser", iterator)
@@ -190,6 +191,8 @@ fun <S, T> separatedParser(separatorParser: Parser<S>, valueParser: Parser<T>): 
         result
     }
 }
+
+fun <S, T>Parser<T>.separatedBy(parser: Parser<S>): Parser<List<T>> = separatedParser(parser, this)
 
 /**
  * Takes two parsers and makes a new one, which will try the first parser snd when it fails it will

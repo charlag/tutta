@@ -10,11 +10,9 @@ class FetchHandler(private val mailLoader: MailLoader) {
     fun handleUidFetch(currentFolder: MailFolder, args: String, tag: String): List<String> {
         val effectiveArgs = args.substring("FETCH ".length)
         val fetchCommand = this.parseFetch(effectiveArgs)
-        val selectedFolder =
-            currentFolder ?: return listOf("$tag NO INBOX SELECTED")
 
-        val idParam = fetchCommand.idParam
-        val mails = mailLoader.loadMailsByUidParam(selectedFolder, idParam)
+        val ids = fetchCommand.ids
+        val mails = mailLoader.loadMailsByUidParam(currentFolder, ids)
         return respondToFetch(mails, fetchCommand.attrs) + successResponse(
             tag,
             "UID FETCH"
@@ -28,36 +26,33 @@ class FetchHandler(private val mailLoader: MailLoader) {
         command: String
     ): List<String> {
         val fetchCommand = this.parseFetch(args)
-        val idParam = fetchCommand.idParam
-        val mails = when (idParam) {
-            is IdParam.IdSet -> {
-                idParam.ids.map {
-                    mailLoader.mailBySeq(currentFolder, it)
-                        ?: return listOf("$tag NO EMAIL FOUND")
-                }
+        val mails = fetchCommand.ids.flatMap { id ->
+            when (id) {
+                is IdParam.Id -> listOfNotNull(mailLoader.mailBySeq(currentFolder, id.id))
+                is IdParam.EndOpenRange -> mailLoader.mailsBySeq(
+                    currentFolder,
+                    id.startId,
+                    null,
+                )
+                is IdParam.StartOpenRange -> mailLoader.mailsBySeq(currentFolder, 1, id.endId)
+                is IdParam.ClosedRange -> mailLoader.mailsBySeq(
+                    currentFolder,
+                    id.startId,
+                    id.endId,
+                )
             }
-            is IdParam.OpenRange -> mailLoader.mailsBySeq(
-                currentFolder,
-                idParam.startId,
-                null
-            )
-            is IdParam.ClosedRange -> mailLoader.mailsBySeq(
-                currentFolder,
-                idParam.startId,
-                idParam.endId
-            )
         }
         return respondToFetch(mails, fetchCommand.attrs) + successResponse(tag, command)
     }
 
-    private fun respondToFetch(mails: List<Mail>, attrs: List<FetchAttr>): List<String> {
-        return mails.mapIndexed { i: Int, mail: Mail ->
+    private fun respondToFetch(mails: List<MailWithUid>, attrs: List<FetchAttr>): List<String> {
+        return mails.mapIndexed { i: Int, mail: MailWithUid ->
             val response = StringBuilder("* ${i + 1} FETCH (")
 
             val parts =
-                sequenceOf(FetchPartResponse.Simple("UID", mailLoader.uid(mail).toString())) +
+                sequenceOf(FetchPartResponse.Simple("UID", mail.uid.toString())) +
                         (attrs.asSequence()
-                            .map { fetchAttr -> fetchPart(fetchAttr, mail) }
+                            .map { fetchAttr -> fetchPart(fetchAttr, mail.mail) }
                             .filterNotNull())
             val partsResponse = parts.joinToString(" ") { r ->
                 when (r) {
@@ -123,12 +118,13 @@ class FetchHandler(private val mailLoader: MailLoader) {
                             } ?: mail.sender)
                         })",
                         "(${
-                            mail.replyTos.map { formatMailStructure(it.toMailAddress()) }
-                                .joinToString(" ")
+                            mail.replyTos.joinToString(" ") {
+                                formatMailStructure(it.toMailAddress())
+                            }
                         })",
-                        "(${mail.toRecipients.map { formatMailStructure(it) }.joinToString(" ")})",
-                        "(${mail.ccRecipients.map { formatMailStructure(it) }.joinToString(" ")})",
-                        "(${mail.bccRecipients.map { formatMailStructure(it) }.joinToString(" ")})",
+                        "(${mail.toRecipients.joinToString(" ") { formatMailStructure(it) }})",
+                        "(${mail.ccRecipients.joinToString(" ") { formatMailStructure(it) }})",
+                        "(${mail.bccRecipients.joinToString(" ") { formatMailStructure(it) }})",
                         "NIL", // TODO In-reply-to,
                         "<${mailLoader.messageId(mail)}>".quote()
                     ).joinToString(" ", prefix = "(", postfix = ")")

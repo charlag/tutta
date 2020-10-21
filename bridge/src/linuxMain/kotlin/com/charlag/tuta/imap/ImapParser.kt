@@ -76,28 +76,45 @@ fun fetchAttrsParser(): Parser<List<FetchAttr>> = separatedParser(
     valueParser = fetchAttrParser()
 )
 
+//sequence-set    = (seq-number / seq-range) *("," sequence-set)
+//                    ; set of seq-number values, regardless of order.
+//                    ; Servers MAY coalesce overlaps and/or execute the
+//                    ; sequence in any order.
+//                    ; Example: a message sequence number set of
+//                    ; 2,4:7,9,12:* for a mailbox with 15 messages is
+//                    ; equivalent to 2,4,5,6,7,9,12,13,14,15
+//                    ; Example: a message sequence number set of *:4,5:7
+//                    ; for a mailbox with 10 messages is equivalent to
+//                    ; 10,9,8,7,6,5,4,5,6,7 and MAY be reordered and
+//                    ; overlap coalesced to be 4,5,6,7,8,9,10.
 sealed class IdParam {
-    data class IdSet(val ids: List<Int>) : IdParam()
+    data class Id(val id: Int) : IdParam()
     data class ClosedRange(val startId: Int, val endId: Int) : IdParam()
-    data class OpenRange(val startId: Int) : IdParam()
+    data class EndOpenRange(val startId: Int) : IdParam()
+    data class StartOpenRange(val endId: Int) : IdParam()
 }
 
 data class FetchCommand(
-    val idParam: IdParam,
+    val ids: List<IdParam>,
     val attrs: List<FetchAttr>,
 )
 
 val idParser: Parser<IdParam>
     get() {
-        val openRangeParser =
+        val endOpenRangeParser =
             (numberParser + characterParser(':').throwAway() + characterParser('*').throwAway())
-                .map { start -> IdParam.OpenRange(start) }.named("OpenRange")
-        val idRangeParser = (numberParser + characterParser(':').throwAway() + numberParser)
+                .map { start -> IdParam.EndOpenRange(start) }.named("endOpenRange")
+        val startOpenRangeParser =
+            (characterParser('*').throwAway() + characterParser(':').throwAway() + numberParser)
+                .map { start -> IdParam.StartOpenRange(start) }.named("startOpenRange")
+        val closedRangeParser = (numberParser + characterParser(':').throwAway() + numberParser)
             .map { (start, end) -> IdParam.ClosedRange(start, end) }.named("closedRange")
-        val idSingleParser = separatedParser(characterParser(','), numberParser)
-            .map(IdParam::IdSet).named("single")
-        return (openRangeParser or idRangeParser or idSingleParser).named("idParser")
+        val idSingleParser = numberParser
+            .map(IdParam::Id).named("single")
+        return (startOpenRangeParser or endOpenRangeParser or closedRangeParser or idSingleParser).named("idParser")
     }
+
+val idSeqParser = idParser.separatedBy(characterParser(','))
 
 fun fetchAttrListParser(): Parser<List<FetchAttr>> =
     (characterParser('(').throwAway() + fetchAttrsParser() + characterParser(')').throwAway())
@@ -106,8 +123,8 @@ fun fetchAttrListParser(): Parser<List<FetchAttr>> =
 // 1:1 (UID FLAGS INTERNALDATE RFC822.SIZE BODY.PEEK[HEADER.FIELDS (DATE FROM SENDER SUBJECT TO CC MESSAGE-ID REFERENCES CONTENT-TYPE CONTENT-DESCRIPTION IN-REPLY-TO REPLY-TO LINES LIST-POST X-LABEL)])
 // 1 BODY.PEEK[]
 val fetchCommandParser: Parser<FetchCommand>
-    get() = (idParser + characterParser(' ').throwAway() + anyFetchAttrsParser()).map { (id, attrs) ->
-        FetchCommand(id, attrs)
+    get() = (idSeqParser + characterParser(' ').throwAway() + anyFetchAttrsParser()).map { (ids, attrs) ->
+        FetchCommand(ids, attrs)
     }.named("fetchCommand")
 
 private fun anyFetchAttrsParser() = (fetchAttrListParser() or fetchAttrParser().map { listOf(it) })
@@ -246,7 +263,7 @@ enum class FlagOperation {
 }
 
 data class StoreCommand(
-    val id: IdParam,
+    val id: List<IdParam>,
     val operation: FlagOperation,
     val silent: Boolean,
     val flags: List<String>
@@ -276,7 +293,7 @@ data class FourTuple<A, B, C, D>(val first: A, val second: B, val third: C, val 
 
 // store 1601570340 +flags (\seen)
 val storeCommandParser: Parser<StoreCommand>
-    get() = (idParser +
+    get() = (idSeqParser +
             characterParser(' ').throwAway() +
             flagOperationParser +
             wordParser("flags").throwAway() +

@@ -2,12 +2,10 @@ package com.charlag.tuta.imap
 
 import com.charlag.tuta.MailFolderType
 import com.charlag.tuta.SyncHandler
-import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.imap.commands.FetchHandler
 import com.charlag.tuta.imap.commands.SearchHandler
 import com.charlag.tuta.toBytes
-import deriveHackyUid
 import kotlinx.coroutines.runBlocking
 
 private data class ReadingState(val tag: String, var toRead: Int)
@@ -229,20 +227,24 @@ class ImapServer(
         ) {
             return listOf("$tag NO not allowed to change flags")
         }
-        val mails = when (val id = storeCommand.id) {
-            is IdParam.IdSet ->
-                id.ids.mapNotNull { mailLoader.mailByUid(selectedFolder, it) }
-            is IdParam.ClosedRange ->
-                mailLoader.mailsByUid(selectedFolder, id.startId, id.endId)
-            is IdParam.OpenRange ->
-                return listOf("$tag NO not allowed to store with open range")
+        val mails = storeCommand.id.flatMap { id ->
+            when (id) {
+                is IdParam.Id ->
+                    listOfNotNull(mailLoader.mailByUid(selectedFolder, id.id)
+                        ?.let { mail -> MailWithUid(id.id, mail) })
+                is IdParam.ClosedRange ->
+                    mailLoader.mailsByUid(selectedFolder, id.startId, id.endId)
+                is IdParam.EndOpenRange,
+                is IdParam.StartOpenRange ->
+                    return listOf("$tag NO not allowed to store with open range")
+            }
         }
         val unread = storeCommand.operation == FlagOperation.REMOVE
         val unreadFlag = if (unread) "" else "\\SEEN"
         val responses = mails.mapIndexed { index, mail ->
-            mailLoader.markUnread(mail, unread)
+            mailLoader.markUnread(mail.mail, unread)
             // TODO: more flags?
-            "* ${index + 1} FETCH (UID ${mail.deriveHackyUid()} FLAGS (${unreadFlag}))"
+            "* ${index + 1} FETCH (UID ${mail.uid} FLAGS (${unreadFlag}))"
         }
         return responses + successResponse(tag, "store")
     }
@@ -292,16 +294,20 @@ private val MailFolder.specialUse: String?
 
 fun MailLoader.loadMailsByUidParam(
     selectedFolder: MailFolder,
-    uidParam: IdParam
-): List<Mail> {
-    return when (uidParam) {
-        is IdParam.IdSet -> {
-            uidParam.ids.mapNotNull {
-                mailByUid(selectedFolder, it)
-            }
+    uidParam: List<IdParam>
+): List<MailWithUid> {
+    return uidParam.flatMap { id ->
+        when (id) {
+            is IdParam.Id ->
+                listOfNotNull(mailByUid(selectedFolder, id.id)
+                    ?.let { mail -> MailWithUid(id.id, mail) })
+            is IdParam.ClosedRange ->
+                mailsByUid(selectedFolder, id.startId, id.endId)
+            is IdParam.EndOpenRange ->
+                mailsByUid(selectedFolder, id.startId, null)
+            is IdParam.StartOpenRange ->
+                mailsByUid(selectedFolder, null, id.endId)
         }
-        is IdParam.OpenRange -> mailsByUid(selectedFolder, uidParam.startId, null)
-        is IdParam.ClosedRange -> mailsByUid(selectedFolder, uidParam.startId, uidParam.endId)
     }
 }
 

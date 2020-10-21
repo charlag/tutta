@@ -9,7 +9,6 @@ import com.charlag.tuta.entities.tutanota.*
 import com.charlag.tuta.network.API
 import com.charlag.tuta.util.timestmpToGeneratedId
 import com.charlag.writeLastEntityEventBatchId
-import deriveHackyUid
 import io.ktor.client.features.*
 import io.ktor.http.*
 import kotlinx.datetime.Clock
@@ -34,33 +33,36 @@ class SyncHandler(
         log("Downloading emails since $dateStart")
         val startMs = dateStart.toEpochMilliseconds()
         val startId = timestmpToGeneratedId(startMs, 0)
-        var loaded = 0
+        // We need to collect all mails from all folders to insert them in correct order so that
+        // they get increasing UIDs assigned
+        val mails = mutableListOf<Mail>()
         for (folder in folders) {
-            val mails = api.loadRangeInBetween(Mail::class, folder.mails, startId)
-            log("Downloaded mails ${mails.size} for ${MailFolderType.fromRaw(folder.folderType)}")
-            for (mail in mails) {
-                val uid = mail.deriveHackyUid()
-                try {
-                    mailDb.writeSingle(uid, mail)
-                } catch (e: DbException) {
-                    log("Inserting mail $mail w/ uid $uid failed: $e")
-                }
-                if (mail.attachments.isNotEmpty()) {
-                    val listId = mail.attachments.first().listId
-                    val ids = mail.attachments.map { it.elementId }
-                    val attachments = api.loadMultipleListElementEntities(File::class, listId, ids)
-                    for (attachment in attachments) {
-                        try {
-                            mailDb.writeFile(attachment)
-                        } catch (e: DbException) {
-                            log("Inserting file $attachment w/ id ${attachment._id} failed")
-                        }
+            val folderMails = api.loadRangeInBetween(Mail::class, folder.mails, startId)
+            log("Downloaded mails ${folderMails.size} for ${MailFolderType.fromRaw(folder.folderType)}")
+            mails += folderMails
+        }
+        mails.sortBy { it.getId().elementId.asString() }
+
+        for (mail in mails) {
+            try {
+                mailDb.insertMail(mail, replace = false)
+            } catch (e: DbException) {
+                log("Inserting mail $mail failed: $e")
+            }
+            if (mail.attachments.isNotEmpty()) {
+                val listId = mail.attachments.first().listId
+                val ids = mail.attachments.map { it.elementId }
+                val attachments = api.loadMultipleListElementEntities(File::class, listId, ids)
+                for (attachment in attachments) {
+                    try {
+                        mailDb.writeFile(attachment)
+                    } catch (e: DbException) {
+                        log("Inserting file $attachment w/ id ${attachment._id} failed")
                     }
                 }
             }
-            loaded += mails.size
         }
-        log("Synced $loaded mails")
+        log("Synced ${mails.size} mails")
     }
 
     suspend fun resync() {
@@ -119,7 +121,7 @@ class SyncHandler(
                 val instance: Mail =
                     downloadBatchInstance(api, MailTypeInfo, entityUpdate)
                         ?: return
-                mailDb.writeSingle(instance.deriveHackyUid(), instance)
+                mailDb.insertMail(instance)
             }
             MailFolderTypeInfo -> {
                 val instance =

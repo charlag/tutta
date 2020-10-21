@@ -4,6 +4,7 @@ import com.charlag.tuta.entities.Entity
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.TypeInfo
 import com.charlag.tuta.entities.tutanota.*
+import com.charlag.tuta.imap.MailWithUid
 import com.charlag.tuta.network.mapping.InstanceMapper
 import com.charlag.tuta.network.mapping.NestedMapper
 import kotlinx.coroutines.runBlocking
@@ -25,8 +26,8 @@ class MailDb(
     init {
         sqliteDb.exec(
             """CREATE TABLE IF NOT EXISTS Mail(
-uid INTEGER PRIMARY KEY, 
-elementId TEXT NOT NULL, 
+uid INTEGER PRIMARY KEY AUTOINCREMENT, 
+elementId TEXT NOT NULL UNIQUE, 
 listId TEXT NOT NULL, 
 data BLOB NOT NULL
 );"""
@@ -81,15 +82,16 @@ data TEXT NOT NULL
         }
     }
 
-    fun writeSingle(uid: Int, mail: Mail) {
+    fun insertMail(mail: Mail, replace: Boolean = true) {
         return sqliteDb.insert(
-            "INSERT OR REPLACE INTO Mail(uid, elementId, listId, data) VALUES (?, ?, ?, ?)",
-            uid,
+            "INSERT ${orReplace(replace)} INTO Mail(elementId, listId, data) VALUES (?, ?, ?)",
             mail.getId().elementId.asString(),
             mail.getId().listId.asString(),
             mail.serialize(MailTypeInfo.copy())
         )
     }
+
+    private fun orReplace(replace: Boolean) = if (replace) "OR REPLACE" else ""
 
     fun readSingle(mailListId: String, uid: Int): Mail? {
         return sqliteDb.querySingle(
@@ -101,23 +103,29 @@ data TEXT NOT NULL
         }
     }
 
-    fun readMultiple(mailListId: String, fromUid: Int, toUid: Int?): List<Mail> {
+    fun readMultiple(mailListId: String, fromUid: Int?, toUid: Int?): List<MailWithUid> {
         return if (toUid == null) {
             sqliteDb.queryMultiple(
-                "SELECT data FROM Mail WHERE UID >= ? AND listId = ?",
-                fromUid,
+                "SELECT uid, data FROM Mail WHERE UID >= ? AND listId = ?",
+                fromUid ?: -1,
                 mailListId
             ) {
-                deserialize(MailTypeInfo, readBlob(0))
+                MailWithUid(
+                    readInt(0),
+                    deserialize(MailTypeInfo, readBlob(1))
+                )
             }
         } else {
             sqliteDb.queryMultiple(
-                "SELECT data FROM Mail WHERE uid >= ? AND uid <= ? AND listId = ?",
-                fromUid,
+                "SELECT uid, data FROM Mail WHERE uid >= ? AND uid <= ? AND listId = ?",
+                fromUid ?: -1,
                 toUid,
                 mailListId
             ) {
-                deserialize(MailTypeInfo, readBlob(0))
+                MailWithUid(
+                    readInt(0),
+                    deserialize(MailTypeInfo, readBlob(1))
+                )
             }
         }
     }
@@ -139,7 +147,7 @@ data TEXT NOT NULL
         sqliteDb.exec("DELETE FROM Folder WHERE listId = '${id.listId.asString()}' AND elementId = '${id.elementId.asString()}'")
     }
 
-    fun lastMail(listId: String): Int? {
+    fun lastMailUid(listId: String): Int? {
         return sqliteDb.querySingle(
             "SELECT uid FROM Mail WHERE listId = ? ORDER BY uid DESC LIMIT 1", listId
         ) {

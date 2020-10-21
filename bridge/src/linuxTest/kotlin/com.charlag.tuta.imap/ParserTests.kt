@@ -79,7 +79,7 @@ class ParserTests {
         val parser = fetchCommandParser.build()
         assertEquals(
             FetchCommand(
-                IdParam.ClosedRange(1, 1),
+                listOf(IdParam.ClosedRange(1, 1)),
                 listOf(
                     FetchAttr.Simple("UID"),
                     FetchAttr.Simple("RFC822.SIZE"),
@@ -101,7 +101,7 @@ class ParserTests {
         val parser = fetchCommandParser.build()
         assertEquals(
             FetchCommand(
-                IdParam.IdSet(listOf(1602340968, 1602341271, 1602341428)),
+                listOf(1602340968, 1602341271, 1602341428).map(IdParam::Id),
                 listOf(FetchAttr.Parametrized("body.peek", SectionSpec("1", listOf()), 0 to 256))
             ),
             parser("1602340968,1602341271,1602341428 body.peek[1]<0.256>")
@@ -113,7 +113,7 @@ class ParserTests {
         val parser = fetchCommandParser.build()
         assertEquals(
             FetchCommand(
-                IdParam.IdSet(listOf(0)),
+                listOf(IdParam.Id(0)),
                 listOf(
                     FetchAttr.Parametrized(
                         "BODY.PEEK",
@@ -131,7 +131,7 @@ class ParserTests {
         val parser = fetchCommandParser.build()
         assertEquals(
             FetchCommand(
-                IdParam.IdSet(listOf(0)),
+                listOf(IdParam.Id(0)),
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),
             parser("0 RFC8222.SIZE")
@@ -143,7 +143,7 @@ class ParserTests {
         val parser = fetchCommandParser.build()
         assertEquals(
             FetchCommand(
-                IdParam.OpenRange(1),
+                listOf(IdParam.EndOpenRange(1)),
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),
             parser("1:* RFC8222.SIZE")
@@ -155,7 +155,7 @@ class ParserTests {
         val parser = fetchCommandParser.build()
         assertEquals(
             FetchCommand(
-                IdParam.ClosedRange(1, 5),
+                listOf(IdParam.ClosedRange(1, 5)),
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),
             parser("1:5 RFC8222.SIZE")
@@ -167,10 +167,61 @@ class ParserTests {
         val parser = fetchCommandParser.build()
         assertEquals(
             FetchCommand(
-                IdParam.IdSet(listOf(0, 2, 3)),
+                listOf(0, 2, 3).map(IdParam::Id),
                 listOf(FetchAttr.Simple("RFC8222.SIZE")),
             ),
             parser("0,2,3 RFC8222.SIZE")
+        )
+    }
+
+    @Test
+    fun testSetAndRangeFetchSpec() {
+        val parser = fetchCommandParser.build()
+        assertEquals(
+            FetchCommand(
+                listOf(0, 2).map(IdParam::Id) + IdParam.ClosedRange(3, 5),
+                listOf(FetchAttr.Simple("RFC8222.SIZE")),
+            ),
+            parser("0,2,3:5 RFC8222.SIZE")
+        )
+    }
+
+
+    @Test
+    fun testSetAndOpenRangeFetchSpec() {
+        val parser = fetchCommandParser.build()
+        assertEquals(
+            FetchCommand(
+                listOf(0, 2).map(IdParam::Id) + IdParam.EndOpenRange(3),
+                listOf(FetchAttr.Simple("RFC8222.SIZE")),
+            ),
+            parser("0,2,3:* RFC8222.SIZE")
+        )
+    }
+
+
+    @Test
+    fun testRangeAndSetFetchSpec() {
+        val parser = fetchCommandParser.build()
+        assertEquals(
+            FetchCommand(
+                listOf(IdParam.StartOpenRange(2)) + IdParam.Id(3) + IdParam.Id(4),
+                listOf(FetchAttr.Simple("RFC8222.SIZE")),
+            ),
+            parser("*:2,3,4 RFC8222.SIZE")
+        )
+    }
+
+
+    @Test
+    fun testSetAndMiddleRangeFetchSpec() {
+        val parser = fetchCommandParser.build()
+        assertEquals(
+            FetchCommand(
+                listOf(IdParam.Id(0)) + IdParam.ClosedRange(1, 3) + IdParam.Id(5),
+                listOf(FetchAttr.Simple("RFC8222.SIZE")),
+            ),
+            parser("0,1:3,5 RFC8222.SIZE")
         )
     }
 
@@ -212,12 +263,13 @@ class ParserTests {
             parser("since 03-Oct-2020 uid 1:1602407810")
         )
     }
+
     @Test
     fun `test parse store command with adding a flag`() {
         val parser = storeCommandParser.build()
         assertEquals(
             StoreCommand(
-                IdParam.IdSet(listOf(1601570340)),
+                listOf(IdParam.Id(1601570340)),
                 FlagOperation.ADD,
                 silent = false,
                 flags = listOf("\\seen")
@@ -231,7 +283,7 @@ class ParserTests {
         val parser = storeCommandParser.build()
         assertEquals(
             StoreCommand(
-                IdParam.IdSet(listOf(1601570340)),
+                listOf(IdParam.Id(1601570340)),
                 FlagOperation.REPLACE,
                 silent = false,
                 flags = listOf("\\seen")
@@ -245,7 +297,7 @@ class ParserTests {
         val parser = storeCommandParser.build()
         assertEquals(
             StoreCommand(
-                IdParam.IdSet(listOf(1601570340)),
+                listOf(IdParam.Id(1601570340)),
                 FlagOperation.REMOVE,
                 silent = false,
                 flags = listOf("\\seen")
@@ -259,7 +311,7 @@ class ParserTests {
         val parser = storeCommandParser.build()
         assertEquals(
             StoreCommand(
-                IdParam.IdSet(listOf(1601570340)),
+                listOf(IdParam.Id(1601570340)),
                 FlagOperation.ADD,
                 silent = true,
                 flags = listOf("\\seen")

@@ -8,7 +8,7 @@ import org.sqlite.*
 import platform.posix.stat
 
 // TODO: improve to avoid strings
-private fun log(message: Any?) {
+private fun log(@Suppress("UNUSED_PARAMETER") message: Any?) {
 //    println("DB: $message")
 }
 
