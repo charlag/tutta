@@ -86,7 +86,8 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [ ] Support for macOS
  - [ ] Support for Windows
  - [x] Loading of emails and bodies
- - [ ] Loading of attachments
+ - [x] Loading files
+ - [x] Sending files
  - [x] Different folders
  - [ ] Subfolders
  - [ ] Creating folders
@@ -96,10 +97,10 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Sending unencrypted
  - [ ] All recipient fields
  - [ ] Sending attachments 
- - [ ] Marking as read/unread
+ - [x] Marking as read/unread
  - [ ] Moving mails
- - [ ] Storing credentials in keychain
- - [ ] Reading/writing async
+ - [x] Storing credentials in keychain
+ - [ ] Reading/writing to sockets async
 
 ## License
 GPL-3.0-or-later of course
