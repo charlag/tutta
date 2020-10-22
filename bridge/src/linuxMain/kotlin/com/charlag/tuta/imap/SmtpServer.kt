@@ -1,10 +1,7 @@
 package com.charlag.tuta.imap
 
 import UserController
-import com.charlag.tuta.ConversationType
-import com.charlag.tuta.MailFacade
-import com.charlag.tuta.RecipientInfo
-import com.charlag.tuta.RecipientType
+import com.charlag.tuta.*
 import com.charlag.tuta.entities.tutanota.MailAddress
 import kotlinx.coroutines.runBlocking
 import kotlin.native.concurrent.ensureNeverFrozen
@@ -30,41 +27,44 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
 
     fun respondTo(message: String): String? {
         return when {
-            message.startsWith("HELO") -> {
-                val otherParty = message.split(" ")[1]
-                "HELO $otherParty, I am glad to see you"
-            }
-            message.startsWith("DATA") -> {
-                reading = mutableListOf()
-                "354 <CR><LF>.<CR><LF>"
-            }
-            message.startsWith("MAIL FROM:") -> {
-                val address = parseMailAddress(message.substring("MAIL FROM:".length).trim())
-                this.from = address
-                OK_250
-            }
-            message.startsWith("RCPT TO:") -> {
-                val address =
-                    parseMailAddress(message.substring("RCPT TO:".length).trim('\r', '\n', ' '))
-                this.to += address
-                OK_250
-            }
             reading != null -> {
                 reading!! += message
                 // TODO: we need to handle the case of the user-inputted line with dot
                 // which should look like just two dots.
-                if (message.contains(".\r\n")) {
+                if (message == ".") {
                     println("Finished reading")
-                    val parsedEmail = parseEmail(reading!!.joinToString("\n"))
-                    println(parsedEmail)
-                    reading = null
-                    this.sendEmail(parsedEmail)
+                    try {
+                        val parsedEmail = parseEmail(reading!!.joinToString("\r\n"))
+                        println(parsedEmail)
+                        this.sendEmail(parsedEmail)
+                    } finally {
+                        reading = null
+                    }
                     "250 Ok"
                 } else {
                     null
                 }
             }
-            message.startsWith("QUIT") -> {
+            message.startsWith("HELO", ignoreCase = true) -> {
+                val otherParty = message.split(" ")[1]
+                "HELO $otherParty, I am glad to see you"
+            }
+            message.startsWith("DATA", ignoreCase = true) -> {
+                reading = mutableListOf()
+                "354 <CR><LF>.<CR><LF>"
+            }
+            message.startsWith("MAIL FROM:", ignoreCase = true) -> {
+                val address = parseMailAddress(message.substring("MAIL FROM:".length).trim())
+                this.from = address
+                OK_250
+            }
+            message.startsWith("RCPT TO:", ignoreCase = true) -> {
+                val address =
+                    parseMailAddress(message.substring("RCPT TO:".length).trim('\r', '\n', ' '))
+                this.to += address
+                OK_250
+            }
+            message.startsWith("QUIT", ignoreCase = true) -> {
                 "221 Bye"
             }
             else -> OK_250

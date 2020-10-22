@@ -57,7 +57,7 @@ private fun runImapServer(imapServerFactory: () -> ImapServer) {
                 val commFd = accept(listenFd, null, null)
                     .check({ it != -1 }) { error("read failed: ${errorMessage()}") }
 
-                println("accepted $commFd")
+                println("${timeString()} accepted $commFd")
                 runImapConnectionWorker(commFd, serverFactory)
             }
         }
@@ -87,7 +87,7 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
                     println("Could not read from the input $e")
                     break
                 }
-                print("${timeString()} $tag C: $received")
+                println("${timeString()} $tag C: $received")
                 try {
                     val response = imapSever.respondTo(received)
                     sendImapResponse(tag, commFd, response)
@@ -99,7 +99,7 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
                 }
             }
         }
-        println("closed $commFd")
+        println("closed I$commFd")
     }
 }
 
@@ -138,14 +138,14 @@ private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
 
             println("SMTP: listen $SMTP_PORT")
 
-            val server = serverFactory()
-
             while (true) {
                 val commFd = accept(listenFd, null, null)
                     .check({ it != -1 }) { error("read failed: ${errorMessage()}") }
 
-                println("accepted $commFd")
+                println("${timeString()} accepted S$commFd")
                 val tag = "P$commFd"
+
+                val server = serverFactory() // new server for new connection
 
                 buffer.usePinned { pinned ->
                     try {
@@ -154,14 +154,8 @@ private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
                         println("Could not send initial response $e")
                     }
 
-                    while (true) {
-                        val received = try {
-                            readString(pinned, commFd) ?: break
-                        } catch (e: IOException) {
-                            println("Could not read from the input $e")
-                            break
-                        }
-                        print("$tag C: $received")
+                    for (received in readStrings(pinned, commFd)) {
+                        println("${timeString()} $tag C: $received")
                         try {
                             server.respondTo(received)?.let { response ->
                                 sendImapResponse(tag, commFd, listOf(response))
@@ -174,7 +168,7 @@ private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
                         }
                     }
                 }
-                println("closed $commFd")
+                println("closed $tag")
             }
         }
     }
@@ -211,4 +205,31 @@ private fun readString(buffer: Pinned<ByteArray>, fd: Int): String? {
         return null
     }
     return buffer.get().decodeToString(0, length)
+}
+
+/**
+ * Read a sequence of CRLF (\r\n) separated lines from [fd] using [buffer].
+ */
+private fun readStrings(buffer: Pinned<ByteArray>, fd: Int): Sequence<String> {
+    var previousString: String? = null // part of the command we didn't finish reading
+    return generateSequence {
+        val length = try {
+            recv(fd, buffer.addressOf(0), buffer.get().size.convert(), 0).toInt()
+                .check(::isNonNegative) { error("Could not read from socket ${errorMessage()}") }
+        } catch (e: Throwable) {
+            println(e)
+            return@generateSequence null
+        }
+        if (length == 0) {
+            return@generateSequence null
+        }
+
+        val full = (previousString ?: "") + buffer.get().decodeToString(0, length)
+        previousString = null
+        val parts = full.split("\r\n")
+        if (parts.last() != "") { // there's a part of line we didn't read
+            previousString = parts.last()
+        }
+        parts.dropLast(1) // it's either a part of the string or empty string
+    }.flatten()
 }

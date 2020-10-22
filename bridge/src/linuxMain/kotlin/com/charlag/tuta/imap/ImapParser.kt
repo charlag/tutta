@@ -114,7 +114,8 @@ val idParser: Parser<IdParam>
         return (startOpenRangeParser or endOpenRangeParser or closedRangeParser or idSingleParser).named("idParser")
     }
 
-val idSeqParser = idParser.separatedBy(characterParser(','))
+val idSeqParser: Parser<List<IdParam>>
+    get() = idParser.separatedBy(characterParser(','))
 
 fun fetchAttrListParser(): Parser<List<FetchAttr>> =
     (characterParser('(').throwAway() + fetchAttrsParser() + characterParser(')').throwAway())

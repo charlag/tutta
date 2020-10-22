@@ -48,16 +48,14 @@ class ImapServer(
 
     private fun handleReading(message: String, readingState: ReadingState): List<String> {
         val size = message.toBytes().size
-        val isEmpty = message == ""
         // After data is over, there's an empty line
+        readingState.toRead -= size
         return if (readingState.toRead > 0) {
-            readingState.toRead -= size
-            listOf()
-        } else if (isEmpty && readingState.toRead == 0) {
-            this.readingState = null
-            listOf(successResponse(readingState.tag, "APPEND"))
+            listOf("+ KEEP SENDING ${readingState.toRead}/${size}")
         } else {
-            listOf("* BAD")
+            this.readingState = null
+            println("${readingState.tag} finished reading, now size is: ${readingState.toRead}, last message is (${size}): ${message.take(200)} ")
+            listOf(successResponse(readingState.tag, "APPEND"))
         }
     }
 
@@ -119,7 +117,7 @@ class ImapServer(
             "APPEND" -> {
                 val appendCommand = appendParser.build()(args)
                 this.readingState = ReadingState(tag, appendCommand.literalSize)
-                listOf("+")
+                listOf("+ Ready for additional command text")
             }
             "CHECK" -> {
                 runBlocking {
