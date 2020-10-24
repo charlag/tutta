@@ -44,7 +44,8 @@ data class MailEntity(
     val body: Id,
     val conversationEntry: IdTuple,
     val headers: Id?,
-    val finalIvs: Map<String, ByteArray?>?
+    val method: Long,
+    val finalIvs: Map<String, ByteArray?>?,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -77,6 +78,7 @@ data class MailEntity(
         if (body != other.body) return false
         if (conversationEntry != other.conversationEntry) return false
         if (headers != other.headers) return false
+        if (method != other.method) return false
 
         return true
     }
@@ -107,6 +109,7 @@ data class MailEntity(
         result = 31 * result + body.hashCode()
         result = 31 * result + conversationEntry.hashCode()
         result = 31 * result + (headers?.hashCode() ?: 0)
+        result = 31 * result + (method.hashCode())
         return result
     }
 }

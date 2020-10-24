@@ -18,9 +18,9 @@ class ErrorHandlerActivity : AppCompatActivity(R.layout.activity_error_handler) 
         errorLabel.text = error
 
         copyErrorButton.setOnClickListener {
-            val clipboardManager = getSystemService(ClipboardManager::class.java)
+            val clipboardManager = getSystemService(ClipboardManager::class.java)!!
             val clip = ClipData.newPlainText("error", error)
-            clipboardManager.primaryClip = clip
+            clipboardManager.setPrimaryClip(clip)
             Toast.makeText(this, "Copied error!", Toast.LENGTH_SHORT).show()
         }
 

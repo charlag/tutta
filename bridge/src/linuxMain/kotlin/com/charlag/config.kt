@@ -1,12 +1,12 @@
 package com.charlag
 
-import com.charlag.tuta.CreateSessionResult
 import com.charlag.tuta.libsecret.SecretSchema
 import com.charlag.tuta.libsecret.lookupSecretPasswordSync
 import com.charlag.tuta.libsecret.storeSecretPasswordSync
 import com.charlag.tuta.posix.*
 import kotlinx.cinterop.MemScope
 import kotlinx.cinterop.memScoped
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -14,12 +14,8 @@ import org.libsecret.SECRET_COLLECTION_DEFAULT
 import org.libsecret.SecretSchema
 import org.libsecret.SecretSchemaAttributeType
 import org.libsecret.SecretSchemaFlags
-import kotlin.collections.Map
-import kotlin.collections.MutableMap
 import kotlin.collections.component1
 import kotlin.collections.component2
-import kotlin.collections.mapOf
-import kotlin.collections.mutableMapOf
 import kotlin.collections.set
 
 const val APP_FOLDER = "tuta-bridge"
@@ -42,7 +38,14 @@ fun ensureAppConfigDir(): Path {
     return getAppConfigDir().also { ensureDir(it) }
 }
 
-fun tryToLoadCredentials(): CreateSessionResult? {
+@Serializable
+class Credentials(
+    val mailAddress: String,
+    val accessToken: String,
+    val encryptedPassword: ByteArray,
+)
+
+fun tryToLoadCredentials(): Credentials? {
     val json = Json { }
 
     return try {
@@ -51,7 +54,7 @@ fun tryToLoadCredentials(): CreateSessionResult? {
         }
 
         return pw?.let {
-            json.decodeFromString<CreateSessionResult>(it)
+            json.decodeFromString<Credentials>(it)
         }
     } catch (e: Throwable) {
         println("Error while trying to read credentials: $e")
@@ -64,9 +67,9 @@ private fun getConfigPath(): Path {
     return configDir.append("config.json")
 }
 
-fun writeCredentials(createSessionResult: CreateSessionResult) {
+fun writeCredentials(credentials: Credentials) {
     val json = Json { }
-    val jsonData = json.encodeToString(createSessionResult)
+    val jsonData = json.encodeToString(credentials)
     memScoped {
         storeSecretPasswordSync(
             secretSchema(),

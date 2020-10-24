@@ -9,18 +9,19 @@ import com.charlag.tuta.network.API
 import io.ktor.client.features.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.jsonPrimitive
 
-class SessionData(
-    val user: User,
-    val accessToken: String,
-    val userGroupKey: ByteArray
-)
+enum class SessionType {
+    EPHEMERAL,
+    PERSISTENT,
+}
 
 @Serializable
 data class CreateSessionResult(
     val userId: Id,
+    val accessToken: String,
     val passphraseKey: ByteArray,
-    val accessToken: String
+    val encryptedPassword: ByteArray?,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -29,19 +30,24 @@ data class CreateSessionResult(
         other as CreateSessionResult
 
         if (userId != other.userId) return false
-        if (!passphraseKey.contentEquals(other.passphraseKey)) return false
         if (accessToken != other.accessToken) return false
+        if (!encryptedPassword.contentEquals(other.encryptedPassword)) return false
 
         return true
     }
 
     override fun hashCode(): Int {
         var result = userId.hashCode()
-        result = 31 * result + passphraseKey.contentHashCode()
         result = 31 * result + accessToken.hashCode()
+        result = 31 * result + encryptedPassword.contentHashCode()
         return result
     }
 }
+
+data class ResumeSessionResult(
+    val userId: Id,
+    val passphraseKey: ByteArray,
+)
 
 typealias SecondFactorCallback = (sessionId: IdTuple) -> Unit
 
@@ -63,17 +69,20 @@ class LoginFacade(
     suspend fun createSession(
         mailAddress: String,
         passphrase: String,
-        onSecondFactorPending: SecondFactorCallback
+        sessionType: SessionType,
+        onSecondFactorPending: SecondFactorCallback,
     ): CreateSessionResult {
         val salt = getSalt(mailAddress).salt
 
         val passphraseKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
         val authVerifier = createAuthVerifierAsBase64Url(cryptor, passphraseKey)
+        val accessKey =
+            if (sessionType == SessionType.PERSISTENT) cryptor.aes128RandomKey() else null
         val postData = CreateSessionData(
             mailAddress = mailAddress,
             authVerifier = authVerifier,
             clientIdentifier = "Multiplatform test",
-            accessKey = null,
+            accessKey = accessKey,
             authToken = null,
             recoverCodeVerifier = null,
             user = null
@@ -103,7 +112,12 @@ class LoginFacade(
                 }
             }
         }
-        return CreateSessionResult(sessionReturn.user, passphraseKey, sessionReturn.accessToken)
+        return CreateSessionResult(
+            userId = sessionReturn.user,
+            accessToken = sessionReturn.accessToken,
+            passphraseKey = passphraseKey,
+            encryptedPassword = accessKey?.let { key -> cryptor.encryptString(passphrase, key) },
+        )
     }
 
     suspend fun submitTOTPLogin(sessionId: IdTuple, code: Long) {
@@ -117,12 +131,22 @@ class LoginFacade(
         )
     }
 
+    /**
+     * Access token must be already set!
+     */
     suspend fun resumeSession(
         mailAddress: String,
-        passphrase: String
-    ): ByteArray {
+        accessToken: String,
+        encryptedPassword: ByteArray,
+    ): ResumeSessionResult {
+        val sessionData = loadSessionData(accessToken)
+        val accessKey = sessionData.accessKey
+        val passphrase = cryptor.aesDecrypt(encryptedPassword, accessKey, usePadding = true)
+            .data
+            .decodeToString()
         val salt = getSalt(mailAddress).salt
-        return cryptor.generateKeyFromPassphrase(passphrase, salt)
+        val pwKey = cryptor.generateKeyFromPassphrase(passphrase, salt)
+        return ResumeSessionResult(sessionData.userId, pwKey)
     }
 
     suspend fun getUserGroupKey(user: User, passphraseKey: ByteArray): ByteArray {
@@ -154,5 +178,22 @@ class LoginFacade(
             "sys", "saltservice", HttpMethod.Get, SaltData(null, mailAddress),
             SaltReturn::class
         )
+    }
+
+    private data class SessionData(val userId: Id, val accessKey: ByteArray)
+
+    /**
+     * Access token must be already set.
+     *
+     * We can't load real Session because some parts of it are encrypted so our normal API
+     * machinery will try to decrypt it to map it to instance. We just want unencrypted parts so we
+     * take apart json manually to get what we need.
+     */
+    private suspend fun loadSessionData(accessTokenB64Url: String): SessionData {
+        val sessionId = getSessionId(accessTokenB64Url)
+        val json = api.loadListElementEntityRaw(sessionId, Session::class)
+        val userId = json["user"]!!.jsonPrimitive.content
+        val accessKey = base64ToBytes(json["accessKey"]!!.jsonPrimitive.content)
+        return SessionData(GeneratedId(userId), accessKey)
     }
 }

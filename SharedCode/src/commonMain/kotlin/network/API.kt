@@ -174,10 +174,8 @@ class API(
     }
 
     suspend fun <T : ListElementEntity> loadListElementEntity(klass: KClass<T>, id: IdTuple): T {
-        val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(klass)
-        val name = typeModel.name.toLowerCase()
-        val url = "${model}/${name}/${id.listId.asString()}/${id.elementId.asString()}"
-        return loadAndMapToEntity(url, klass)!!
+        val json = loadListElementEntityRaw(id, klass)
+        return deserializeEntity(json, klass)
     }
 
     suspend fun <T : ElementEntity> loadMultipleElementEntities(
@@ -199,6 +197,16 @@ class API(
                 null
             }
         }
+    }
+
+    suspend fun <T : ListElementEntity> loadListElementEntityRaw(
+        id: IdTuple,
+        klass: KClass<T>
+    ): JsonObject {
+        val (_, model, typeModel) = instanceMapper.getTypeInfoByClass(klass)
+        val name = typeModel.name.toLowerCase()
+        val url = "${model}/${name}/${id.listId.asString()}/${id.elementId.asString()}"
+        return load(url, klass)!!
     }
 
     suspend fun <T : ListElementEntity> loadMultipleListElementEntities(
@@ -443,12 +451,16 @@ class API(
         path: String,
         responseClass: KClass<R>
     ): R? {
+        return load(path, responseClass)?.let { deserializeEntity(it, responseClass) }
+    }
+
+    private suspend fun <T : Entity> load(path: String, entityClass: KClass<T>): JsonObject? {
         val address = Url(baseUrl + path)
-        return httpClient.get<JsonObject?> {
+        return httpClient.get {
             commonHeaders()
-            entityHeaders(instanceMapper.getTypeModelByClass(responseClass))
+            entityHeaders(instanceMapper.getTypeModelByClass(entityClass))
             url(address)
-        }?.let { deserializeEntity(it, responseClass) }
+        }
     }
 
     private suspend fun <T : Entity> serializeEntity(

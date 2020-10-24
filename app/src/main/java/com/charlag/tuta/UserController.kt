@@ -6,6 +6,7 @@ import com.charlag.tuta.entities.sys.GroupInfo
 import com.charlag.tuta.entities.sys.User
 import com.charlag.tuta.entities.tutanota.TutanotaProperties
 import com.charlag.tuta.network.API
+import com.charlag.tuta.network.SessionData
 import com.charlag.tuta.util.AsyncProvider
 import com.charlag.tuta.util.lazyAsync
 import kotlinx.coroutines.*

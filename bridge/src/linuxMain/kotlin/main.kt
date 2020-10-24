@@ -1,14 +1,16 @@
+import com.charlag.Credentials
 import com.charlag.getAppConfigDir
 import com.charlag.tryToLoadCredentials
 import com.charlag.tuta.*
+import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.sys.User
-import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.imap.ImapServer
 import com.charlag.tuta.imap.MailLoaderImpl
 import com.charlag.tuta.imap.SmtpServer
 import com.charlag.tuta.imap.commands.FetchHandler
 import com.charlag.tuta.imap.commands.SearchHandler
 import com.charlag.tuta.network.API
+import com.charlag.tuta.network.SessionData
 import com.charlag.tuta.network.SessionKeyResolver
 import com.charlag.tuta.network.UserSessionDataProvider
 import com.charlag.tuta.network.makeHttpClient
@@ -64,13 +66,13 @@ fun main(args: Array<String>) {
     }
 }
 
-
 /**
  * @return passphraseKey
  */
 suspend fun login(dependencyDump: DependencyDump): ByteArray {
-    val createSessionResult = tryToLoadCredentials() ?: newSession(dependencyDump)
-    dependencyDump.sessionDataProvider.setAccessToken(createSessionResult.accessToken)
+    // Session token is set inside because it should only be set once and resuming requires it to
+    // be set.
+    val createSessionResult = resumeSession(dependencyDump) ?: newSession(dependencyDump)
     val user = dependencyDump.api.loadElementEntity<User>(createSessionResult.userId)
     val userGroupKey =
         dependencyDump.loginFacade.getUserGroupKey(user, createSessionResult.passphraseKey)
@@ -85,19 +87,47 @@ suspend fun login(dependencyDump: DependencyDump): ByteArray {
     return createSessionResult.passphraseKey
 }
 
-suspend fun newSession(dependencyDump: DependencyDump): CreateSessionResult {
+private class LoginData(val userId: Id, val accessToken: String, val passphraseKey: ByteArray)
+
+private suspend fun newSession(dependencyDump: DependencyDump): LoginData {
     print("Email: ")
     val email = readLine() ?: ""
+    if (!isValidEmailAddress(email)) {
+        throw Error("Invalid email address: $email")
+    }
     print("Password: ")
     val password = readPassword() ?: ""
+    if (password.isEmpty()) {
+        throw Error("No password!")
+    }
 
-    val credentials = dependencyDump.loginFacade.createSession(
+    val createResult = dependencyDump.loginFacade.createSession(
         email,
         password,
+        SessionType.PERSISTENT,
         onSecondFactorPending = { error("Does not support 2FA yet") }
     )
+    dependencyDump.sessionDataProvider.setAccessToken(createResult.accessToken)
+    val credentials = Credentials(email, createResult.accessToken, createResult.encryptedPassword!!)
     writeCredentials(credentials)
-    return credentials
+    return LoginData(createResult.userId, createResult.accessToken, createResult.passphraseKey)
+}
+
+private fun isValidEmailAddress(email: String) = email.contains("@")
+
+private suspend fun resumeSession(dependencyDump: DependencyDump): LoginData? {
+    val credentials = tryToLoadCredentials() ?: return null
+    dependencyDump.sessionDataProvider.setAccessToken(credentials.accessToken)
+    val resumeSessionResult = dependencyDump.loginFacade.resumeSession(
+        credentials.mailAddress,
+        credentials.accessToken,
+        credentials.encryptedPassword
+    )
+    return LoginData(
+        resumeSessionResult.userId,
+        credentials.accessToken,
+        resumeSessionResult.passphraseKey
+    )
 }
 
 class DependencyDump {

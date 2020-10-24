@@ -6,6 +6,7 @@ import com.charlag.tuta.di.AppComponent
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.sys.User
+import com.charlag.tuta.network.SessionData
 import io.ktor.client.features.ClientRequestException
 import kotlinx.coroutines.*
 
@@ -39,9 +40,7 @@ interface LoginController {
 class RealLoginController(
     private val loginFacade: LoginFacade,
     private val sessionStore: SessionStore,
-    private val appComponent: AppComponent,
-    private val cryptor: Cryptor
-
+    private val appComponent: AppComponent
 ) : LoginController {
     private var sessionData = CompletableDeferred<SessionData>()
     private var deviceKey: ByteArray? = null
@@ -76,22 +75,39 @@ class RealLoginController(
         // the component here first to get such an API
 
         // Stage 1: get user id/accessToken
-        val (userId, passpharseKey, accessToken) =
-            loginFacade.createSession(mailAddress, passphrase, secondFactorCallback)
+        val createSessionResult =
+            loginFacade.createSession(
+                mailAddress,
+                passphrase,
+                SessionType.PERSISTENT,
+                secondFactorCallback
+            )
+        // Taking it apart manually so that we don't rely on order and don't misuse something
+        val userId = createSessionResult.userId
+        val accessToken = createSessionResult.accessToken
+        val passphraseKey = createSessionResult.passphraseKey
+        val encryptedPassword = createSessionResult.encryptedPassword
+
         this.userComponent?.let { cancelSession(it) }
-        val userComponent = makeUserComponent(userId, passphrase)
+        val userComponent = makeUserComponent(userId, deviceKey)
         init(userComponent, accessToken)
         // Stage 2: get user
         val user = userComponent.api().loadElementEntity<User>(userId)
         val userGroupKey =
-            loginFacade.getUserGroupKey(user, passpharseKey)
+            loginFacade.getUserGroupKey(user, passphraseKey)
         sessionStore.lastUser = userId
         // stage 3: set user and load everything else
         initSession(SessionData(user, accessToken, userGroupKey), userComponent)
 
-        val encPassphrase = cryptor.encryptString(passphrase, deviceKey)
         this.deviceKey = deviceKey
-        sessionStore.saveSessionData(Credentials(userId, accessToken, encPassphrase, mailAddress))
+        sessionStore.saveSessionData(
+            Credentials(
+                userId,
+                accessToken,
+                encryptedPassword!!,
+                mailAddress
+            )
+        )
     }
 
     override suspend fun resumeSession(
@@ -101,19 +117,20 @@ class RealLoginController(
         encPassphrase: ByteArray,
         deviceKey: ByteArray
     ) {
-        val passphrase = bytesToString(cryptor.aesDecrypt(encPassphrase, deviceKey, true).data)
         // This is back-and-forth because we need to load user using authenticated API so we create
         // the component here first to get such an API
-        val userComponent = makeUserComponent(userId, passphrase)
+        val userComponent = makeUserComponent(userId, deviceKey)
         init(userComponent, accessToken)
         sessionStore.lastUser = userId
         this.deviceKey = deviceKey
 
         GlobalScope.launch {
             try {
-                val passphraseKey = loginFacade.resumeSession(mailAddress, passphrase)
+                // We have initialized userComponent with accessToken and we should use loginFacade
+                // from it so that we can load session with accessToken
+                val resumeData = userComponent.loginFacade().resumeSession(mailAddress, accessToken, encPassphrase)
                 val user = userComponent.api().loadElementEntity<User>(userId)
-                val userGroupKey = loginFacade.getUserGroupKey(user, passphraseKey)
+                val userGroupKey = loginFacade.getUserGroupKey(user, resumeData.passphraseKey)
 
                 initSession(SessionData(user, accessToken, userGroupKey), userComponent)
             } catch (e: Exception) {
@@ -172,13 +189,13 @@ class RealLoginController(
 
     private fun makeUserComponent(
         userId: Id,
-        passphrase: String
+        dbPassphrase: ByteArray
     ): UserComponent {
         return appComponent.userComponent(
             UserModule(
                 userId,
                 sessionData,
-                passphrase
+                dbPassphrase
             )
         )
     }

@@ -25,18 +25,17 @@ import dagger.Module
 import dagger.Provides
 import dagger.Subcomponent
 import dagger.android.DispatchingAndroidInjector
-import io.ktor.client.HttpClient
+import io.ktor.client.*
 import kotlinx.coroutines.Deferred
-import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
 
 @Module
 class UserModule(
     private val userId: Id,
     private val loginDeferred: Deferred<SessionData>,
-    dbPassword: String
+    dbPassword: ByteArray
 ) {
-    private val dbFactory = SupportFactory(SQLiteDatabase.getBytes(dbPassword.toCharArray()))
+    private val dbFactory = SupportFactory(dbPassword)
 
     @Provides
     @UserBound

@@ -160,7 +160,8 @@ fun Mail.toEntity() = MailEntity(
     conversationEntry = conversationEntry,
     attachments = attachments,
     headers = headers,
-    finalIvs = finalIvs
+    finalIvs = finalIvs,
+    method = method,
 )
 
 fun MailEntity.toMail() = Mail(
@@ -194,7 +195,8 @@ fun MailEntity.toMail() = Mail(
     headers = headers,
     restrictions = null,
     authStatus = 0,
-    phishingStatus = 0
+    phishingStatus = 0,
+    method = method,
 ).also {
     it.finalIvs = finalIvs
 }

@@ -6,7 +6,7 @@ import java.util.ArrayList
 actual fun bytesToString(bytes: ByteArray): String = String(bytes)
 actual fun String.toBytes(): ByteArray = this.toByteArray()
 
-fun hexToPrivateKey(hex: String): PrivateKey {
+actual fun hexToPrivateKey(hex: String): PrivateKey {
     return arrayToPrivateKey(hexToKeyArray(hex))
 }
 

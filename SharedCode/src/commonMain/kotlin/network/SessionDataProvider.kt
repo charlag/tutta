@@ -1,8 +1,8 @@
 package com.charlag.tuta.network
 
 import com.charlag.tuta.Cryptor
-import com.charlag.tuta.SessionData
 import com.charlag.tuta.decryptKey
+import com.charlag.tuta.entities.sys.User
 
 interface SessionDataProvider {
     val accessToken: String?
@@ -39,3 +39,9 @@ class UserSessionDataProvider(
                 }
     }
 }
+
+class SessionData(
+    val user: User,
+    val accessToken: String,
+    val userGroupKey: ByteArray,
+)

@@ -92,12 +92,12 @@ internal object AppModule {
             WS_PATH
         )
 
-    @UseExperimental(KtorExperimentalAPI::class)
+    @OptIn(KtorExperimentalAPI::class)
     @Provides
     fun providesHttpClient(): HttpClient {
         return makeHttpClient {
             install(Logging) {
-                level = LogLevel.INFO
+                level = LogLevel.HEADERS
                 logger = object : Logger {
                     override fun log(message: String) {
                         Log.d("HTTP", message)
@@ -136,7 +136,7 @@ internal object AppModule {
         cryptor: Cryptor
     ): LoginController {
         Log.d("App", "LoginController")
-        return RealLoginController(loginFacade, sessionStore, appComponent, cryptor)
+        return RealLoginController(loginFacade, sessionStore, appComponent)
     }
 
     @Provides

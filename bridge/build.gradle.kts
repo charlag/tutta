@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.Executable
 
 plugins {
     kotlin("multiplatform")
+    id("kotlinx-serialization")
 }
 
 val LIBSECRET_PKG = "libsecret-1"
