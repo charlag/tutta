@@ -9,15 +9,8 @@ import kotlin.native.concurrent.ensureNeverFrozen
 
 // Fot now just a dummy server which reads data
 class SmtpServer(private val mailFacade: MailFacade, private val userController: UserController) {
-    init {
-        ensureNeverFrozen()
-    }
 
-    fun newConnection(): List<String> {
-        return listOf("220 smtp.tutanota.com ESMTP Tutabridge")
-    }
-
-    // That's not ideal and we should have a proper state machine isntead
+    // That's not ideal and we should have a proper state machine instead
     private var expectingAuth: Boolean = false
     private var from: MailAddress? = null
     private val to = mutableListOf<MailAddress>()
@@ -26,6 +19,14 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
     private var reading: MutableList<String>? = null
 
     private val parseMailAddress = mailAddressParser.build()
+
+    init {
+        ensureNeverFrozen()
+    }
+
+    fun newConnection(): List<String> {
+        return listOf("220 smtp.tutanota.com ESMTP Tutabridge")
+    }
 
     fun respondTo(message: String): String? {
         return when {
