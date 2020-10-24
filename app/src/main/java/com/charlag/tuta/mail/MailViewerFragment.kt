@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
 import android.graphics.drawable.RotateDrawable
 import android.os.Bundle
+import android.util.Base64
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -27,6 +28,8 @@ import com.charlag.tuta.data.MailAddressEntity
 import com.charlag.tuta.data.MailEntity
 import com.charlag.tuta.entities.IdTuple
 import com.charlag.tuta.entities.tutanota.File
+import com.charlag.tuta.notifications.bytesToBase64
+import com.charlag.tuta.toBytes
 import com.charlag.tuta.util.IdTupleWrapper
 import com.charlag.tuta.util.setIconTintListCompat
 import com.charlag.tuta.util.toWrapper
@@ -44,6 +47,7 @@ class MailViewerFragment : DaggerFragment() {
     private lateinit var unreadItem: MenuItem
     private lateinit var readItem: MenuItem
     private val viewModel: MailViewModel by activityViewModels()
+
     @Inject
     lateinit var preferenceFacade: PreferenceFacade
 
@@ -77,7 +81,7 @@ class MailViewerFragment : DaggerFragment() {
             webView.settings.setSupportZoom(true)
             webView.settings.builtInZoomControls = true
             webView.settings.displayZoomControls = false
-            val webViewClient = BlockingWebViewClient(context!!).apply {
+            val webViewClient = BlockingWebViewClient(requireContext()).apply {
                 onExternalContentDetected = {
                     externalContentView.post {
                         // TODO: may crash here if fragment closed too early
@@ -168,7 +172,7 @@ class MailViewerFragment : DaggerFragment() {
 
             replyButton.setOnClickListener {
                 val intent = ComposeActivity.intentForReply(
-                    context!!, ReplyInitData(
+                    requireContext(), ReplyInitData(
                         mailId = openedMail.id,
                         listId = openedMail.listId,
                         replyAll = false,
@@ -182,7 +186,7 @@ class MailViewerFragment : DaggerFragment() {
                 PopupMenu(moreButton.context, moreButton).apply {
                     menu.add("Forward").setOnMenuItemClickListener {
                         val intent = ComposeActivity.intentForForward(
-                            context!!, ForwardInitData(
+                            requireContext(), ForwardInitData(
                                 mailId = openedMail.id,
                                 listId = openedMail.listId,
                                 loadExternalContent = !webViewClient.blockingResources
@@ -246,7 +250,21 @@ class MailViewerFragment : DaggerFragment() {
             tryAgainButton.visibility = View.GONE
             try {
                 val body = viewModel.loadMailBody(mail.body)
-                webView.loadData(body.text, "text/html", "UTF-8")
+                val wrappedBody = """<!DOCTYPE html>
+<html>
+<body>
+${body.text}
+</body>
+</html>
+""".toBytes().let(::bytesToBase64)
+                // > The 'data' scheme URL formed by this method uses the default US-ASCII charset.
+                // > If you need to set a different charset, you should form a 'data' scheme URL
+                // > which explicitly specifies a charset parameter in the mediatype portion of the
+                // > URL and call loadUrl(java.lang.String) instead.
+                // see https://developer.android.com/reference/android/webkit/WebView#loadData(java.lang.String,%20java.lang.String,%20java.lang.String)
+                // we have utf-8 and that's what we will use
+                val url = "data:text/html;charset=UTF-8;base64,$wrappedBody"
+                webView.loadUrl(url)
             } catch (e: IOException) {
                 tryAgainButton.visibility = View.VISIBLE
             } catch (e: ClientRequestException) {
