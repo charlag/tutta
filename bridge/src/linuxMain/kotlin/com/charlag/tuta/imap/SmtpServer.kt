@@ -17,6 +17,8 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
         return listOf("220 smtp.tutanota.com ESMTP Tutabridge")
     }
 
+    // That's not ideal and we should have a proper state machine isntead
+    private var expectingAuth: Boolean = false
     private var from: MailAddress? = null
     private val to = mutableListOf<MailAddress>()
     private val cc = mutableListOf<MailAddress>()
@@ -27,6 +29,10 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
 
     fun respondTo(message: String): String? {
         return when {
+            expectingAuth -> {
+                this.expectingAuth = false
+                AUTH_SUCCESS_235
+            }
             reading != null -> {
                 reading!! += message
                 // TODO: we need to handle the case of the user-inputted line with dot
@@ -43,6 +49,35 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
                     "250 Ok"
                 } else {
                     null
+                }
+            }
+            message.startsWith("EHLO", ignoreCase = true) -> {
+                listOf(
+                    "250-smtp.tutanota.com Hello ${message.substring("EHLO ".length)}",
+                    "250 AUTH PLAIN",
+                ).joinToString("\r\n")
+            }
+            message.startsWith("AUTH", ignoreCase = true) -> {
+                // TODO: check error codes
+                val words = message.toUpperCase().split(' ')
+                val mechanism = words.getOrNull(1)?.toUpperCase()
+                    ?: run {
+                        println("No auth mechanism detected: $words")
+                        return SYNTAX_ERROR_IN_ARGS_501
+                    }
+                when (mechanism) {
+                    "PLAIN" -> {
+                        if (words.size > 2) {
+                            AUTH_SUCCESS_235
+                        } else {
+                            this.expectingAuth = true
+                            "334 "
+                        }
+                    }
+                    else -> {
+                        println("Unknown auth mechanism: $mechanism")
+                        COMMAND_PARAMETER_NOT_IMPLEMENTED_504
+                    }
                 }
             }
             message.startsWith("HELO", ignoreCase = true) -> {
@@ -110,6 +145,11 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
             type = type,
         )
     }
-}
 
-private const val OK_250 = "250 Ok"
+    companion object {
+        private const val AUTH_SUCCESS_235 = "235 2.7.0 Authentication Successful"
+        private const val OK_250 = "250 Ok"
+        private const val SYNTAX_ERROR_IN_ARGS_501 = "501 "
+        private const val COMMAND_PARAMETER_NOT_IMPLEMENTED_504 = "504 "
+    }
+}
