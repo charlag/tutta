@@ -56,7 +56,11 @@ fun main(args: Array<String>) {
                 )
             },
             smtpServerFactory = {
-                SmtpServer(dependencyDump.mailFacade, dependencyDump.userController)
+                SmtpServer(
+                    dependencyDump.mailFacade,
+                    dependencyDump.userController,
+                    dependencyDump.fileFacade,
+                )
             }
         )
         while (true) {

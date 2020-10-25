@@ -11,7 +11,6 @@ import kotlin.math.min
 import kotlin.native.concurrent.TransferMode
 import kotlin.native.concurrent.Worker
 import kotlin.native.concurrent.freeze
-import kotlin.time.milliseconds
 import kotlin.time.nanoseconds
 
 const val IMAP_PORT = 2143
@@ -24,6 +23,14 @@ fun runBridgeServer(imapServerFactory: () -> ImapServer, smtpServerFactory: () -
 
     runSmtpServer(smtpServerFactory) // Start listening on a different thread
     runImapServer(imapServerFactory) // Start listening on this thread and dispatch each connection to a new one
+}
+
+private fun imapLog(value: String) {
+//    println(value)
+}
+
+private fun smtpLog(value: String) {
+    println(value)
 }
 
 private fun runImapServer(imapServerFactory: () -> ImapServer) {
@@ -57,7 +64,7 @@ private fun runImapServer(imapServerFactory: () -> ImapServer) {
                 val commFd = accept(listenFd, null, null)
                     .check({ it != -1 }) { error("read failed: ${errorMessage()}") }
 
-                println("${timeString()} accepted $commFd")
+                println("${timeString()} accepted I$commFd")
                 runImapConnectionWorker(commFd, serverFactory)
             }
         }
@@ -87,7 +94,7 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
                     println("Could not read from the input $e")
                     break
                 }
-                println("${timeString()} $tag C: $received")
+                imapLog("${timeString()} $tag C: $received")
                 try {
                     val response = imapSever.respondTo(received)
                     sendImapResponse(tag, commFd, response)
@@ -149,22 +156,22 @@ private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
 
                 buffer.usePinned { pinned ->
                     try {
-                        sendImapResponse(tag, commFd, server.newConnection())
+                        sendSmtpResponse(tag, commFd, server.newConnection())
                     } catch (e: IOException) {
                         println("Could not send initial response $e")
                     }
 
                     for (received in readStrings(pinned, commFd)) {
-                        println("${timeString()} $tag C: $received")
+                        smtpLog("${timeString()} $tag C: $received")
                         try {
                             server.respondTo(received)?.let { response ->
-                                sendImapResponse(tag, commFd, listOf(response))
+                                sendSmtpResponse(tag, commFd, listOf(response))
                             }
                         } catch (e: IOException) {
                             println("Could not write response: $e")
                         } catch (e: Throwable) {
                             println("Request failed with ${e.printStackTrace()}")
-                            sendImapResponse(tag, commFd, listOf("500 ERROR"))
+                            sendSmtpResponse(tag, commFd, listOf("500 ERROR"))
                         }
                     }
                 }
@@ -176,10 +183,18 @@ private fun runSmtpServer(smtpServerFactory: () -> SmtpServer) {
 
 private fun sendImapResponse(tag: String, commFd: Int, response: List<String>) {
     for (s in response) {
-        println("${timeString()} $tag S: ${s.substring(0, min(s.length, 200))}")
+        imapLog("${timeString()} $tag S: ${s.substring(0, min(s.length, 200))}")
         sendString(commFd, s + "\r\n")
     }
 }
+
+private fun sendSmtpResponse(tag: String, commFd: Int, response: List<String>) {
+    for (s in response) {
+        smtpLog("${timeString()} $tag S: ${s.substring(0, min(s.length, 200))}")
+        sendString(commFd, s + "\r\n")
+    }
+}
+
 
 private fun sendString(fd: Int, value: String) {
     val messageBuffer = value.encodeToByteArray()

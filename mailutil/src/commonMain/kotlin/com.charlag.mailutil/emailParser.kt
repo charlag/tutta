@@ -74,14 +74,16 @@ data class MimeType(val type: String, val subtype: String, val parameters: Map<S
     val fullType: String get() = "$type/$subtype"
 }
 
-fun parseEmail(text: String): ParsedEmail = EmailParser.parseEmail(text)
-fun parseMailAddress(text: String): MailAddress = EmailParser.parseMailAddress(text)
+data class ContentDisposition(val disposition: String, val parameters: Map<String, String>)
+
+fun parseEmail(text: String): ParsedEmail = EmailParserImpl.parseEmail(text)
+fun parseMailAddress(text: String): MailAddress = EmailParserImpl.parseMailAddress(text)
 
 /**
  * Holder for parser instances etc. They could be global but initialization order is still broken
  * for globals.
  */
-private object EmailParser {
+private object EmailParserImpl {
     fun parseEmail(text: String): ParsedEmail {
         val (headerPart, bodyPart) = text.split("\r\n\r\n", limit = 2)
             .also { if (it.size != 2) throw ParserError("Invalid mail, no empty line") }
@@ -90,6 +92,9 @@ private object EmailParser {
         val body = parseBody(headers, bodyPart)
         return ParsedEmail(headers, body)
     }
+
+    // Important! Take care about the field order, they depend on each other and class may fail to
+    // load if you are not careful
 
     val parseMailAddress: (String) -> MailAddress =
         (zeroOrMoreParser(characterNotParser('<')).map { it.joinToString("") } +
@@ -102,25 +107,49 @@ private object EmailParser {
             )
         }.build()
 
-    private val parseMimeType: (String) -> MimeType = run {
+    /** "optional whitespace" */
+    private val owsParser: Parser<Unit> =
+        (characterParser(' ') or characterParser('\t')).optional().throwAway()
+
+    private val tokenParser: Parser<String> = kotlin.run {
         val allowedSpecialChars =
             listOf('!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~')
-        val tokenParser = oneOrMoreParser(
+        oneOrMoreParser(
             characterInRangeParser('a'..'z') or
                     characterInRangeParser('A'..'Z') or
                     oneOfCharactersParser(digits()) or
                     oneOfCharactersParser(allowedSpecialChars)
         ).map { it.joinToString("") }
+    }
+
+    private val paramsParser: Parser<Map<String, String>> = run {
         val parameterParser =
             tokenParser + characterParser('=').throwAway() + (quotedStringParser or tokenParser)
         val owsParser = (characterParser(' ') or characterParser('\t')).optional().throwAway()
+        zeroOrMoreParser(
+            owsParser + characterParser(';').throwAway() + owsParser + parameterParser
+        ).map { it.toMap() }
+    }
+
+
+    private val parseMimeType: (String) -> MimeType = run {
+        // https://tools.ietf.org/html/rfc2045#page-12
         (tokenParser + characterParser('/').throwAway() + tokenParser +
-                zeroOrMoreParser(
-                    owsParser + characterParser(';').throwAway() + owsParser + parameterParser
-                ).map { it.toMap() })
+                paramsParser)
             .flatten()
             .map { (type, subtype, params) -> MimeType(type, subtype, params) }
             .build()
+    }
+
+    private val parseContentDisposition: (String) -> ContentDisposition = run {
+        // https://tools.ietf.org/html/rfc6266#section-4.1
+        // Disposition can be complex, we are not handling it right now
+        val dispositionTypeParser: Parser<ContentDisposition> =
+            ((wordParser("inline") or wordParser("attachment")) + owsParser + paramsParser)
+                .map { (disposition, params) ->
+                    ContentDisposition(disposition, params)
+                }
+        dispositionTypeParser.build()
     }
 
     private fun parseHeaders(text: String): Headers {
@@ -168,7 +197,7 @@ private object EmailParser {
 
     private fun processMultipartMixed(
         mimeType: MimeType,
-        text: String
+        text: String,
     ): ParsedBody {
         val boundary =
             mimeType.parameters["boundary"] ?: error("No boundary for ${mimeType.fullType}")
@@ -188,14 +217,18 @@ private object EmailParser {
                 }
                 else -> {
                     when (part.encoding) {
-                        ContentTransferEncoding.BASE64 ->
+                        ContentTransferEncoding.BASE64 -> {
+                            val filename = part.mimeType.parameters["name"]
+                                ?: part.contentDispositionName()
+                                ?: ""
                             attachments.add(
                                 ParsedAttachment(
-                                    part.mimeType.parameters["name"] ?: "",
+                                    filename,
                                     part.mimeType.fullType,
                                     part.text.decodeBase64() ?: byteArrayOf(),
                                 )
                             )
+                        }
                         else -> error("Unknown encoding: ${part.encoding}")
                     }
                 }
@@ -204,9 +237,16 @@ private object EmailParser {
         return ParsedBody(body ?: "", attachments)
     }
 
+    private fun ParsedBodyPart.contentDispositionName(): String? {
+        return headers["Content-Disposition"]
+            ?.let(parseContentDisposition)
+            ?.parameters
+            ?.get("filename")
+    }
+
     private fun parseMultipartAlternativePart(
         text: String,
-        boundary: String
+        boundary: String,
     ): List<ParsedBodyPart> {
         val parts = text.split("--$boundary")
         check(parts[0] == "") { "Text does not start with boundary" }
@@ -215,7 +255,9 @@ private object EmailParser {
         }
         // Remove first and last parts which have no content (see check above)
         return parts.subList(1, parts.lastIndex).map { partText ->
-            val (headers, body) = partText.trim().split("\r\n\r\n", limit = 2)
+            // We don't just trim because it might eat up parts of the body
+            val (headers, body) = partText.removePrefix("\r\n").removeSuffix("\r\n")
+                .split("\r\n\r\n", limit = 2)
             val headersMap = parseHeaders(headers.trim())
             ParsedBodyPart(body, headersMap)
         }

@@ -11,7 +11,11 @@ import kotlin.native.concurrent.ensureNeverFrozen
 
 
 // Fot now just a dummy server which reads data
-class SmtpServer(private val mailFacade: MailFacade, private val userController: UserController) {
+class SmtpServer(
+    private val mailFacade: MailFacade,
+    private val userController: UserController,
+    private val fileFacade: FileFacade,
+) {
 
     // That's not ideal and we should have a proper state machine instead
     private var expectingAuth: Boolean = false
@@ -119,7 +123,14 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
             val confidential = allRecipients.all { it.type == RecipientType.INTENRAL }
 
             val user = userController.user!!
-            // TODO: process files
+            val uploadedFiles = parsedEmail.parsedBody.parsedAttachments.map { file ->
+                val mailGroupId =
+                    userController.user!!.memberships
+                        .first { it.groupType == GroupType.Mail.value }
+                        .group
+                fileFacade.uploadFile(DataFile(file.name, file.mimeType, file.data), mailGroupId)
+            }
+
             val draft = mailFacade.createDraft(
                 user = user,
                 subject = parsedEmail.headers["Subject"] ?: "",
@@ -131,7 +142,7 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
                 bccRecipients = bccRecipients,
                 conversationType = ConversationType.NEW,
                 previousMessageId = null,
-                files = listOf(),
+                files = uploadedFiles,
                 confidential = confidential,
                 replyTos = listOf()
             )
