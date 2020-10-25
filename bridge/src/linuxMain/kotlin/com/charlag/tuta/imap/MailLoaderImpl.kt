@@ -2,6 +2,7 @@ package com.charlag.tuta.imap
 
 import com.charlag.tuta.FileFacade
 import com.charlag.tuta.MailDb
+import com.charlag.tuta.MailFacade
 import com.charlag.tuta.entities.Id
 import com.charlag.tuta.entities.tutanota.File
 import com.charlag.tuta.entities.tutanota.Mail
@@ -21,6 +22,7 @@ class MailLoaderImpl(
     private val api: API,
     private val mailsDb: MailDb,
     private val fileFacade: FileFacade,
+    private val mailFacade: MailFacade,
 ) : MailLoader {
 
     override fun numberOfMailsFor(folder: MailFolder): Int {
@@ -102,5 +104,11 @@ class MailLoaderImpl(
         return runBlocking {
             fileFacade.downloadFile(file)
         }.data
+    }
+
+    override fun moveMails(mails: List<Mail>, folder: MailFolder) {
+        runBlocking {
+            mailFacade.moveMails(mails.map { it.getId() }, folder.getId())
+        }
     }
 }

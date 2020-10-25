@@ -50,7 +50,6 @@ kotlin {
             languageSettings.enableLanguageFeature("InlineClasses")
         }
     }
-
 }
 
 /**

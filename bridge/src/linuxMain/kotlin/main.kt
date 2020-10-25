@@ -42,7 +42,12 @@ fun main(args: Array<String>) {
         val syncHandler = SyncHandler(dependencyDump.api, mailDb, dependencyDump.userController)
         if (!dbExists || args.contains("--resync")) syncHandler.initialSync() else syncHandler.resync()
 
-        val mailLoader = MailLoaderImpl(dependencyDump.api, mailDb, dependencyDump.fileFacade)
+        val mailLoader = MailLoaderImpl(
+            dependencyDump.api,
+            mailDb,
+            dependencyDump.fileFacade,
+            dependencyDump.mailFacade,
+        )
         val fetchHandler = FetchHandler(mailLoader)
         val searchHandler = SearchHandler(mailLoader)
 //        val mailLoader = FakeMailLoader()

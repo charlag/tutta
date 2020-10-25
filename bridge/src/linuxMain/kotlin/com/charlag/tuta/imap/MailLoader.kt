@@ -21,4 +21,5 @@ interface MailLoader {
     fun markUnread(mail: Mail, unread: Boolean)
     fun getFiles(mail: Mail): List<File>
     fun getFileData(file: File): ByteArray
+    fun moveMails(mails: List<Mail>, folder: MailFolder)
 }

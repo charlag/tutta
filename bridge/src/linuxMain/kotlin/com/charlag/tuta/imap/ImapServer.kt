@@ -52,10 +52,14 @@ class ImapServer(
         // After data is over, there's an empty line
         readingState.toRead -= size
         return if (readingState.toRead > 0) {
-            listOf("+ KEEP SENDING ${readingState.toRead}/${size}")
+            listOf("+ KEEP SENDING $size read, ${readingState.toRead} left")
         } else {
             this.readingState = null
-            println("${readingState.tag} finished reading, now size is: ${readingState.toRead}, last message is (${size}): ${message.take(200)} ")
+            println(
+                "${readingState.tag} finished reading, now size is: ${readingState.toRead}, last message is (${size}): ${
+                    message.take(200)
+                } "
+            )
             listOf(successResponse(readingState.tag, "APPEND"))
         }
     }
@@ -63,7 +67,7 @@ class ImapServer(
     private fun respondToCommand(tag: String, command: String, args: String): List<String> {
         return when (command) {
             "CAPABILITY" -> {
-                listOf("* CAPABILITY IMAP4rev1", successResponse(tag, command))
+                listOf("* CAPABILITY IMAP4rev1 MOVE", successResponse(tag, command))
             }
             "LOGIN" -> {
                 listOf(successResponse(tag, command))
@@ -105,6 +109,15 @@ class ImapServer(
                         val effectiveArgs = args.substring("store ".length)
                         handleUidStore(effectiveArgs, tag)
                     }
+                    args.startsWith("move ", ignoreCase = true) -> {
+                        val effectiveArgs = args.substring("move ".length)
+                        handleUidMove(effectiveArgs, tag, "move")
+                    }
+                    args.startsWith("copy ", ignoreCase = true) -> {
+                        val effectiveArgs = args.substring("copy ".length)
+                        // We treat them the same
+                        handleUidMove(effectiveArgs, tag, "copy")
+                    }
                     else -> {
                         listOf("$tag BAD $command $args")
                     }
@@ -130,11 +143,35 @@ class ImapServer(
                 // Noop for now
                 listOf(successResponse(tag, command))
             }
+            "EXPUNGE" -> {
+                // Ideally we should remove those we delete but it's sequential numbers so it's...
+                // tricky.
+                listOf(successResponse(tag, command))
+            }
             else -> {
                 println("# unknown command '$command'")
                 listOf("$tag BAD IDK WHAT THIS MEANS $command")
             }
         }
+    }
+
+    private fun handleUidMove(
+        effectiveArgs: String,
+        tag: String,
+        commandName: String,
+    ): List<String> {
+        val command = moveParser.build()(effectiveArgs)
+        val targetFolder = mailLoader.folders().find { it.imapName == command.mailbox }
+            ?: return listOf("NO [mailbox not found: ${command.mailbox}]")
+        val currentFolder = this.currentFolder ?: return listOf("NO [no mailbox selected]")
+        val mails = mailLoader.loadMailsByUidParam(currentFolder, command.ids)
+        mailLoader.moveMails(mails.map { it.mail }, targetFolder)
+        val uids = mails.map { it.uid }.joinToString(",")
+        // https://tools.ietf.org/html/rfc6851#section-3.3
+        // COPYUID returns UIDVALIDITY for the target folder, previous UIDs and new UIDs
+
+        // should probably send EXPUNGE here?
+        return listOf("* OK [COPYUID 1 $uids $uids]", successResponse(tag, commandName))
     }
 
     private fun handleList(args: String, tag: String, command: String): List<String> {
@@ -221,11 +258,12 @@ class ImapServer(
     private fun handleUidStore(args: String, tag: String): List<String> {
         val storeCommand = storeCommandParser.build()(args)
         val selectedFolder = currentFolder ?: return listOf("$tag NO INBOX SELECTED")
-        if (storeCommand.flags.size != 1 ||
-            !storeCommand.flags[0].equals("\\seen", ignoreCase = true)
-        ) {
-            return listOf("$tag NO not allowed to change flags")
+        val flags = storeCommand.flags.map { it.toLowerCase() }
+
+        if (flags.size != 1) {
+            return listOf("$tag NO not allowed to change multiple flags")
         }
+
         val mails = storeCommand.id.flatMap { id ->
             when (id) {
                 is IdParam.Id ->
@@ -238,14 +276,31 @@ class ImapServer(
                     return listOf("$tag NO not allowed to store with open range")
             }
         }
-        val unread = storeCommand.operation == FlagOperation.REMOVE
-        val unreadFlag = if (unread) "" else "\\SEEN"
-        val responses = mails.mapIndexed { index, mail ->
-            mailLoader.markUnread(mail.mail, unread)
-            // TODO: more flags?
-            "* ${index + 1} FETCH (UID ${mail.uid} FLAGS (${unreadFlag}))"
+        return when {
+            flags[0] == "\\seen" -> {
+                val unread = storeCommand.operation == FlagOperation.REMOVE
+                val unreadFlag = if (unread) "" else "\\SEEN"
+                val responses = mails.mapIndexed { index, mail ->
+                    mailLoader.markUnread(mail.mail, unread)
+                    // TODO: more flags?
+                    "* ${index + 1} FETCH (UID ${mail.uid} FLAGS (${unreadFlag}))"
+                }
+                responses + successResponse(tag, "store")
+            }
+            flags[0] == "\\deleted" -> {
+                mails.mapIndexed { index, mail ->
+                    val unreadFlag = if (mail.mail.unread) "" else "\\SEEN"
+                    val deletedFlag =
+                        if (storeCommand.operation == FlagOperation.ADD) "\\DELETED" else ""
+                    val flagsString = listOf(unreadFlag, deletedFlag).joinToString(" ")
+                    "${index + 1} FETCH (UID ${mail.uid} FLAGS ($flagsString)"
+                } + successResponse(tag, "store")
+            }
+            else -> {
+                println("Unknown flags to store: ${storeCommand.flags.joinToString()}")
+                listOf(successResponse(tag, "store"))
+            }
         }
-        return responses + successResponse(tag, "store")
     }
 
     private fun getFolderByImapName(name: String): MailFolder? {
@@ -258,7 +313,7 @@ class ImapServer(
 
     private inline fun requireFolder(
         tag: String,
-        block: (MailFolder) -> List<String>
+        block: (MailFolder) -> List<String>,
     ): List<String> {
         val currentFolder = this.currentFolder
         return if (currentFolder == null) {
@@ -277,6 +332,7 @@ private val MailFolder.imapName
         MailFolderType.ARCHIVE.value -> "ARCHIVE"
         MailFolderType.SPAM.value -> "JUNK"
         MailFolderType.TRASH.value -> "TRASH"
+        MailFolderType.CUSTOM.value -> this.name // do we need parent name here?
         else -> error("Unknown folder type ${this.folderType}")
     }
 
@@ -293,7 +349,7 @@ private val MailFolder.specialUse: String?
 
 fun MailLoader.loadMailsByUidParam(
     selectedFolder: MailFolder,
-    uidParam: List<IdParam>
+    uidParam: List<IdParam>,
 ): List<MailWithUid> {
     return uidParam.flatMap { id ->
         when (id) {

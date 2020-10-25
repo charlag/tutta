@@ -99,18 +99,12 @@ private fun runImapConnectionWorker(commFd: Int, imapServerFactory: () -> ImapSe
                 println("Could not send initial response $e")
             }
 
-            while (true) {
-                val received = try {
-                    readString(pinned, commFd) ?: break
-                } catch (e: IOException) {
-                    println("Could not read from the input $e")
-                    break
-                }
+            for (received in readStrings(pinned, commFd)) {
                 imapLog("${timeString()} $tag C: $received")
                 try {
                     val response = imapSever.respondTo(received)
                     sendImapResponse(tag, commFd, response)
-                } catch (e: IOException) {
+                }  catch (e: IOException) {
                     println("Could not write response: $e")
                 } catch (e: Throwable) {
                     println("Request failed with ${e.printStackTrace()}")

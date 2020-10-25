@@ -17,7 +17,7 @@ sealed class FetchAttr {
     data class Parametrized(
         val value: String,
         val sectionSpec: SectionSpec?,
-        val range: Pair<Int, Int>?
+        val range: Pair<Int, Int>?,
     ) : FetchAttr()
 }
 
@@ -111,7 +111,8 @@ val idParser: Parser<IdParam>
             .map { (start, end) -> IdParam.ClosedRange(start, end) }.named("closedRange")
         val idSingleParser = numberParser
             .map(IdParam::Id).named("single")
-        return (startOpenRangeParser or endOpenRangeParser or closedRangeParser or idSingleParser).named("idParser")
+        return (startOpenRangeParser or endOpenRangeParser or closedRangeParser or idSingleParser).named(
+            "idParser")
     }
 
 val idSeqParser: Parser<List<IdParam>>
@@ -267,7 +268,7 @@ data class StoreCommand(
     val id: List<IdParam>,
     val operation: FlagOperation,
     val silent: Boolean,
-    val flags: List<String>
+    val flags: List<String>,
 )
 
 val flagOperationParser: Parser<FlagOperation>
@@ -306,3 +307,12 @@ val storeCommandParser: Parser<StoreCommand>
         .map { (id, operation, silent, flags) ->
             StoreCommand(id, operation, silent != null, flags)
         }
+
+data class MoveCommand(val ids: List<IdParam>, val mailbox: String)
+
+val moveParser: Parser<MoveCommand>
+    get() = (idSeqParser +
+            characterParser(' ').throwAway() +
+            (quotedStringParser or
+                    oneOrMoreParser(characterNotParser(' ')).map { it.joinToString("") })
+            ).map { (id, mailbox) -> MoveCommand(id, mailbox) }.named("move")
