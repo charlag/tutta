@@ -1,5 +1,6 @@
 package com.charlag.tuta.imap
 
+import com.charlag.mailutil.*
 import com.charlag.tuta.MailFolderType
 import com.charlag.tuta.SyncHandler
 import com.charlag.tuta.entities.tutanota.MailFolder

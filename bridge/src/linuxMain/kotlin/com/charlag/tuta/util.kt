@@ -1,5 +1,7 @@
 package com.charlag.tuta
 
+import com.charlag.mailutil.toRFC3501
+import com.charlag.mailutil.toRFC822
 import com.charlag.tuta.entities.*
 import com.charlag.tuta.entities.tutanota.EncryptedMailAddress
 import com.charlag.tuta.entities.tutanota.MailAddress

@@ -4,6 +4,10 @@
     <bytecodeTargetLevel target="1.8">
       <module name="SharedCode_androidMain" target="1.6" />
       <module name="SharedCode_androidTest" target="1.6" />
+      <module name="Tuta.mailutil.commonMain" target="1.6" />
+      <module name="Tuta.mailutil.commonTest" target="1.6" />
+      <module name="Tuta.mailutil.jvmMain" target="1.6" />
+      <module name="Tuta.mailutil.jvmTest" target="1.6" />
     </bytecodeTargetLevel>
   </component>
 </project>

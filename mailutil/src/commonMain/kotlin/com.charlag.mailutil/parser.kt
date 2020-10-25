@@ -1,8 +1,9 @@
 /**
  * Small parser library.
  */
-package com.charlag.tuta.imap
+package com.charlag.mailutil
 
+import kotlin.jvm.JvmName
 import kotlin.math.max
 import kotlin.math.min
 
@@ -192,7 +193,7 @@ fun <S, T> separatedParser(separatorParser: Parser<S>, valueParser: Parser<T>): 
     }
 }
 
-fun <S, T>Parser<T>.separatedBy(parser: Parser<S>): Parser<List<T>> = separatedParser(parser, this)
+fun <S, T> Parser<T>.separatedBy(parser: Parser<S>): Parser<List<T>> = separatedParser(parser, this)
 
 /**
  * Takes two parsers and makes a new one, which will try the first parser snd when it fails it will
@@ -223,6 +224,7 @@ fun <T> Parser<T>.throwAway(): Parser<Unit> = map { }
 /**
  * Parses [this] first and then [parserB] and returns its result.
  */
+@JvmName("unitPlus")
 operator fun <B> Parser<Unit>.plus(parserB: Parser<B>): Parser<B> = { iterator ->
     this(iterator)
     parserB(iterator)
@@ -232,6 +234,7 @@ operator fun <B> Parser<Unit>.plus(parserB: Parser<B>): Parser<B> = { iterator -
 /**
  * Parses [this] first and then [parserB] and throws away its result.
  */
+@JvmName("plusUnit")
 operator fun <B> Parser<B>.plus(parserB: Parser<Unit>): Parser<B> = { iterator ->
     log("plus", iterator)
     val result = this(iterator)
@@ -242,6 +245,7 @@ operator fun <B> Parser<B>.plus(parserB: Parser<Unit>): Parser<B> = { iterator -
 /**
  * Parses [this] first and then [parserB].
  */
+@JvmName("unitPlusUnit")
 operator fun Parser<Unit>.plus(parserB: Parser<Unit>): Parser<Unit> = { iterator ->
     this(iterator)
     parserB(iterator)

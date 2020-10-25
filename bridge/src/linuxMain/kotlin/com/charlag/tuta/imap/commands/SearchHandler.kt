@@ -1,5 +1,8 @@
 package com.charlag.tuta.imap.commands
 
+import com.charlag.mailutil.SearchCriteria
+import com.charlag.mailutil.build
+import com.charlag.mailutil.searchCommandParser
 import com.charlag.tuta.entities.tutanota.MailFolder
 import com.charlag.tuta.imap.*
 import kotlinx.datetime.LocalDate

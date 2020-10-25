@@ -1,6 +1,9 @@
 package com.charlag.tuta.imap
 
 import UserController
+import com.charlag.mailutil.ParsedEmail
+import com.charlag.mailutil.parseEmail
+import com.charlag.mailutil.parseMailAddress
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.tutanota.MailAddress
 import kotlinx.coroutines.runBlocking
@@ -18,7 +21,6 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
     private val bcc = mutableListOf<MailAddress>()
     private var reading: MutableList<String>? = null
 
-    private val parseMailAddress = mailAddressParser.build()
 
     init {
         ensureNeverFrozen()
@@ -35,7 +37,6 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
                 AUTH_SUCCESS_235
             }
             reading != null -> {
-                reading!! += message
                 // TODO: we need to handle the case of the user-inputted line with dot
                 // which should look like just two dots.
                 if (message == ".") {
@@ -49,6 +50,7 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
                     }
                     "250 Ok"
                 } else {
+                    reading!! += message
                     null
                 }
             }
@@ -91,13 +93,13 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
             }
             message.startsWith("MAIL FROM:", ignoreCase = true) -> {
                 val address = parseMailAddress(message.substring("MAIL FROM:".length).trim())
-                this.from = address
+                this.from = address.toAddress()
                 OK_250
             }
             message.startsWith("RCPT TO:", ignoreCase = true) -> {
                 val address =
                     parseMailAddress(message.substring("RCPT TO:".length).trim('\r', '\n', ' '))
-                this.to += address
+                this.to += address.toAddress()
                 OK_250
             }
             message.startsWith("QUIT", ignoreCase = true) -> {
@@ -117,10 +119,11 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
             val confidential = allRecipients.all { it.type == RecipientType.INTENRAL }
 
             val user = userController.user!!
+            // TODO: process files
             val draft = mailFacade.createDraft(
                 user = user,
                 subject = parsedEmail.headers["Subject"] ?: "",
-                body = parsedEmail.body,
+                body = parsedEmail.parsedBody.text,
                 senderAddress = from!!.address,
                 senderName = from!!.name,
                 toRecipients = toRecipients,
@@ -152,5 +155,9 @@ class SmtpServer(private val mailFacade: MailFacade, private val userController:
         private const val OK_250 = "250 Ok"
         private const val SYNTAX_ERROR_IN_ARGS_501 = "501 "
         private const val COMMAND_PARAMETER_NOT_IMPLEMENTED_504 = "504 "
+    }
+
+    private fun com.charlag.mailutil.MailAddress.toAddress(): MailAddress {
+        return MailAddress(address = address, name = name, contact = null)
     }
 }

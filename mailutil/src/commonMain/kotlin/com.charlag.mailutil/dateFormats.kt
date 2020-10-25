@@ -1,4 +1,4 @@
-package com.charlag.tuta
+package com.charlag.mailutil
 
 import kotlinx.datetime.*
 import kotlin.native.concurrent.SharedImmutable

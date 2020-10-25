@@ -36,6 +36,7 @@ kotlin {
         val linuxMain by getting {
             dependencies {
                 implementation(project(":SharedCode"))
+                implementation(project(":mailutil"))
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.1.0")
             }
         }

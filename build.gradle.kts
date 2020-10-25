@@ -1,7 +1,5 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
-val kotlin_version = "1.4.0"
-
 buildscript {
     val kotlin_version by rootProject.extra("1.4.10")
     rootProject.apply {

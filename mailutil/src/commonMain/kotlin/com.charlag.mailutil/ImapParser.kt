@@ -1,7 +1,7 @@
-package com.charlag.tuta.imap
+package com.charlag.mailutil
 
-import com.charlag.tuta.monthFromName
 import kotlinx.datetime.Month
+import kotlin.jvm.JvmName
 
 fun fetchAttrNameParser(): Parser<String> =
     oneOrMoreParser(
@@ -284,6 +284,7 @@ fun <A, B, C> Parser<Pair<Pair<A, B>, C>>.flatten(): Parser<Triple<A, B, C>> {
     return map { (ab, c) -> Triple(ab.first, ab.second, c) }
 }
 
+@JvmName("flatten2")
 fun <A, B, C, D> Parser<Pair<Pair<Pair<A, B>, C>, D>>.flatten(): Parser<FourTuple<A, B, C, D>> {
     return map { (abc, d) ->
         FourTuple(abc.first.first, abc.first.second, abc.second, d)

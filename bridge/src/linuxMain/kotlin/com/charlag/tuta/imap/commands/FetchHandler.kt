@@ -1,5 +1,6 @@
 package com.charlag.tuta.imap.commands
 
+import com.charlag.mailutil.*
 import com.charlag.tuta.*
 import com.charlag.tuta.entities.tutanota.Mail
 import com.charlag.tuta.entities.tutanota.MailAddress
@@ -140,7 +141,7 @@ class FetchHandler(private val mailLoader: MailLoader) {
                     val (_, sectionSpec, range) = fetchAttr
                     sectionSpec ?: error("I don't fetch lists without spec yet!")
                     // TODO: handle partial in all of these
-                    return when (sectionSpec.section?.toUpperCase()) {
+                    return when (val section = sectionSpec.section?.toUpperCase()) {
                         // All headers
                         "HEADER" -> {
                             val headers = makeHeaders(mail, headerNames)
@@ -170,7 +171,7 @@ class FetchHandler(private val mailLoader: MailLoader) {
                         else -> {
                             // must be a part selector like "1.mime", "1.2.TEXT" or just "1"
                             val mailParts = mailToParts(mail, mailLoader.getFiles(mail))
-                            val path = sectionSpec.section.split(".")
+                            val path = section.split(".")
                             return traversePartPath(mailParts, range, path).let { data ->
                                 val rangeString =
                                     if (range != null) "<${range.first}.${range.second}>" else ""
