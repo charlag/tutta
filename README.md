@@ -96,7 +96,7 @@ Current state proves that with limited feature set it is feasible to build a nat
  - [x] Sending encrypted
  - [x] Sending unencrypted
  - [ ] All recipient fields
- - [ ] Sending attachments 
+ - [x] Sending attachments
  - [x] Marking as read/unread
  - [ ] Moving mails
  - [x] Storing credentials in keychain

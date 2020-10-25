@@ -21,12 +21,24 @@ fun runBridgeServer(imapServerFactory: () -> ImapServer, smtpServerFactory: () -
     signal(SIGPIPE, SIG_IGN)
     init_sockets()
 
+    // Currently we are using blocking I/O. This is not ideal for many reasons but also because
+    // signals like SIGTERM will not do anything to our I/O operations like recv/send. To solve
+    // this we use SO_REUSEPORT option to just take over the socket from the previous run. This
+    // might be a little bit buggy and it also allows other processed to take over the socket so
+    // it's not ideal but it works for now. poll is special and never restarts, even after signal
+    // so if we use async I/O it should solve itself.
+    // see https://stackoverflow.com/questions/16426197/how-do-i-disengage-from-accept-on-a-blocking-socket-when-signalled-from-anot
+    // see https://stackoverflow.com/questions/3582226/recv-is-not-interrupted-by-a-signal-in-multithreaded-environment
+    //
+    // We will also need to somehow notify connected clients in real time when updates come so we
+    // certainly will need to move away from our current threading model.
+
     runSmtpServer(smtpServerFactory) // Start listening on a different thread
     runImapServer(imapServerFactory) // Start listening on this thread and dispatch each connection to a new one
 }
 
 private fun imapLog(value: String) {
-//    println(value)
+    println(value)
 }
 
 private fun smtpLog(value: String) {
